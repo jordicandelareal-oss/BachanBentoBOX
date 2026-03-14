@@ -30,7 +30,8 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
   const categories = React.useMemo(() => {
     if (!type) return [];
     const source = type === 'ingredient' ? ingredients : recipes;
-    const catField = type === 'ingredient' ? 'purchase_category' : 'preparation_category';
+    // Ingredients use category_name (from JOIN), recipes use preparation_category
+    const catField = type === 'ingredient' ? 'category_name' : 'preparation_category';
     const cats = [...new Set(source.map(item => item[catField]).filter(Boolean))];
     return cats.sort();
   }, [type, ingredients, recipes]);
@@ -39,7 +40,8 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
   const filteredItems = React.useMemo(() => {
     if (step !== 3) return [];
     const source = type === 'ingredient' ? ingredients : recipes;
-    const catField = type === 'ingredient' ? 'purchase_category' : 'preparation_category';
+    // Ingredients use category_name (from JOIN), recipes use preparation_category
+    const catField = type === 'ingredient' ? 'category_name' : 'preparation_category';
     
     return source.filter(item => 
       item[catField] === category && 
@@ -51,7 +53,7 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
     <div className="sequential-selector-overlay" onClick={onClose}>
       <div className="sequential-selector-card" onClick={e => e.stopPropagation()}>
         <div className="selector-header">
-          <h3>Añadir componente</h3>
+          <h3>Añadir Ingrediente</h3>
           <button className="close-btn" onClick={onClose}><X size={20} /></button>
         </div>
 
@@ -70,7 +72,7 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
               <div className="type-grid">
                 <button className="type-option" onClick={() => handleTypeSelect('ingredient')}>
                   <Package size={24} />
-                  <span>Insumo Bruto</span>
+                  <span>Ingrediente</span>
                   <p>Productos de compra directa</p>
                 </button>
                 <button className="type-option" onClick={() => handleTypeSelect('recipe')}>

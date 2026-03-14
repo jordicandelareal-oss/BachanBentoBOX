@@ -44,8 +44,8 @@ export function useIngredients() {
         .select(`
           *,
           net_cost_per_unit,
-          purchase_category,
-          purchase_subcategory
+          categories:category_id ( name ),
+          subcategories:subcategory_id ( name )
         `)
         .order('name')
         
@@ -58,7 +58,14 @@ export function useIngredients() {
         console.warn("⚠️ [Supabase] La tabla 'ingredients' está vacía o el RLS bloquea el acceso.");
       }
 
-      setIngredients(data)
+      // Flatten the joined category/subcategory names to top-level fields
+      const mapped = (data || []).map(ing => ({
+        ...ing,
+        category_name: ing.categories?.name || null,
+        subcategory_name: ing.subcategories?.name || null,
+      }));
+
+      setIngredients(mapped)
     } catch (err) {
       setError(err.message || "Error desconocido al conectar con Supabase")
       console.error('❌ [Critical Error] fetchIngredients:', err)

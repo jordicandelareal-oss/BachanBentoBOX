@@ -197,7 +197,7 @@ function PreparationEditor({ recipe, onClose }) {
             <Package size={18} /> Componentes
           </h3>
           <button className="btn-add-item-small" onClick={() => setShowSelector(true)}>
-            <Plus size={14} /> Añadir componente
+            <Plus size={14} /> Añadir Ingrediente
           </button>
         </div>
 
@@ -207,28 +207,29 @@ function PreparationEditor({ recipe, onClose }) {
           ) : (
             <div className="space-y-3">
               {items.map(item => (
-                <div key={item._key} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="flex-1">
-                    <div className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <div key={item._key} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                  <div className="flex-1" style={{ flex: 1 }}>
+                    <div className="font-bold text-slate-800 text-sm flex items-center gap-2" style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {item.type === 'ingredient' ? <Package size={12} className="text-slate-400" /> : <Utensils size={12} className="text-slate-400" />}
                       {item.name}
                     </div>
-                    <div className="text-[10px] text-slate-400">{(item.costPerUnit * 1000).toFixed(2)}€/kg</div>
+                    <div className="text-[10px] text-slate-400" style={{ fontSize: '10px', color: '#94a3b8' }}>{(item.costPerUnit * 1000).toFixed(2)}€/kg</div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2">
+                  <div className="flex items-center gap-3" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2" style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0 8px' }}>
                       <input 
                         type="number" 
                         value={item.quantity} 
                         onChange={e => updateItemQuantity(item._key, e.target.value)}
                         className="w-16 text-right py-1 text-sm font-bold outline-none"
+                        style={{ width: '64px', textAlign: 'right', padding: '4px 0', fontSize: '14px', fontWeight: 'bold', outline: 'none', border: 'none' }}
                       />
-                      <span className="text-[10px] font-bold text-slate-400 px-1">{item.unit}</span>
+                      <span className="text-[10px] font-bold text-slate-400 px-1" style={{ fontSize: '10px', fontWeight: 'bold', color: '#94a3b8', padding: '0 4px' }}>{item.unit}</span>
                     </div>
-                    <div className="w-16 text-right font-black text-slate-900 text-sm">
+                    <div className="w-16 text-right font-black text-slate-900 text-sm" style={{ width: '64px', textAlign: 'right', fontWeight: '900', color: '#0f172a', fontSize: '14px' }}>
                       {(item.costPerUnit * item.quantity).toFixed(2)}€
                     </div>
-                    <button onClick={() => removeItem(item._key)} className="text-slate-300 hover:text-red-500 transition-colors">
+                    <button onClick={() => removeItem(item._key)} className="text-slate-300 hover:text-red-500 transition-colors" style={{ color: '#cbd5e1', cursor: 'pointer', background: 'none', border: 'none' }}>
                       <X size={16} />
                     </button>
                   </div>
