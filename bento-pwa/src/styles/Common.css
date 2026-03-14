@@ -1,0 +1,106 @@
+/* Estilos compartidos para mantener la coherencia visual en toda la PWA */
+
+.page-container {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-brand);
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+  margin-top: 4px;
+}
+
+.card-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.premium-card {
+  background: white;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.premium-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.card-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+  transition: all 0.2s;
+}
+
+.premium-card:hover .card-icon-wrapper {
+  background: var(--color-brand);
+  color: white;
+}
+
+.card-title {
+  font-weight: 700;
+  color: var(--color-text);
+  font-size: 1.1rem;
+}
+
+.card-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.price-display {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--color-brand);
+  text-align: right;
+}
+
+.btn-icon-main {
+  width: 48px;
+  height: 48px;
+  background: var(--color-brand);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
+  transition: transform 0.2s;
+}
+
+.btn-icon-main:hover {
+  transform: scale(1.1);
+}

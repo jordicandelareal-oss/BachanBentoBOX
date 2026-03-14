@@ -28,7 +28,7 @@ export function useRecipes(type = null) {
       
       let query = supabase
         .from('view_recipe_costs_detailed')
-        .select('*')
+        .select('*, preparation_category')
         .order('name')
         
       if (type) {

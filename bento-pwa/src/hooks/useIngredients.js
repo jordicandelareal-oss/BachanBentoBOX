@@ -43,7 +43,9 @@ export function useIngredients() {
         .from('ingredients')
         .select(`
           *,
-          net_cost_per_unit
+          net_cost_per_unit,
+          purchase_category,
+          purchase_subcategory
         `)
         .order('name')
         
