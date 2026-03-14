@@ -44,18 +44,22 @@ export function useRecipes(type = null) {
       let costsData = []
       if (recipeIds.length > 0) {
         const { data, error: costsError } = await supabase
-          .from('view_recipe_costs_detailed')
-          .select('id, cost_per_portion')
-          .in('id', recipeIds)
+          .from('view_recipe_costs')
+          .select('recipe_id, cost_per_portion')
+          .in('recipe_id', recipeIds)
           
-        if (costsError) throw costsError
-        costsData = data || []
+        if (costsError) {
+          console.error('[Supabase] Error fetching costs view:', costsError)
+          // Don't throw, let it fail gracefully so recipes still load
+        } else {
+          costsData = data || []
+        }
       }
 
       // Merge data
       const merged = recipesData.map(recipe => ({
         ...recipe,
-        cost_per_portion: costsData.find(c => c.id === recipe.id)?.cost_per_portion || 0
+        cost_per_portion: costsData.find(c => c.recipe_id === recipe.id)?.cost_per_portion || 0
       }))
       
       setRecipes(merged)
