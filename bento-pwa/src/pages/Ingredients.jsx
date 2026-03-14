@@ -104,7 +104,7 @@ export default function Ingredients() {
                 <div>
                   <h3 className="card-title">{ingredient.name}</h3>
                   <p className="card-meta">
-                    {ingredient.unit_id || 'unid'} · {ingredient.category_name || 'Sin categoría'}
+                    {ingredient.unit_name || 'unid'} · {ingredient.category_name || 'Sin categoría'}
                   </p>
                 </div>
               </div>

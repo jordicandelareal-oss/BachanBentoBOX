@@ -45,7 +45,8 @@ export function useIngredients() {
           *,
           net_cost_per_unit,
           categories:category_id ( name ),
-          subcategories:subcategory_id ( name )
+          subcategories:subcategory_id ( name ),
+          units:unit_id ( name )
         `)
         .order('name')
         
@@ -63,6 +64,7 @@ export function useIngredients() {
         ...ing,
         category_name: ing.categories?.name || null,
         subcategory_name: ing.subcategories?.name || null,
+        unit_name: ing.units?.name || null,
       }));
 
       setIngredients(mapped)
