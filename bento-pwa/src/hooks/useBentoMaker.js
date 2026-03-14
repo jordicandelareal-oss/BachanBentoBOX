@@ -53,14 +53,14 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
 
     // 2. Prepare items for recipe_ingredients
     const riData = items.map(item => ({
-      parent_recipe_id: recipeId,
+      recipe_id: recipeId,
       ingredient_id: item.type === 'ingredient' ? item.id : null,
       child_recipe_id: item.type === 'recipe' ? item.id : null,
       quantity: item.quantity
     }))
 
     // 3. Clear old items and insert new ones
-    await supabase.from('recipe_ingredients').delete().eq('parent_recipe_id', recipeId)
+    await supabase.from('recipe_ingredients').delete().eq('recipe_id', recipeId)
     const { error: riErr } = await supabase.from('recipe_ingredients').insert(riData)
 
     if (riErr) throw riErr
@@ -76,7 +76,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
         ingredient:ingredients(id, name, purchase_price, unit_id),
         child_recipe:recipes(id, name, portions)
       `)
-      .eq('parent_recipe_id', recipeId)
+      .eq('recipe_id', recipeId)
 
     if (error) throw error
 

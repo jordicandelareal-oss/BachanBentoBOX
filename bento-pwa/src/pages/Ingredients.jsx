@@ -10,12 +10,12 @@ export default function Ingredients() {
   const [updatingId, setUpdatingId] = useState(null);
   const [activeCategory, setActiveCategory] = useState('Todos');
 
-  // Unique purchase categories
-  const categories = ['Todos', ...new Set(ingredients.map(ing => ing.purchase_category).filter(Boolean))];
+  // Unique categories from the JOIN with the categories table
+  const categories = ['Todos', ...new Set(ingredients.map(ing => ing.category_name).filter(Boolean))].sort((a, b) => a === 'Todos' ? -1 : a.localeCompare(b));
 
   const filteredIngredients = ingredients.filter(ing => {
     const matchesSearch = ing.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = activeCategory === 'Todos' || ing.purchase_category === activeCategory;
+    const matchesCategory = activeCategory === 'Todos' || ing.category_name === activeCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -104,7 +104,7 @@ export default function Ingredients() {
                 <div>
                   <h3 className="card-title">{ingredient.name}</h3>
                   <p className="card-meta">
-                    {ingredient.unit_id || 'unid'} · {ingredient.purchase_category || 'Sin categoría'}
+                    {ingredient.unit_id || 'unid'} · {ingredient.category_name || 'Sin categoría'}
                   </p>
                 </div>
               </div>
