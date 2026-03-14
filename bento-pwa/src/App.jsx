@@ -8,6 +8,7 @@ import Ingredients from './pages/Ingredients'
 import Recipes from './pages/Recipes'
 import BentoPage from './pages/BentoPage'
 import SplashScreen from './components/SplashScreen'
+import './styles/theme.css'
 import './styles/animations.css'
 
 // Removed PrivateRoute component
