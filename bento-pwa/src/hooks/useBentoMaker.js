@@ -1,14 +1,14 @@
 import { useState, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export function useBentoMaker(initialRecipe = null) {
+export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   const [bentoName, setBentoName] = useState(initialRecipe?.name || '')
   const [salePrice, setSalePrice] = useState(initialRecipe?.sale_price || 0)
   const [portions, setPortions] = useState(initialRecipe?.portions || 1)
   
   // Items can be ingredients or sub-recipes
   // { id, type: 'ingredient'|'recipe', name, costPerUnit, quantity, unit }
-  const [items, setItems] = useState([])
+  const [items, setItems] = useState(initialRecipe?.items || [])
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -32,15 +32,15 @@ export function useBentoMaker(initialRecipe = null) {
   }
 
   const saveBento = async () => {
-    if (!bentoName) throw new Error("Debes darle un nombre al Bento")
+    if (!bentoName) throw new Error("Debes darle un nombre")
     
     // 1. Upsert Recipe
     const { data: recipeData, error: recipeErr } = await supabase
       .from('recipes')
       .upsert({ 
         name: bentoName, 
-        recipe_type: 'bento',
-        sale_price: salePrice,
+        recipe_type: recipeType,
+        sale_price: recipeType === 'elaboracion' ? 0 : salePrice,
         portions: portions
       }, { onConflict: 'name' })
       .select()
@@ -67,12 +67,42 @@ export function useBentoMaker(initialRecipe = null) {
     return recipeData
   }
 
+  const loadRecipeItems = async (recipeId) => {
+    const { data, error } = await supabase
+      .from('recipe_ingredients')
+      .select(`
+        quantity,
+        ingredient:ingredients(id, name, purchase_price, unit_id),
+        child_recipe:recipes(id, name, portions)
+      `)
+      .eq('parent_recipe_id', recipeId)
+
+    if (error) throw error
+
+    const loadedItems = data.map(ri => {
+      const isIngredient = !!ri.ingredient
+      const item = isIngredient ? ri.ingredient : ri.child_recipe
+      return {
+        _key: Math.random().toString(36).substring(7),
+        type: isIngredient ? 'ingredient' : 'recipe',
+        id: item.id,
+        name: item.name,
+        costPerUnit: isIngredient ? (item.purchase_price / 1000) : 0, // Simplified for now
+        unit: isIngredient ? item.unit_id : 'rac',
+        quantity: ri.quantity
+      }
+    })
+    setItems(loadedItems)
+  }
+
   return {
     bentoName, setBentoName,
     salePrice, setSalePrice,
     portions, setPortions,
     items, addItem, updateItemQuantity, removeItem,
     totals,
-    saveBento
+    saveBento,
+    loadRecipeItems,
+    setItems
   }
 }
