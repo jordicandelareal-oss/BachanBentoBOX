@@ -1,0 +1,147 @@
+.ingredients-container {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.ingredients-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.ingredients-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-brand);
+}
+
+.search-wrapper {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: white;
+  font-size: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.ingredients-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.ingredient-card {
+  background: white;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ingredient-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.ingredient-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ingredient-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+}
+
+.ingredient-card:hover .ingredient-icon {
+  background: var(--color-brand);
+  color: white;
+}
+
+.ingredient-name {
+  font-weight: 700;
+  color: var(--color-text);
+  font-size: 1.1rem;
+}
+
+.ingredient-unit {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.ingredient-price-area {
+  text-align: right;
+}
+
+.ingredient-price {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--color-brand);
+}
+
+.btn-edit-price {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.btn-edit-price:hover {
+  background: var(--color-bg);
+}
+
+.btn-add-main {
+  width: 48px;
+  height: 48px;
+  background: var(--color-brand);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
+  transition: transform 0.2s;
+}
+
+.btn-add-main:hover {
+  transform: scale(1.1);
+}
