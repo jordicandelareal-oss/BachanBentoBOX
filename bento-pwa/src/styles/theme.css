@@ -1,0 +1,104 @@
+:root {
+  /* Ported from mobile theme.js */
+  --color-brand: #0f172a;    /* Deep Navy */
+  --color-accent: #0ea5e9;   /* Sky Blue */
+  --color-bg: #f8fafc;       /* Slate 50 */
+  --color-surface: rgba(255, 255, 255, 0.95);
+  --color-text: #1e293b;
+  --color-text-light: #64748b;
+  --color-danger: #ef4444;
+  --color-border: #e2e8f0;
+  --color-bachan-brown: #3d2b1f; /* Custom BaChan Brown for Nana */
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.08);
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-wrapper {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.seigaiha-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('https://www.transparenttextures.com/patterns/seigaiha.png');
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.container {
+  width: 100%;
+  max-width: 600px; /* Mobile centric max-width */
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.nav-header {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav-content {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-brand {
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--color-brand);
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 16px;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: var(--color-text-light);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.nav-link.active {
+  color: var(--color-accent);
+}
+
+.main-content {
+  flex: 1;
+  padding: 32px 0;
+}

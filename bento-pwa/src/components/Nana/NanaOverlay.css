@@ -1,0 +1,234 @@
+.nana-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--color-bachan-brown);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nana-overlay.visible {
+  transform: translateY(0);
+}
+
+.nana-overlay.error {
+  background-color: #501414;
+}
+
+.close-btn {
+  position: absolute;
+  top: 50px;
+  right: 25px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 10px;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: white;
+}
+
+.overlay-content {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.avatar-container {
+  position: relative;
+  margin-bottom: 30px;
+}
+
+.logo-border {
+  width: 130px;
+  height: 130px;
+  padding: 10px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo-border.spinning {
+  animation: rotateBorder 3s linear infinite;
+  border-color: var(--color-accent);
+}
+
+.logo-border.error-border {
+  border-color: var(--color-danger);
+}
+
+.nana-avatar-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.status-badge {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background-color: var(--color-accent);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid var(--color-bachan-brown);
+}
+
+.status-badge.error-bg {
+  background-color: var(--color-danger);
+}
+
+.status-text {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 30px;
+  text-align: center;
+  letter-spacing: 0.1rem;
+}
+
+.text-error {
+  color: #fca5a5;
+}
+
+.response-container {
+  width: 100%;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  margin-bottom: 30px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.response-error {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.response-text {
+  color: white;
+  font-size: 1rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.thinking-dots {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 30px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: pulse 1s infinite ease-in-out;
+}
+
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+.input-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.text-input-wrapper {
+  width: 100%;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 5px 0 20px;
+}
+
+.nana-input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.nana-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.send-btn {
+  width: 46px;
+  height: 46px;
+  background: var(--color-accent);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.mic-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.mic-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mic-btn.active {
+  background: var(--color-accent);
+  border-color: white;
+  animation: pulse 1.5s infinite;
+}
+
+.mic-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.mic-hint {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05rem;
+}
