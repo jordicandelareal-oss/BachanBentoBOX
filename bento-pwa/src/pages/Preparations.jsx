@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useRecipes } from '../hooks/useRecipes';
-import { useBentoMaker } from '../hooks/useBentoMaker';
+import { useBentoMaker, normalizeUnit } from '../hooks/useBentoMaker';
 import { useIngredients } from '../hooks/useIngredients';
 import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import SequentialSelector from '../components/Common/SequentialSelector';
@@ -126,7 +126,7 @@ function PreparationEditor({ recipe, onClose }) {
         ? (item.net_cost_per_unit || (item.purchase_price / 1000))
         : (item.cost_per_portion || 0),
       // Use unit_name from database or default to 'g' (sometimes ingredients miss units)
-      unit: item.type === 'ingredient' ? (item.unit_name || 'g') : 'uni',
+      unit: item.type === 'ingredient' ? normalizeUnit(item.unit_name) : 'rac',
       quantity: item.type === 'ingredient' ? 100 : 1
     });
     setShowSelector(false);

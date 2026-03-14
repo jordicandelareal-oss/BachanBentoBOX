@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useBentoMaker } from '../../hooks/useBentoMaker';
+import { useBentoMaker, normalizeUnit } from '../../hooks/useBentoMaker';
 import { useIngredients } from '../../hooks/useIngredients';
 import { useRecipes } from '../../hooks/useRecipes';
 import { 
@@ -35,7 +35,7 @@ export default function BentoMaker() {
         ? (item.net_cost_per_unit || (item.purchase_price / 1000))
         : (item.cost_per_portion || 0),
       // Use unit_name from database or default to 'g' (sometimes ingredients miss units)
-      unit: item.type === 'ingredient' ? (item.unit_name || 'g') : 'uni',
+      unit: item.type === 'ingredient' ? normalizeUnit(item.unit_name) : 'rac',
       quantity: item.type === 'ingredient' ? 100 : 1
     });
     setShowSelector(false);
