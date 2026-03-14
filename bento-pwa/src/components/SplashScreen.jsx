@@ -62,8 +62,6 @@ export default function SplashScreen({ onFinish }) {
     setTimeout(() => {
       onFinish();
     }, 800); 
-  };
- Lago
 
   return (
     <div 
