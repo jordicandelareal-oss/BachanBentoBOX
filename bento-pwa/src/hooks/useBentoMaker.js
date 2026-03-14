@@ -73,7 +73,10 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
       .from('recipe_ingredients')
       .select(`
         quantity,
-        ingredient:ingredients(id, name, purchase_price, unit_id),
+        ingredient:ingredients(
+          id, name, purchase_price, unit_id,
+          units:unit_id(name)
+        ),
         child_recipe:recipes(id, name, portions)
       `)
       .eq('recipe_id', recipeId)
@@ -89,7 +92,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
         id: item.id,
         name: item.name,
         costPerUnit: isIngredient ? (item.purchase_price / 1000) : 0, // Simplified for now
-        unit: isIngredient ? item.unit_id : 'rac',
+        unit: isIngredient ? (item.units?.name || 'g') : 'rac',
         quantity: ri.quantity
       }
     })

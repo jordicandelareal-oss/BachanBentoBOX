@@ -125,7 +125,8 @@ function PreparationEditor({ recipe, onClose }) {
       costPerUnit: item.type === 'ingredient' 
         ? (item.net_cost_per_unit || (item.purchase_price / 1000))
         : (item.cost_per_portion || 0),
-      unit: item.type === 'ingredient' ? (item.unit_id || 'g') : 'uni',
+      // Use unit_name from database or default to 'g' (sometimes ingredients miss units)
+      unit: item.type === 'ingredient' ? (item.unit_name || 'g') : 'uni',
       quantity: item.type === 'ingredient' ? 100 : 1
     });
     setShowSelector(false);
