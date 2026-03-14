@@ -26,19 +26,39 @@ export function useRecipes(type = null) {
     try {
       setLoading(true)
       
-      let query = supabase
-        .from('view_recipe_costs_detailed')
-        .select('*, preparation_category')
+      let recipesQuery = supabase
+        .from('recipes')
+        .select('*')
         .order('name')
         
       if (type) {
-        query = query.eq('recipe_type', type)
+        recipesQuery = recipesQuery.eq('recipe_type', type)
       }
 
-      const { data, error } = await query
-      if (error) throw error
+      const { data: recipesData, error: recipesError } = await recipesQuery
+      if (recipesError) throw recipesError
+
+      // Fetch costs from the view
+      const recipeIds = recipesData.map(r => r.id)
       
-      setRecipes(data)
+      let costsData = []
+      if (recipeIds.length > 0) {
+        const { data, error: costsError } = await supabase
+          .from('view_recipe_costs_detailed')
+          .select('id, cost_per_portion')
+          .in('id', recipeIds)
+          
+        if (costsError) throw costsError
+        costsData = data || []
+      }
+
+      // Merge data
+      const merged = recipesData.map(recipe => ({
+        ...recipe,
+        cost_per_portion: costsData.find(c => c.id === recipe.id)?.cost_per_portion || 0
+      }))
+      
+      setRecipes(merged)
     } catch (err) {
       setError(err.message)
       console.error('Error fetching recipes:', err)
