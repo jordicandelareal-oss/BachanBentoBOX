@@ -1,6 +1,15 @@
 import { useState, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
+export const normalizeUnit = (unit) => {
+  if (!unit) return 'g';
+  const u = unit.toLowerCase().trim();
+  if (['kg', 'kilo', 'kilos'].includes(u)) return 'g';
+  if (['l', 'litro', 'litros'].includes(u)) return 'ml';
+  if (['ud', 'unid', 'unidad', 'unidades', 'rac', 'racion', 'uni'].includes(u)) return 'ud';
+  return unit;
+}
+
 export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   const [bentoName, setBentoName] = useState(initialRecipe?.name || '')
   const [salePrice, setSalePrice] = useState(initialRecipe?.sale_price || 0)
@@ -77,7 +86,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
           id, name, purchase_price, unit_id,
           units:unit_id(name)
         ),
-        child_recipe:recipes(id, name, portions)
+        child_recipe:recipes!recipe_ingredients_child_recipe_id_fkey(id, name, portions)
       `)
       .eq('recipe_id', recipeId)
 
@@ -92,7 +101,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
         id: item.id,
         name: item.name,
         costPerUnit: isIngredient ? (item.purchase_price / 1000) : 0, // Simplified for now
-        unit: isIngredient ? (item.units?.name || 'g') : 'rac',
+        unit: normalizeUnit(isIngredient ? (item.units?.name || 'g') : 'rac'),
         quantity: ri.quantity
       }
     })
