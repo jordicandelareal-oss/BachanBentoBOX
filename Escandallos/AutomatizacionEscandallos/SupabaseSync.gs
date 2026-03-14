@@ -132,10 +132,30 @@ function handleNanaSyncAction(actionJson) {
       // This is handled in executeAiAction for now, but we can move it here if needed
       break;
       
+    case 'UPSERT_PREFERENCE':
+      success = upsertToSupabase('user_preferences', { key: data.key, value: data.value }, 'key');
+      break;
+      
     default:
       Logger.log("Nana action not handled: " + action);
       break;
   }
 
   return success;
+}
+
+/**
+ * Fetches all user preferences from Supabase.
+ * @returns {Object} Key-value pairs of preferences.
+ */
+function fetchUserPreferences() {
+  try {
+    const data = callSupabase("user_preferences?select=key,value", "GET");
+    const prefs = {};
+    data.forEach(p => prefs[p.key] = p.value);
+    return prefs;
+  } catch (e) {
+    Logger.log("⚠️ Error fetching user preferences: " + e.message);
+    return {};
+  }
 }

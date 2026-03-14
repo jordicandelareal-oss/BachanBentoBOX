@@ -10,7 +10,7 @@ function getGeminiApiKey() {
   return key;
 }
 
-function callGemini(prompt, audioData = null) {
+function callGemini(prompt, audioData = null, imageData = null) {
   const apiKey = getGeminiApiKey();
   const model = "gemini-2.0-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -89,27 +89,99 @@ function callGemini(prompt, audioData = null) {
           },
           required: ["name", "portions", "ingredients"]
         }
+      },
+      {
+        name: "upsert_user_preference",
+        description: "Guarda o actualiza una preferencia del usuario (moneda, alergias, margen de rinde, etc).",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            key: { type: "string", description: "Clave de la preferencia (ej: 'moneda', 'alergias')." },
+            value: { type: "string", description: "Valor de la preferencia (ej: 'USD', 'mani')." }
+          },
+          required: ["key", "value"]
+        }
+      },
+      {
+        name: "get_user_preferences",
+        description: "Recupera todas las preferencias del usuario guardadas.",
+        parameters: {
+          type: "OBJECT",
+          properties: {}
+        }
+      },
+      {
+        name: "process_purchase_ticket",
+        description: "Analiza una imagen de un ticket o factura de compra para extraer productos y precios.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            summary: { type: "string", description: "Resumen breve de la compra (comercio y fecha)." },
+            matches: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  name: { type: "string", description: "Nombre del producto en el ticket." },
+                  unit_price: { type: "number", description: "Precio unitario detectado." },
+                  quantity: { type: "number", description: "Cantidad comprada." }
+                }
+              }
+            },
+            suggestions: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  name: { type: "string", description: "Nombre del producto en el ticket." },
+                  suggested_name: { type: "string", description: "Nombre del producto existente sugerido." },
+                  unit_price: { type: "number", description: "Precio unitario detectado." },
+                  quantity: { type: "number", description: "Cantidad comprada." }
+                }
+              }
+            },
+            new_items: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  name: { type: "string", description: "Nombre del producto nuevo." },
+                  unit_price: { type: "number", description: "Precio unitario." },
+                  suggested_category: { type: "string", description: "Categoría sugerida." }
+                }
+              }
+            }
+          },
+          required: ["summary"]
+        }
       }
     ]
   }];
 
-  const systemPrompt = `Eres BACHAN, el cerebro inteligente de BaChan Bento Box.
+  const systemPrompt = `Eres NANA, el cerebro inteligente, con memoria y visión de BaChan Bento Box.
       Tu objetivo es gestionar la cocina, inventarios y rentabilidad con precisión y rapidez.
       
       PERSONALIDAD:
       - Profesional, experta y directa. 
       - Tono cálido pero eficiente.
+      - TIENES MEMORIA: Usa 'upsert_user_preference' para recordar gustos o reglas.
+      - EMPATÍA: Menciona explícitamente cuando uses la memoria ("Como sé que...").
+      
+      VISIÓN (SISTEMA DE RECONCILIACIÓN):
+      - Si el usuario sube una imagen, es un ticket de compra.
+      - Usa 'process_purchase_ticket' para categorizar el inventario:
+        1. 'matches': Coincidencias exactas (>90% similitud).
+        2. 'suggestions': Productos parecidos. Indica 'suggested_name' de la base de datos.
+        3. 'new_items': Productos totalmente desconocidos.
+      - PRIORIZACIÓN: En tickets largos, procesa los 10 productos más importantes/caros.
+      - REGLA DE ORO: NO actualices precios automáticamente. Presenta el JSON para validación humana.
       
       IDIOMAS:
       - Español y Japonés.
       
-      REGLAS CRÍTICAS:
-      1. Usa los datos de "CONTEXTO DE DESPENSA REAL" para responder.
-      2. Si el usuario te da un dato nuevo (como un precio), usa la herramienta correspondiente.
-      3. No inventes IDs de unidad. Usa solo los proporcionados en la descripción de las herramientas.
-      4. Si falta información para una herramienta, pídela con naturalidad.
-      
       PARA LA VOZ:
+      - Nana debe hablar al inicio: "Dáme un momento para ver este ticket...".
+      - Nana debe hablar al final solo si hay dudas: "He terminado, pero tengo un par de dudas con unos ingredientes, ¿me ayudas?".
       - Evita símbolos técnicos (% se dice 'por ciento', € se dice 'euros').
       - Sé natural, como si hablaras en la cocina.`;
 
@@ -119,6 +191,15 @@ function callGemini(prompt, audioData = null) {
       inlineData: {
         mimeType: audioData.mimeType || "audio/mp4",
         data: audioData.base64
+      }
+    });
+  }
+  
+  if (imageData && imageData.base64) {
+    userParts.push({
+      inlineData: {
+        mimeType: imageData.mimeType || "image/jpeg",
+        data: imageData.base64
       }
     });
   }
@@ -163,6 +244,10 @@ function callGemini(prompt, audioData = null) {
       }
     });
 
+    if (json.usageMetadata) {
+      logTokenUsage(json.usageMetadata);
+    }
+
     return {
       response: textResponse,
       toolCalls: toolCalls
@@ -191,4 +276,17 @@ function debugListModels() {
   const response = UrlFetchApp.fetch(url, options);
   Logger.log(response.getContentText());
   return response.getContentText();
+}
+
+/**
+ * Logs token usage for monitoring and efficiency analysis.
+ */
+function logTokenUsage(metadata) {
+  const { promptTokenCount, candidatesTokenCount, totalTokenCount } = metadata;
+  console.info(`[TOKEN_MONITOR] Prompt: ${promptTokenCount} | Response: ${candidatesTokenCount} | Total: ${totalTokenCount}`);
+  
+  // Guardamos un histórico ligero en propiedades por si queremos ver el acumulado semanal
+  const props = PropertiesService.getScriptProperties();
+  const currentTotal = parseInt(props.getProperty('TOTAL_TOKENS_CONSUMED') || "0");
+  props.setProperty('TOTAL_TOKENS_CONSUMED', (currentTotal + totalTokenCount).toString());
 }

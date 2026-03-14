@@ -212,7 +212,7 @@ function getInsumosData() {
 /**
  * Handle Assistant Commands
  */
-function processAssistantCommand(userText, audioData = null) {
+function processAssistantCommand(userText, audioData = null, imageData = null) {
   try {
     let context = "";
     try {
@@ -276,7 +276,28 @@ function processAssistantCommand(userText, audioData = null) {
       context = "\n\nAVISO: No se puede acceder a los precios ahora mismo (Error: " + e.message + ")";
     }
 
-    const geminiResult = callGemini(userText + context, audioData);
+    // --- ESTRATEGIA 3: Preferencias del Usuario (Memoria a Largo Plazo) ---
+    let prefsContext = "";
+    try {
+      const prefs = fetchUserPreferences();
+      const keys = Object.keys(prefs);
+      if (keys.length > 0) {
+        // Optimización: Si hay más de 50, solo inyectamos las últimas 20 para evitar desbordar el prompt
+        let finalKeys = keys;
+        if (keys.length > 50) {
+          finalKeys = keys.slice(-20);
+          console.log(`Optimización de Prompt: Limitando de ${keys.length} a 20 preferencias.`);
+        }
+        
+        prefsContext = "\n\nPREFERENCIAS DEL USUARIO (MEMORIA):\n" + 
+          finalKeys.map(k => `- ${k}: ${prefs[k]}`).join("\n");
+        console.log("Contexto de preferencias cargado.");
+      }
+    } catch (e) {
+      console.warn("Could not fetch preferences", e);
+    }
+
+    const geminiResult = callGemini(userText + context + prefsContext, audioData, imageData);
     const { response, toolCalls } = geminiResult;
     
     let actionResultsText = "";
@@ -296,7 +317,9 @@ function processAssistantCommand(userText, audioData = null) {
           'addIngredient': 'ADD_INGREDIENT',
           'getRecipe': 'GET_RECIPE',
           'createRecipe': 'CREATE_RECIPE',
-          'checkProfitability': 'CHECK_PROFITABILITY'
+          'checkProfitability': 'CHECK_PROFITABILITY',
+          'upsert_user_preference': 'UPSERT_PREFERENCE',
+          'process_purchase_ticket': 'PROCESS_TICKET'
         }[tc.name];
 
         const actionData = {
@@ -320,9 +343,26 @@ function processAssistantCommand(userText, audioData = null) {
       console.warn("Error generando audio Google TTS:", e);
     }
     
+    let firstAction = null;
+    if (toolCalls && toolCalls.length > 0) {
+      const tc = toolCalls[0];
+      const renamedAction = {
+        'updatePrice': 'UPDATE_PRICE',
+        'addIngredient': 'ADD_INGREDIENT',
+        'getRecipe': 'GET_RECIPE',
+        'createRecipe': 'CREATE_RECIPE',
+        'checkProfitability': 'CHECK_PROFITABILITY',
+        'upsert_user_preference': 'PREFERENCE_UPDATED',
+        'process_purchase_ticket': 'TICKET_PROCESSED'
+      }[tc.name];
+      
+      firstAction = { action: renamedAction, data: tc.args };
+    }
+
     return { 
       message: response + actionResultsText, 
-      audio: audioOutput 
+      audio: audioOutput,
+      action: firstAction
     };
   } catch (err) {
     console.error("Error in processAssistantCommand:", err);
@@ -335,7 +375,7 @@ function doPost(e) {
     const postData = JSON.parse(e.postData.contents);
     
     if (postData.action === 'assistant') {
-      const result = processAssistantCommand(postData.text, postData.audio);
+      const result = processAssistantCommand(postData.text, postData.audio, postData.image);
       return ContentService.createTextOutput(JSON.stringify(result))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -498,6 +538,44 @@ function validateToolArgs(toolName, args) {
           }));
         }
         break;
+
+      case 'upsert_user_preference':
+        if (!args.key || typeof args.key !== 'string') {
+          result.isValid = false;
+          result.error = "La clave de la preferencia es obligatoria.";
+        } else {
+          result.sanitizedArgs.key = sanitize(args.key);
+        }
+        if (args.value === undefined) {
+          result.isValid = false;
+          result.error = "El valor de la preferencia es obligatorio.";
+        } else {
+          result.sanitizedArgs.value = typeof args.value === 'string' ? sanitize(args.value) : args.value;
+        }
+        break;
+
+      case 'get_user_preferences':
+        // No args needed
+        break;
+
+      case 'process_purchase_ticket':
+        if (!args.summary || typeof args.summary !== 'string') {
+          result.isValid = false;
+          result.error = "El resumen del ticket es obligatorio.";
+        } else {
+          result.sanitizedArgs.summary = sanitize(args.summary);
+        }
+        if (!args.products || !Array.isArray(args.products)) {
+          result.isValid = false;
+          result.error = "La lista de productos es obligatoria.";
+        } else {
+          result.sanitizedArgs.products = args.products.map(p => ({
+            name: sanitize(p.name),
+            unit_price: parseFloat(p.unit_price) || 0,
+            quantity: parseFloat(p.quantity) || 1
+          }));
+        }
+        break;
     }
   } catch (e) {
     result.isValid = false;
@@ -510,6 +588,11 @@ function validateToolArgs(toolName, args) {
 function executeAiAction(action) {
   try {
     const success = handleNanaSyncAction(action);
+    
+    // Seguimiento de cambios para backups inteligentes
+    if (success) {
+      trackStructuralChange();
+    }
     
     if (action.action === "UPDATE_PRICE") {
       if (success) return `He actualizado el precio de **${action.item}** a **${action.price}€** en Supabase y el Sheet. Las fórmulas se recalcularon al tiro.`;
@@ -553,6 +636,16 @@ function executeAiAction(action) {
       const recipe = data[0];
       const cost = parseFloat(recipe.cost_per_portion).toFixed(2);
       return `La receta de **${recipe.recipe_name}** tiene un coste de **${cost}€ por ración**. ¿Le bajamos a los costos o qué?`;
+    }
+
+    if (action.action === "UPSERT_PREFERENCE") {
+      if (success) return `He recordado que **${action.data.key}** es **${action.data.value}**. Ya no se me olvida.`;
+      return `Pucha, no pude guardar esa preferencia. Se me olvidó.`;
+    }
+
+    if (action.action === "PROCESS_TICKET") {
+      // Esta herramienta es solo informativa para Gemini, no escribe en DB directamente
+      return `(Análisis de ticket completado: ${action.data.products.length} productos detectados).`;
     }
 
     return null;

@@ -4,12 +4,18 @@
 
 ```mermaid
 graph TD
+    subgraph "Frontend: PWA (Vite/React) [NUEVO]"
+        PWA["bento-pwa (UI Principal)"]
+        BentoMaker["BentoMaker.jsx (Costes)"]
+        NanaPWA["geminiClient.js (Nana)"]
+    end
+
     subgraph "Frontend: Móvil (Expo)"
         App["App.js (Audio/UI)"]
         Overlay["AssistantOverlay.js (Nana)"]
     end
 
-    subgraph "Backend: Google Apps Script"
+    subgraph "Backend: Google Apps Script [LEGACY]"
         API["ApiService.gs (Router)"]
         Gemini["GeminiService.gs (IA)"]
         TTS["Google TTS (Voz)"]
@@ -17,12 +23,25 @@ graph TD
         Logic["Insumos/Escandallo Logic"]
     end
 
-    subgraph "Base de Datos (Supabase)"
+    subgraph "Base de Datos & Edge (Supabase)"
         Ing["Table: Ingredients"]
         Rec["Table: Recipes"]
         Comp["Table: Recipe_Ingredients"]
+        Views["Views: Costs"]
+        Edge["Edge Function: nana-chat"]
     end
 
+    %% PWA Connections (Direct to Supabase + Edge API)
+    PWA <--> SupabaseSDK["@supabase/supabase-js"]
+    SupabaseSDK <--> Ing
+    SupabaseSDK <--> Rec
+    SupabaseSDK <--> Comp
+    SupabaseSDK <-- "Contexto Costs" --> Views
+    PWA <--> NanaPWA
+    NanaPWA -- "supabase.functions.invoke" --> Edge
+    Edge -- "Secret API Call" --> GeminiCloud["Gemini 2.0 API"]
+
+    %% Legacy Expo/Apps Script Connections
     App <--> API
     API <--> Gemini
     Gemini -- "Contexto Inventario" --> API
@@ -32,8 +51,6 @@ graph TD
     API <--> Supabase
     Supabase <--> Ing
     Supabase <--> Rec
-    Supabase <--> Comp
-    
     Logic -- "Sincronización" --> Supabase
 ```
 
@@ -64,6 +81,15 @@ Ubicado en `/bachan-mobile/`. Aplicación móvil construida con React Native y E
   - `AssistantOverlay.js`: UI del asistente visual (Nana).
   - `InsumosList.js`: Visualización de ingredientes y precios.
 - **`src/styles/`**: Definición del tema visual (colores corporativos).
+
+### 3. Frontend: BaChan Bento Maker (PWA) [NUEVO]
+Ubicado en `/bento-pwa/`. Aplicación web construida con React, Vite y Supabase JS. Sustituye la necesidad de usar Google Sheets para la gestión diaria.
+
+- **`src/hooks/`**: Conexiones directas a Supabase (`useIngredients`, `useRecipes`, `useBentoMaker`).
+- **`src/components/BentoMaker/`**: UI interactiva para crear escandallos con cálculo de costes y rentabilidad en tiempo real.
+- **`src/lib/geminiClient.js`**: Integración directa con NANA (Gemini 2.0) desde el navegador.
+- **`src/components/ImageUploader.js`**: Compresión de imágenes a WebP en el lado del cliente.
+
 
 ---
 
