@@ -31,7 +31,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
     setItems(prev => prev.filter(i => i._key !== key))
   }
 
-  const saveBento = async () => {
+  const saveBento = async (extraData = {}) => {
     if (!bentoName) throw new Error("Debes darle un nombre")
     
     // 1. Upsert Recipe
@@ -41,7 +41,8 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
         name: bentoName, 
         recipe_type: recipeType,
         sale_price: recipeType === 'elaboracion' ? 0 : salePrice,
-        portions: portions
+        portions: portions,
+        ...extraData // Pass preparation_category here
       }, { onConflict: 'name' })
       .select()
       .single()
