@@ -19,10 +19,11 @@ export default function SplashScreen({ onFinish }) {
       });
     }
 
-    // Fallback de seguridad si algo falla
+    // Fallback de seguridad si algo falla (aumentado a 20s para videos largos o carga lenta)
     const timer = setTimeout(() => {
+      console.log("SplashScreen: Fallback timeout triggered");
       handleFinish();
-    }, 7000);
+    }, 20000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -52,12 +53,17 @@ export default function SplashScreen({ onFinish }) {
     }
   };
 
+  const hasFinished = useRef(false);
   const handleFinish = () => {
+    if (hasFinished.current) return;
+    hasFinished.current = true;
+    
     setIsExiting(true);
     setTimeout(() => {
       onFinish();
     }, 800); 
   };
+ Lago
 
   return (
     <div 
