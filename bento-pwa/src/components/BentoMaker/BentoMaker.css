@@ -9,7 +9,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
-  background-color: var(--color-primary);
+  background-color: var(--color-brand);
   color: white;
 }
 
@@ -78,7 +78,7 @@
   text-align: left;
   padding: 12px 0;
   border-bottom: 2px solid #E2E8F0;
-  color: var(--color-secondary);
+  color: var(--color-text-light);
   font-weight: 600;
 }
 
@@ -136,9 +136,9 @@
 }
 
 .btn-secondary:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: rgba(27, 38, 59, 0.05);
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  background: rgba(15, 23, 42, 0.05);
 }
 
 .summary-row {

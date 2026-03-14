@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useBentoMaker } from '../../hooks/useBentoMaker'
+import { useIngredients } from '../../hooks/useIngredients'
 
 export default function BentoMaker() {
   const { 
@@ -12,17 +13,24 @@ export default function BentoMaker() {
 
   const [isSaving, setIsSaving] = useState(false)
 
-  // This would ideally come from useIngredients / useRecipes hooks
-  // Mocking for UI building purposes
-  const handleAddMockIngredient = () => {
-    addItem({
-      type: 'ingredient',
-      id: 1,
-      name: 'Salmón fresco',
-      costPerUnit: 0.025, // 25€/kg -> 0.025€/g
-      unit: 'g',
-      quantity: 100
-    })
+  const { ingredients } = useIngredients()
+
+  const handleAddItem = (e) => {
+    const ingId = e.target.value;
+    if (!ingId) return;
+    
+    const ingredient = ingredients.find(i => i.id === ingId);
+    if (ingredient) {
+      addItem({
+        type: 'ingredient',
+        id: ingredient.id,
+        name: ingredient.name,
+        costPerUnit: ingredient.net_cost_per_unit || (ingredient.purchase_price / 1000), // Default to /1000 if net cost missing
+        unit: ingredient.unit_id || 'g',
+        quantity: 100
+      })
+    }
+    e.target.value = ""; // Reset select
   }
 
   const handleSave = async () => {
@@ -113,10 +121,12 @@ export default function BentoMaker() {
           </table>
 
           <div className="add-controls">
-            {/* Here we would place the Autocomplete component */}
-            <button className="btn-secondary" onClick={handleAddMockIngredient}>
-              + Añadir Salmón (Demo)
-            </button>
+            <select className="btn-secondary" onChange={handleAddItem} value="">
+              <option value="" disabled>+ Añadir Insumo...</option>
+              {ingredients.map(ing => (
+                <option key={ing.id} value={ing.id}>{ing.name}</option>
+              ))}
+            </select>
           </div>
         </div>
 
