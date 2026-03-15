@@ -92,7 +92,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
         ),
         child_recipe:recipes!recipe_ingredients_child_recipe_id_fkey(
           id, name, portions, "Unid_Id", unit:units!Unid_Id(name),
-          preparation_category_Id, kitchen_category:preparation_categories!preparation_category_Id(name)
+          preparation_category_Id, kitchen_category:preparation_categories!preparation_category_Id(Name)
         )
       `)
       .eq('recipe_id', recipeId)
