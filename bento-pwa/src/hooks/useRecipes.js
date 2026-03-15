@@ -28,7 +28,10 @@ export function useRecipes(type = null) {
       
       let recipesQuery = supabase
         .from('recipes')
-        .select('*')
+        .select(`
+          *,
+          unit:units!Unid_Id(name)
+        `)
         .order('name')
         
       if (type) {
@@ -59,6 +62,7 @@ export function useRecipes(type = null) {
       // Merge data
       const merged = recipesData.map(recipe => ({
         ...recipe,
+        unit_name: recipe.unit?.name || 'ud',
         cost_per_portion: costsData.find(c => c.recipe_id === recipe.id)?.cost_per_portion || 0
       }))
       

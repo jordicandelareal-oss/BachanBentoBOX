@@ -14,6 +14,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   const [bentoName, setBentoName] = useState(initialRecipe?.name || '')
   const [salePrice, setSalePrice] = useState(initialRecipe?.sale_price || 0)
   const [portions, setPortions] = useState(initialRecipe?.portions || 1)
+  const [unitId, setUnitId] = useState(initialRecipe?.Unid_Id || '')
   
   // Items can be ingredients or sub-recipes
   // { id, type: 'ingredient'|'recipe', name, costPerUnit, quantity, unit }
@@ -51,6 +52,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
         recipe_type: recipeType,
         sale_price: recipeType === 'elaboracion' ? 0 : salePrice,
         portions: portions,
+        Unid_Id: unitId || null,
         ...extraData // Pass preparation_category here
       }, { onConflict: 'name' })
       .select()
@@ -86,7 +88,9 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
           id, name, purchase_price, unit_id,
           units:unit_id(name)
         ),
-        child_recipe:recipes!recipe_ingredients_child_recipe_id_fkey(id, name, portions)
+        child_recipe:recipes!recipe_ingredients_child_recipe_id_fkey(
+          id, name, portions, "Unid_Id", unit:units!Unid_Id(name)
+        )
       `)
       .eq('recipe_id', recipeId)
 
@@ -101,7 +105,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
         id: item.id,
         name: item.name,
         costPerUnit: isIngredient ? (item.purchase_price / 1000) : 0, // Simplified for now
-        unit: normalizeUnit(isIngredient ? (item.units?.name || 'g') : 'rac'),
+        unit: normalizeUnit(isIngredient ? (item.units?.name || 'g') : (item.unit?.name || 'ud')),
         quantity: ri.quantity
       }
     })
@@ -112,6 +116,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
     bentoName, setBentoName,
     salePrice, setSalePrice,
     portions, setPortions,
+    unitId, setUnitId,
     items, addItem, updateItemQuantity, removeItem,
     totals,
     saveBento,

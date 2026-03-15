@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useRecipes } from '../hooks/useRecipes';
 import { useBentoMaker, normalizeUnit } from '../hooks/useBentoMaker';
 import { useIngredients } from '../hooks/useIngredients';
+import { useUnits } from '../hooks/useUnits';
 import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import SequentialSelector from '../components/Common/SequentialSelector';
 import '../styles/Common.css';
@@ -101,9 +102,12 @@ function PreparationEditor({ recipe, onClose }) {
   const { 
     bentoName, setBentoName, 
     portions, setPortions,
+    unitId, setUnitId,
     items, addItem, updateItemQuantity, removeItem,
     totals, saveBento, loadRecipeItems 
   } = useBentoMaker(recipe, 'elaboracion');
+  
+  const { units } = useUnits();
 
   const { ingredients } = useIngredients();
   const { recipes } = useRecipes('elaboracion'); // Need sub-recipes
@@ -177,13 +181,26 @@ function PreparationEditor({ recipe, onClose }) {
 
         <div className="flex gap-6 mt-6">
           <div className="flex-1">
-            <label className="card-meta block mb-1">Rinde (Raciones/Kg)</label>
-            <input 
-              type="number" 
-              value={portions} 
-              onChange={e => setPortions(Number(e.target.value))}
-              className="w-full text-lg font-bold text-slate-900 border-b border-slate-100 focus:border-slate-900 outline-none pb-1 bg-transparent"
-            />
+            <label className="card-meta block mb-1">Rinde</label>
+            <div className="flex gap-2">
+              <input 
+                type="number" 
+                value={portions} 
+                onChange={e => setPortions(Number(e.target.value))}
+                className="w-full text-lg font-bold text-slate-900 border-b border-slate-100 focus:border-slate-900 outline-none pb-1 bg-transparent"
+              />
+              <select
+                value={unitId}
+                onChange={e => setUnitId(e.target.value)}
+                className="text-sm font-bold text-slate-600 border-b border-slate-100 outline-none bg-transparent"
+                style={{ minWidth: '80px' }}
+              >
+                <option value="">Unidad...</option>
+                {units.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex-1 text-right">
             <label className="card-meta block mb-1">Coste Total</label>
