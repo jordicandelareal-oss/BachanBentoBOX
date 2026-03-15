@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useBentoMaker, normalizeUnit } from '../../hooks/useBentoMaker';
 import { useIngredients } from '../../hooks/useIngredients';
 import { useRecipes } from '../../hooks/useRecipes';
+import { useUnits } from '../../hooks/useUnits';
 import { 
   Package, Utensils, Plus, X, Save, ChevronRight, 
   TrendingUp, TrendingDown, DollarSign, Target, 
@@ -16,9 +17,12 @@ export default function BentoMaker() {
     bentoName, setBentoName, 
     salePrice, setSalePrice, 
     portions, setPortions,
+    unitId, setUnitId,
     items, addItem, updateItemQuantity, removeItem,
     totals, saveBento
   } = useBentoMaker();
+  
+  const { units } = useUnits();
 
   const [isSaving, setIsSaving] = useState(false);
   const [showSelector, setShowSelector] = useState(false);
@@ -34,8 +38,8 @@ export default function BentoMaker() {
       costPerUnit: item.type === 'ingredient' 
         ? (item.net_cost_per_unit || (item.purchase_price / 1000))
         : (item.cost_per_portion || 0),
-      // Use unit_name from database or default to 'g' (sometimes ingredients miss units)
-      unit: item.type === 'ingredient' ? normalizeUnit(item.unit_name) : 'rac',
+      // Use unit_name from database or default to 'g'
+      unit: item.type === 'ingredient' ? normalizeUnit(item.unit_name) : normalizeUnit(item.unit_name || 'ud'),
       quantity: item.type === 'ingredient' ? 100 : 1
     });
     setShowSelector(false);
@@ -102,12 +106,24 @@ export default function BentoMaker() {
               </div>
               <div className="md:col-span-3">
                 <label className="card-meta block mb-1">Unidades</label>
-                <input 
-                  type="number" 
-                  value={portions} 
-                  onChange={e => setPortions(Number(e.target.value))}
-                  className="w-full text-xl font-bold text-slate-900 border-b-2 border-slate-100 outline-none pb-2 bg-transparent"
-                />
+                <div className="flex gap-2">
+                  <input 
+                    type="number" 
+                    value={portions} 
+                    onChange={e => setPortions(Number(e.target.value))}
+                    className="w-full text-xl font-bold text-slate-900 border-b-2 border-slate-100 outline-none pb-2 bg-transparent"
+                  />
+                  <select
+                    value={unitId}
+                    onChange={e => setUnitId(e.target.value)}
+                    className="text-sm border-b-2 border-slate-100 outline-none bg-transparent"
+                  >
+                    <option value="">...</option>
+                    {units.map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
