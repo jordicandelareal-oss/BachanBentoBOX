@@ -12,8 +12,8 @@ export function usePrepCategories() {
         setLoading(true);
         const { data, error } = await supabase
           .from('preparation_categories')
-          .select('id, name')
-          .order('name');
+          .select('id, Name')
+          .order('Name');
         
         if (error) throw error;
         setCategories(data || []);

@@ -37,7 +37,7 @@ export function Preparations() {
 
   // Filter recipes by the preparation_category_Id
   const filteredRecipes = recipes.filter(r => r.preparation_category_Id === activeTabId);
-  const activeTabName = prepCats.find(c => c.id === activeTabId)?.name || '...';
+  const activeTabName = prepCats.find(c => c.id === activeTabId)?.Name || '...';
 
   return (
     <div className="page-container fade-in">
@@ -59,7 +59,7 @@ export function Preparations() {
               className={`category-tab ${activeTabId === cat.id ? 'active' : ''}`}
               onClick={() => setActiveTabId(cat.id)}
             >
-              {cat.name}
+              {cat.Name}
             </button>
           ))}
         </div>
@@ -184,7 +184,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
               className="w-full text-lg font-bold text-slate-900 border-b-2 border-slate-100 outline-none pb-2 bg-transparent"
             >
               <option value="">Selecciona categoría...</option>
-              {prepCats.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+              {prepCats.map(cat => <option key={cat.id} value={cat.id}>{cat.Name}</option>)}
             </select>
           </div>
         </div>

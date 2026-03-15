@@ -31,7 +31,7 @@ export function useRecipes(type = null) {
         .select(`
           *,
           unit:units!Unid_Id(name),
-          kitchen_category:preparation_categories!preparation_category_Id(name)
+          kitchen_category:preparation_categories!preparation_category_Id(Name)
         `)
         .order('name')
         
@@ -64,7 +64,7 @@ export function useRecipes(type = null) {
       const merged = recipesData.map(recipe => ({
         ...recipe,
         unit_name: recipe.unit?.name || 'ud',
-        preparation_category: recipe.kitchen_category?.name || 'Complementos', // Fallback for UI filtering
+        preparation_category: recipe.kitchen_category?.Name || 'Complementos', // Fallback for UI filtering
         cost_per_portion: costsData.find(c => c.recipe_id === recipe.id)?.cost_per_portion || 0
       }))
       
