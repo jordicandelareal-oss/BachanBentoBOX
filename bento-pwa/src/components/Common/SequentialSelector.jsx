@@ -32,8 +32,8 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
     const source = type === 'ingredient' ? ingredients : recipes;
     // Ingredients use category_name (from JOIN), recipes use preparation_category
     const catField = type === 'ingredient' ? 'category_name' : 'preparation_category';
-    const cats = [...new Set(source.map(item => item[catField]).filter(Boolean))];
-    return cats.sort();
+    const cats = [...new Set(source.map(item => item[catField] || 'General'))];
+    return cats.filter(Boolean).sort();
   }, [type, ingredients, recipes]);
 
   // Filter items based on type and category

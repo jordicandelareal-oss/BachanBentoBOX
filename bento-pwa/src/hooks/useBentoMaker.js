@@ -15,6 +15,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   const [salePrice, setSalePrice] = useState(initialRecipe?.sale_price || 0)
   const [portions, setPortions] = useState(initialRecipe?.portions || 1)
   const [unitId, setUnitId] = useState(initialRecipe?.Unid_Id || '')
+  const [prepCategoryId, setPrepCategoryId] = useState(initialRecipe?.preparation_category_Id || '')
   
   // Items can be ingredients or sub-recipes
   // { id, type: 'ingredient'|'recipe', name, costPerUnit, quantity, unit }
@@ -53,7 +54,8 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
         sale_price: recipeType === 'elaboracion' ? 0 : salePrice,
         portions: portions,
         Unid_Id: unitId || null,
-        ...extraData // Pass preparation_category here
+        preparation_category_Id: prepCategoryId || null,
+        ...extraData 
       }, { onConflict: 'name' })
       .select()
       .single()
@@ -89,7 +91,8 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
           units:unit_id(name)
         ),
         child_recipe:recipes!recipe_ingredients_child_recipe_id_fkey(
-          id, name, portions, "Unid_Id", unit:units!Unid_Id(name)
+          id, name, portions, "Unid_Id", unit:units!Unid_Id(name),
+          preparation_category_Id, kitchen_category:preparation_categories!preparation_category_Id(name)
         )
       `)
       .eq('recipe_id', recipeId)
@@ -117,6 +120,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
     salePrice, setSalePrice,
     portions, setPortions,
     unitId, setUnitId,
+    prepCategoryId, setPrepCategoryId,
     items, addItem, updateItemQuantity, removeItem,
     totals,
     saveBento,
