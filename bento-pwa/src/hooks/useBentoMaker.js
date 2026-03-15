@@ -99,16 +99,39 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
 
     if (error) throw error
 
+    // Fetch costs for child recipes if any
+    const childRecipeIds = data.filter(ri => !!ri.child_recipe).map(ri => ri.child_recipe.id)
+    let childCosts = []
+    if (childRecipeIds.length > 0) {
+      const { data: costs } = await supabase
+        .from('view_recipe_costs')
+        .select('recipe_id, cost_per_portion')
+        .in('recipe_id', childRecipeIds)
+      childCosts = costs || []
+    }
+
     const loadedItems = data.map(ri => {
       const isIngredient = !!ri.ingredient
       const item = isIngredient ? ri.ingredient : ri.child_recipe
+      
+      const unitName = isIngredient ? (item.units?.name || 'g') : (item.unit?.name || 'ud')
+      const normalizedUnit = normalizeUnit(unitName)
+      
+      let baseCost = 0
+      if (isIngredient) {
+        baseCost = (item.purchase_price / 1000) // Assumes purchase price is per 1000g/ml or per piece
+      } else {
+        const recipeCost = childCosts.find(c => c.recipe_id === item.id)?.cost_per_portion || 0
+        baseCost = (normalizedUnit === 'g' || normalizedUnit === 'ml') ? (recipeCost / 1000) : recipeCost
+      }
+
       return {
         _key: Math.random().toString(36).substring(7),
         type: isIngredient ? 'ingredient' : 'recipe',
         id: item.id,
         name: item.name,
-        costPerUnit: isIngredient ? (item.purchase_price / 1000) : 0, // Simplified for now
-        unit: normalizeUnit(isIngredient ? (item.units?.name || 'g') : (item.unit?.name || 'ud')),
+        costPerUnit: baseCost,
+        unit: normalizedUnit,
         quantity: ri.quantity
       }
     })

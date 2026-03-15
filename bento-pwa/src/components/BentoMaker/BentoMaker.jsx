@@ -31,15 +31,22 @@ export default function BentoMaker() {
   const { recipes } = useRecipes('elaboracion');
 
   const handleSelectComponent = (item) => {
+    const normalized = normalizeUnit(item.unit_name || (item.type === 'ingredient' ? 'g' : 'ud'));
+    let baseCost = 0;
+    
+    if (item.type === 'ingredient') {
+      baseCost = item.net_cost_per_unit || (item.purchase_price / 1000);
+    } else {
+      const recipeCost = item.cost_per_portion || 0;
+      baseCost = (normalized === 'g' || normalized === 'ml') ? (recipeCost / 1000) : recipeCost;
+    }
+
     addItem({
       type: item.type,
       id: item.id,
       name: item.name,
-      costPerUnit: item.type === 'ingredient' 
-        ? (item.net_cost_per_unit || (item.purchase_price / 1000))
-        : (item.cost_per_portion || 0),
-      // Use unit_name from database or default to 'g'
-      unit: item.type === 'ingredient' ? normalizeUnit(item.unit_name) : normalizeUnit(item.unit_name || 'ud'),
+      costPerUnit: baseCost,
+      unit: normalized,
       quantity: item.type === 'ingredient' ? 100 : 1
     });
     setShowSelector(false);
@@ -155,7 +162,9 @@ export default function BentoMaker() {
                           {item.name}
                         </div>
                         <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                          {(item.costPerUnit * 1000).toFixed(2)}€/kg · ud
+                          {(item.unit === 'g' || item.unit === 'ml') 
+                            ? `${(item.costPerUnit * 1000).toFixed(2)}€/kg · l`
+                            : `${item.costPerUnit.toFixed(2)}€/ud`}
                         </div>
                       </div>
                       <div className="flex items-center gap-4">

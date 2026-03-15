@@ -131,15 +131,22 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
   }, [recipe.id]);
 
   const handleSelectComponent = (item) => {
+    const normalized = normalizeUnit(item.unit_name || (item.type === 'ingredient' ? 'g' : 'ud'));
+    let baseCost = 0;
+    
+    if (item.type === 'ingredient') {
+      baseCost = item.net_cost_per_unit || (item.purchase_price / 1000);
+    } else {
+      const recipeCost = item.cost_per_portion || 0;
+      baseCost = (normalized === 'g' || normalized === 'ml') ? (recipeCost / 1000) : recipeCost;
+    }
+
     addItem({
       type: item.type,
       id: item.id,
       name: item.name,
-      costPerUnit: item.type === 'ingredient' 
-        ? (item.net_cost_per_unit || (item.purchase_price / 1000))
-        : (item.cost_per_portion || 0),
-      // Use unit_name from database or default to 'g' (sometimes ingredients miss units)
-      unit: item.type === 'ingredient' ? normalizeUnit(item.unit_name) : 'rac',
+      costPerUnit: baseCost,
+      unit: normalized,
       quantity: item.type === 'ingredient' ? 100 : 1
     });
     setShowSelector(false);
@@ -241,7 +248,11 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
                       {item.type === 'ingredient' ? <Package size={12} className="text-slate-400" /> : <Utensils size={12} className="text-slate-400" />}
                       {item.name}
                     </div>
-                    <div className="text-[10px] text-slate-400" style={{ fontSize: '10px', color: '#94a3b8' }}>{(item.costPerUnit * 1000).toFixed(2)}€/kg</div>
+                    <div className="text-[10px] text-slate-400" style={{ fontSize: '10px', color: '#94a3b8' }}>
+                      {(item.unit === 'g' || item.unit === 'ml') 
+                        ? `${(item.costPerUnit * 1000).toFixed(2)}€/kg` 
+                        : `${item.costPerUnit.toFixed(2)}€/ud`}
+                    </div>
                   </div>
                   <div className="flex items-center gap-3" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2" style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0 8px' }}>
