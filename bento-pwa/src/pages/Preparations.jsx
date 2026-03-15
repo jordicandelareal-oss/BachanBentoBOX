@@ -3,17 +3,26 @@ import { useRecipes } from '../hooks/useRecipes';
 import { useBentoMaker, normalizeUnit } from '../hooks/useBentoMaker';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
+import { usePrepCategories } from '../hooks/usePrepCategories';
 import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import SequentialSelector from '../components/Common/SequentialSelector';
 import '../styles/Common.css';
 import './Ingredients.css'; // Selective reuse
 
-const KITCHEN_CATEGORIES = ['Carne', 'Pescados/mariscos', 'Vegetariano', 'Arroz', 'Fideos', 'Complementos', 'Salsas'];
+// Hardcoded fallback removed in favor of usePrepCategories hook
 
-export default function Preparations() {
+export function Preparations() {
   const { recipes, loading, error, fetchRecipes } = useRecipes('elaboracion');
+  const { categories: prepCats, loading: catsLoading } = usePrepCategories();
   const [editingRecipe, setEditingRecipe] = useState(null);
-  const [activeTab, setActiveTab] = useState(KITCHEN_CATEGORIES[0]);
+  const [activeTabId, setActiveTabId] = useState(null);
+
+  // Set initial tab once categories load
+  React.useEffect(() => {
+    if (prepCats.length > 0 && !activeTabId) {
+      setActiveTabId(prepCats[0].id);
+    }
+  }, [prepCats]);
 
   if (editingRecipe) {
     return <PreparationEditor 
@@ -22,11 +31,13 @@ export default function Preparations() {
         setEditingRecipe(null);
         fetchRecipes();
       }} 
+      prepCats={prepCats}
     />;
   }
 
-  // Filter recipes by the preparation_category (kitched flow)
-  const filteredRecipes = recipes.filter(r => r.preparation_category === activeTab);
+  // Filter recipes by the preparation_category_Id
+  const filteredRecipes = recipes.filter(r => r.preparation_category_Id === activeTabId);
+  const activeTabName = prepCats.find(c => c.id === activeTabId)?.name || '...';
 
   return (
     <div className="page-container fade-in">
@@ -35,20 +46,20 @@ export default function Preparations() {
           <h1 className="page-title">Elaboraciones</h1>
           <p className="page-subtitle">Gestiona la mise en place y recetas base</p>
         </div>
-        <button className="btn-icon-main" onClick={() => setEditingRecipe({ name: '', portions: 1, items: [], preparation_category: activeTab })}>
+        <button className="btn-icon-main" onClick={() => setEditingRecipe({ name: '', portions: 1, items: [], preparation_category_Id: activeTabId })}>
           <Plus size={24} />
         </button>
       </div>
 
       <div className="category-tabs-wrapper">
         <div className="category-tabs">
-          {KITCHEN_CATEGORIES.map(cat => (
+          {prepCats.map(cat => (
             <button 
-              key={cat} 
-              className={`category-tab ${activeTab === cat ? 'active' : ''}`}
-              onClick={() => setActiveTab(cat)}
+              key={cat.id} 
+              className={`category-tab ${activeTabId === cat.id ? 'active' : ''}`}
+              onClick={() => setActiveTabId(cat.id)}
             >
-              {cat}
+              {cat.name}
             </button>
           ))}
         </div>
@@ -86,23 +97,22 @@ export default function Preparations() {
             </div>
           ))}
 
-          {filteredRecipes.length === 0 && (
             <div className="text-center py-12" style={{ textAlign: 'center', padding: '48px 0' }}>
               <LayoutGrid className="mx-auto text-slate-200 mb-4" size={48} style={{ margin: '0 auto 16px', color: '#e2e8f0' }} />
-              <p style={{ color: '#94a3b8' }}>No hay elaboraciones en {activeTab}</p>
+              <p style={{ color: '#94a3b8' }}>No hay elaboraciones en {activeTabName}</p>
             </div>
-          )}
         </div>
       )}
     </div>
   );
 }
 
-function PreparationEditor({ recipe, onClose }) {
+function PreparationEditor({ recipe, onClose, prepCats }) {
   const { 
     bentoName, setBentoName, 
     portions, setPortions,
     unitId, setUnitId,
+    prepCategoryId, setPrepCategoryId,
     items, addItem, updateItemQuantity, removeItem,
     totals, saveBento, loadRecipeItems 
   } = useBentoMaker(recipe, 'elaboracion');
@@ -113,7 +123,6 @@ function PreparationEditor({ recipe, onClose }) {
   const { recipes } = useRecipes('elaboracion'); // Need sub-recipes
   const [isSaving, setIsSaving] = useState(false);
   const [showSelector, setShowSelector] = useState(false);
-  const [prepCategory, setPrepCategory] = useState(recipe.preparation_category || KITCHEN_CATEGORIES[0]);
 
   React.useEffect(() => {
     if (recipe.id) {
@@ -140,7 +149,7 @@ function PreparationEditor({ recipe, onClose }) {
     if (!bentoName) return alert("Indica un nombre");
     setIsSaving(true);
     try {
-      await saveBento({ preparation_category: prepCategory });
+      await saveBento();
       onClose();
     } catch (err) {
       alert("Error al guardar: " + err.message);
@@ -170,11 +179,12 @@ function PreparationEditor({ recipe, onClose }) {
           <div>
             <label className="card-meta block mb-1">Categoría de Mise en Place</label>
             <select 
-              value={prepCategory}
-              onChange={e => setPrepCategory(e.target.value)}
+              value={prepCategoryId}
+              onChange={e => setPrepCategoryId(e.target.value)}
               className="w-full text-lg font-bold text-slate-900 border-b-2 border-slate-100 outline-none pb-2 bg-transparent"
             >
-              {KITCHEN_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              <option value="">Selecciona categoría...</option>
+              {prepCats.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
             </select>
           </div>
         </div>
@@ -283,3 +293,4 @@ function PreparationEditor({ recipe, onClose }) {
     </div>
   );
 }
+export default Preparations;
