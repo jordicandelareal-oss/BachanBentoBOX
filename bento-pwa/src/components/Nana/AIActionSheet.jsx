@@ -36,7 +36,7 @@ export default function AIActionSheet({ isOpen, onClose, onSelectOption }) {
           
           <button className="action-option" onClick={() => { onSelectOption('chat'); onClose(); }}>
             <div className="option-icon-wrapper">
-              <NanaFaceIcon />
+              <SparkleAIIcon />
             </div>
             <div className="option-text">
               <span className="option-title">Consultar por Voz/Chat</span>
