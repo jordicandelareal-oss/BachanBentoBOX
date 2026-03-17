@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Send, X, Cloud, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Mic, Send, X, Cloud, AlertCircle, Camera } from 'lucide-react';
+import Webcam from 'react-webcam';
 import './NanaOverlay.css';
 
 export default function NanaOverlay({ 
@@ -8,11 +9,20 @@ export default function NanaOverlay({
   statusText = '¿Dime BACHAN / どしたの?',
   aiResponse = '',
   nanaState = 'IDLE', // IDLE, THINKING, SYNCING, SPEAKING, ERROR
-  onSendMessage
+  onSendMessage,
+  initialVisionMode = false
 }) {
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isVisionActive, setIsVisionActive] = useState(initialVisionMode);
+  const webcamRef = useRef(null);
   const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    if (isVisible) {
+      setIsVisionActive(initialVisionMode);
+    }
+  }, [isVisible, initialVisionMode]);
 
   useEffect(() => {
     // Initialize Web Speech API if available
@@ -25,7 +35,7 @@ export default function NanaOverlay({
 
       recognitionRef.current.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
-        onSendMessage(transcript);
+        handleSend(transcript);
         setIsListening(false);
       };
 
@@ -38,9 +48,7 @@ export default function NanaOverlay({
         setIsListening(false);
       };
     }
-  }, [onSendMessage]);
-
-  if (!isVisible) return null;
+  }, []);
 
   const handleMicClick = () => {
     if (isListening) {
@@ -52,18 +60,30 @@ export default function NanaOverlay({
     }
   };
 
-  const handleSend = () => {
-    if (inputValue.trim()) {
-      onSendMessage(inputValue);
+  const handleSend = useCallback((text = inputValue) => {
+    const finalMessage = text || (isVisionActive ? "Identifica lo que ves en la imagen." : "");
+    const trimmedMessage = typeof finalMessage === 'string' ? finalMessage.trim() : "";
+    
+    if (trimmedMessage || isVisionActive) {
+      let imageBase64 = null;
+      if (isVisionActive && webcamRef.current) {
+        const screenshot = webcamRef.current.getScreenshot();
+        if (screenshot) {
+          imageBase64 = screenshot.split(',')[1];
+        }
+      }
+      onSendMessage(trimmedMessage, imageBase64);
       setInputValue('');
     }
-  };
+  }, [inputValue, isVisionActive, onSendMessage]);
+
+  if (!isVisible) return null;
 
   const isThinking = nanaState === 'THINKING' || nanaState === 'SYNCING';
   const isError = nanaState === 'ERROR';
 
   return (
-    <div className={`nana-overlay ${isVisible ? 'visible' : ''} ${isError ? 'error' : ''}`}>
+    <div className={`nana-overlay ${isVisible ? 'visible' : ''} ${isError ? 'error' : ''} ${isVisionActive ? 'vision-active' : ''}`}>
       <button className="close-btn" onClick={onClose}>
         <X size={24} />
       </button>
@@ -90,37 +110,61 @@ export default function NanaOverlay({
         </div>
 
         <h2 className={`status-text ${isError ? 'text-error' : ''}`}>
-          {isError ? '¡UPA! SE ME FUE LA ONDA...' : (isListening ? 'BACHAN ESCUCHANDO...' : statusText)}
+          {isError ? '¡UPA! SE ME FUE LA ONDA...' : (isListening ? 'BACHAN ESCUCHANDO...' : (isVisionActive ? 'NANA TE ESTÁ VIENDO...' : statusText))}
         </h2>
 
-        {aiResponse ? (
-          <div className={`response-container ${isError ? 'response-error' : ''}`}>
-            <p className="response-text">{aiResponse}</p>
-          </div>
-        ) : (
-          isThinking && (
+        <div className="center-display">
+          {isVisionActive ? (
+            <div className="camera-preview-container">
+              <Webcam
+                audio={false}
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+                videoConstraints={{ facingMode: "environment" }}
+                className="nana-webcam"
+              />
+              <div className="camera-scan-line"></div>
+            </div>
+          ) : (
+            aiResponse && (
+              <div className={`response-container ${isError ? 'response-error' : ''}`}>
+                <p className="response-text">{aiResponse}</p>
+              </div>
+            )
+          )}
+          
+          {!isVisionActive && isThinking && !aiResponse && (
             <div className="thinking-dots">
               <span className="dot"></span>
               <span className="dot"></span>
               <span className="dot"></span>
             </div>
-          )
-        )}
+          )}
+        </div>
 
         <div className="input-group">
           {!isListening && !isThinking && (
-            <div className="text-input-wrapper">
-              <input 
-                type="text" 
-                placeholder="Escribe o pulsa el micro..." 
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                className="nana-input"
-              />
-              <button className="send-btn" onClick={handleSend}>
-                <Send size={18} />
+            <div className="text-input-container">
+              <button 
+                className={`vision-toggle ${isVisionActive ? 'active' : ''}`}
+                onClick={() => setIsVisionActive(!isVisionActive)}
+                title="Activar Visión"
+              >
+                <Camera size={20} />
               </button>
+              <div className="text-input-wrapper">
+                <input 
+                  type="text" 
+                  placeholder={isVisionActive ? "Pregunta sobre lo que veo..." : "Escribe o pulsa el micro..."}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                  className="nana-input"
+                />
+                <button className="send-btn" onClick={() => handleSend()}>
+                  <Send size={18} />
+                </button>
+              </div>
             </div>
           )}
 

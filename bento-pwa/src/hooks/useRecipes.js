@@ -64,7 +64,7 @@ export function useRecipes(type = null) {
       const merged = recipesData.map(recipe => ({
         ...recipe,
         unit_name: recipe.unit?.name || 'ud',
-        preparation_category: recipe.kitchen_category?.Name || 'Complementos', // Fallback for UI filtering
+        preparation_category: recipe.kitchen_category?.Name || null, // null is safer than a fake 'Complementos'
         cost_per_portion: costsData.find(c => c.recipe_id === recipe.id)?.cost_per_portion || 0
       }))
       
@@ -77,5 +77,22 @@ export function useRecipes(type = null) {
     }
   }
 
-  return { recipes, loading, error, fetchRecipes }
+  // Delete a recipe
+  async function deleteRecipe(id) {
+    try {
+      const { error: supError } = await supabase
+        .from('recipes')
+        .delete()
+        .eq('id', id)
+        
+      if (supError) throw supError
+      // State is updated by fetchRecipes in the realtime listener
+      return { success: true }
+    } catch (err) {
+      console.error("❌ [Supabase Delete Error]", err);
+      return { success: false, error: err.message }
+    }
+  }
+
+  return { recipes, loading, error, deleteRecipe, fetchRecipes }
 }
