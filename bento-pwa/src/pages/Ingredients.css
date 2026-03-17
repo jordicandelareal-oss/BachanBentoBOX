@@ -4,20 +4,6 @@
   margin: 0 auto;
 }
 
-.ingredients-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.ingredients-header h1 {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--color-brand);
-}
-
 .search-wrapper {
   position: relative;
   margin-bottom: 24px;
@@ -32,6 +18,7 @@
   font-size: 1rem;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s;
+  box-sizing: border-box;
 }
 
 .search-input:focus {
@@ -40,108 +27,193 @@
   box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
 }
 
-.ingredients-grid {
+.card-grid {
   display: grid;
   gap: 16px;
 }
 
-.ingredient-card {
+/* Category Tabs (Local to Ingredients) */
+.category-tabs-wrapper {
+  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  min-width: max-content;
+}
+
+.category-tab {
   background: white;
-  padding: 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid #e2e8f0;
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
-.ingredient-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+.category-tab:hover {
+  background: #f8fafc;
+  color: #0f172a;
 }
 
-.ingredient-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.category-tab.active {
+  background: #0f172a;
+  color: white;
+  border-color: #0f172a;
 }
 
-.ingredient-icon {
-  width: 48px;
-  height: 48px;
-  background: var(--color-bg);
-  border-radius: var(--radius-sm);
+/* ─── Modal ─────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-light);
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 0.15s ease;
 }
 
-.ingredient-card:hover .ingredient-icon {
-  background: var(--color-brand);
-  color: white;
+.modal-card {
+  background: white;
+  border-radius: 28px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 40px 100px -20px rgba(15, 23, 42, 0.3);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.ingredient-name {
-  font-weight: 700;
-  color: var(--color-text);
-  font-size: 1.1rem;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-.ingredient-unit {
-  font-size: 0.75rem;
-  color: var(--color-text-light);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
-.ingredient-price-area {
-  text-align: right;
-}
-
-.ingredient-price {
-  font-size: 1.25rem;
-  font-weight: 900;
-  color: var(--color-brand);
-}
-
-.btn-edit-price {
-  background: none;
-  border: none;
-  color: var(--color-accent);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  cursor: pointer;
+.modal-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 4px;
-  margin-left: auto;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 24px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.btn-edit-price:hover {
-  background: var(--color-bg);
+.modal-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
 }
 
-.btn-add-main {
-  width: 48px;
-  height: 48px;
-  background: var(--color-brand);
-  color: white;
+.modal-close-btn {
+  background: #f8fafc;
   border: none;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
-  transition: transform 0.2s;
+  color: #64748b;
+  transition: all 0.2s;
 }
 
-.btn-add-main:hover {
-  transform: scale(1.1);
+.modal-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  transform: rotate(90deg);
+}
+
+.modal-form {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Modal specific form overrides to keep it compact */
+.modal-form .form-group {
+  margin-bottom: 0;
+}
+
+.form-calculated {
+  padding: 14px 18px;
+  background: #f8fafc;
+  border: 2px solid #f1f5f9;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--color-accent);
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+}
+
+.form-hint {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+/* Animations Utility */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+/* Deletion */
+.delete-btn-subtle {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  color: var(--color-text-light); /* Subtle as requested */
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  opacity: 0.5;
+}
+
+.delete-btn-subtle:hover {
+  background-color: #f1f5f9;
+  color: var(--color-navy);
+  opacity: 1;
+}
+
+.delete-btn-subtle:active {
+  transform: scale(0.9);
 }

@@ -1,16 +1,226 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useIngredients } from '../hooks/useIngredients';
-import { Package, Search, Edit2, Plus, AlertCircle, Loader2, ChevronRight, LayoutGrid } from 'lucide-react';
+import { useUnits } from '../hooks/useUnits';
+import { supabase } from '../lib/supabaseClient';
+import { Package, Search, Plus, AlertCircle, Loader2, ChevronRight, LayoutGrid, X, Save, Trash2 } from 'lucide-react';
+import ConfirmationModal from '../components/Common/ConfirmationModal';
 import '../styles/Common.css';
 import './Ingredients.css';
 
-export default function Ingredients() {
-  const { ingredients, loading, error, updatePrice } = useIngredients();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [updatingId, setUpdatingId] = useState(null);
-  const [activeCategory, setActiveCategory] = useState('Todos');
+// ─── Modal Component ──────────────────────────────────────────────────────────
+function IngredientModal({ ingredient, onClose, onSave, loading }) {
+  const { units } = useUnits();
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
 
-  // Unique categories from the JOIN with the categories table
+  const isNew = !ingredient.id;
+
+  const [form, setForm] = useState({
+    name: ingredient.name || '',
+    purchase_format: ingredient.purchase_format || '',
+    purchase_price: ingredient.purchase_price ?? '',
+    cost_per_unit: ingredient.cost_per_unit ?? '',
+    provider: ingredient.provider || '',
+    unit_id: ingredient.unit_id || '',
+    category_id: ingredient.category_id || '',
+    subcategory_id: ingredient.subcategory_id || '',
+  });
+
+  // Fetch ingredient categories (not preparation_categories)
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase.from('categories').select('id, name').order('name');
+      setCategories(data || []);
+    }
+    load();
+  }, []);
+
+  // Fetch subcategories when category changes
+  useEffect(() => {
+    if (!form.category_id) { setSubcategories([]); return; }
+    async function load() {
+      const { data } = await supabase
+        .from('subcategories')
+        .select('id, name')
+        .eq('category_id', form.category_id)
+        .order('name');
+      setSubcategories(data || []);
+    }
+    load();
+  }, [form.category_id]);
+
+  const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const payload = {
+      name: form.name,
+      purchase_format: form.purchase_format ? parseFloat(form.purchase_format) : null,
+      purchase_price: form.purchase_price !== '' ? parseFloat(form.purchase_price) : null,
+      provider: form.provider || null,
+      unit_id: form.unit_id || null,
+      category_id: form.category_id || null,
+      subcategory_id: form.subcategory_id || null,
+    };
+    await onSave(payload);
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">{isNew ? 'Añadir Insumo' : `Editar: ${ingredient.name}`}</h2>
+          <button className="modal-close-btn" onClick={onClose}><X size={20} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="modal-form">
+
+          {/* Nombre (Siempre el primero si es nuevo) */}
+          {isNew && (
+            <div className="form-group mb-4">
+              <label className="form-label">Nombre del Insumo *</label>
+              <input
+                className="form-input"
+                type="text"
+                required
+                placeholder="Ej: Aceite de Oliva"
+                value={form.name}
+                onChange={e => set('name', e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Fila 1: Clasificación */}
+          <div className="form-row mb-4">
+            <div className="form-group">
+              <label className="form-label text-slate-500">Categoría</label>
+              <select
+                className="form-input form-select bg-slate-50"
+                value={form.category_id}
+                onChange={e => { set('category_id', e.target.value); set('subcategory_id', ''); }}
+              >
+                <option value="">— Sin categoría —</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label text-slate-500">Subcategoría</label>
+              <select
+                className="form-input form-select bg-slate-50"
+                value={form.subcategory_id}
+                onChange={e => set('subcategory_id', e.target.value)}
+                disabled={!form.category_id}
+              >
+                <option value="">— Sin subcategoría —</option>
+                {subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Fila 2: Datos de Factura */}
+          <div className="form-row mb-4">
+            <div className="form-group">
+              <label className="form-label text-slate-500">Formato de Compra</label>
+              <input
+                className="form-input bg-slate-50"
+                type="number"
+                step="0.001"
+                min="0"
+                placeholder="Ej: 5.000 (kg/lt)"
+                value={form.purchase_format}
+                onChange={e => set('purchase_format', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label text-slate-500">Precio de Compra (€)</label>
+              <input
+                className="form-input bg-slate-50"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Ej: 8.50"
+                value={form.purchase_price}
+                onChange={e => set('purchase_price', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Fila 3: Logística */}
+          <div className="form-row mb-6">
+            <div className="form-group">
+              <label className="form-label text-slate-500">Unidad Base</label>
+              <select
+                className="form-input form-select bg-slate-50"
+                value={form.unit_id}
+                onChange={e => set('unit_id', e.target.value)}
+              >
+                <option value="">— Sin unidad —</option>
+                {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label text-slate-500">Proveedor</label>
+              <input
+                className="form-input bg-slate-50"
+                type="text"
+                placeholder="Ej: Mercadona"
+                value={form.provider}
+                onChange={e => set('provider', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Fila 4: Resultado Operativo */}
+          <div style={{
+            backgroundColor: '#f0f7ff',
+            border: '1px solid #bae6fd',
+            borderRadius: '12px',
+            padding: '16px',
+            marginTop: '20px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <span style={{
+               fontSize: '12px',
+               fontWeight: 700,
+               color: '#64748b',
+               textTransform: 'uppercase'
+            }}>COSTE NETO CALCULADO</span>
+            <div style={{
+               fontSize: '24px',
+               fontWeight: 800,
+               color: '#0c4a6e'
+            }}>
+              {form.purchase_format && form.purchase_price && parseFloat(form.purchase_format) > 0
+                ? `${(parseFloat(form.purchase_price) / parseFloat(form.purchase_format)).toFixed(2)}`
+                : ingredient.cost_per_unit
+                  ? `${parseFloat(ingredient.cost_per_unit).toFixed(2)}`
+                  : '0.00'}€ {form.unit_id ? `/ ${units.find(u => u.id === form.unit_id)?.name || ''}` : ''}
+            </div>
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {isNew ? 'Añadir' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function Ingredients() {
+  const { ingredients, loading, error, updateIngredient, addIngredient, deleteIngredient } = useIngredients();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeCategory, setActiveCategory] = useState('Todos');
+  const [modal, setModal] = useState(null); // null | { ingredient, isNew }
+  const [confirmDelete, setConfirmDelete] = useState(null); // null | ingredientId
+  const [saving, setSaving] = useState(false);
+
   const categories = ['Todos', ...new Set(ingredients.map(ing => ing.category_name).filter(Boolean))].sort((a, b) => a === 'Todos' ? -1 : a.localeCompare(b));
 
   const filteredIngredients = ingredients.filter(ing => {
@@ -19,23 +229,33 @@ export default function Ingredients() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleEditPrice = async (ingredient) => {
-    const newPriceStr = prompt(`Actualizar precio para ${ingredient.name}:`, ingredient.purchase_price);
-    if (newPriceStr === null) return;
-    
-    const newPrice = parseFloat(newPriceStr);
-    if (isNaN(newPrice)) {
-      alert("Por favor, introduce un número válido.");
-      return;
+  const openEdit = (ingredient) => setModal({ ingredient, isNew: false });
+  const openAdd = () => setModal({ ingredient: {}, isNew: true });
+  const closeModal = () => { setModal(null); setSaving(false); };
+
+  const handleSave = async (payload) => {
+    setSaving(true);
+    let result;
+    if (modal.isNew) {
+      result = await addIngredient(payload);
+    } else {
+      result = await updateIngredient(modal.ingredient.id, payload);
     }
-
-    setUpdatingId(ingredient.id);
-    const result = await updatePrice(ingredient.id, newPrice);
-    setUpdatingId(null);
-
+    setSaving(false);
     if (!result.success) {
-      alert("Error al actualizar: " + result.error);
+      alert('Error al guardar: ' + result.error);
+    } else {
+      closeModal();
     }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    const result = await deleteIngredient(confirmDelete);
+    if (!result.success) {
+      alert('Error al eliminar: ' + result.error);
+    }
+    setConfirmDelete(null);
   };
 
   if (error) {
@@ -57,7 +277,7 @@ export default function Ingredients() {
           <h1 className="page-title">Insumos</h1>
           <p className="page-subtitle">Gestiona tus ingredientes y precios base de compra</p>
         </div>
-        <button className="btn-icon-main">
+        <button className="btn-icon-main" onClick={openAdd}>
           <Plus size={24} />
         </button>
       </div>
@@ -96,7 +316,7 @@ export default function Ingredients() {
       ) : (
         <div className="card-grid">
           {filteredIngredients.map(ingredient => (
-            <div key={ingredient.id} className="premium-card" onClick={() => handleEditPrice(ingredient)}>
+            <div key={ingredient.id} className="premium-card" onClick={() => openEdit(ingredient)}>
               <div className="ingredient-info">
                 <div className="card-icon-wrapper">
                   <Package size={20} />
@@ -105,22 +325,37 @@ export default function Ingredients() {
                   <h3 className="card-title">{ingredient.name}</h3>
                   <p className="card-meta">
                     {ingredient.unit_name || 'unid'} · {ingredient.category_name || 'Sin categoría'}
+                    {ingredient.provider ? ` · ${ingredient.provider}` : ''}
                   </p>
                 </div>
               </div>
               
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <div className="card-meta" style={{ fontSize: '10px' }}>Precio Compra</div>
+                  <div className="card-meta" style={{ fontSize: '10px' }}>Precio / kg·lt</div>
                   <div className="price-display">
-                    {ingredient.purchase_price ? `${ingredient.purchase_price.toFixed(2)}€` : '0.00€'}
+                    {(() => {
+                      const cost = parseFloat(ingredient.cost_per_unit || 0);
+                      const unit = (ingredient.unit_name || '').toLowerCase();
+                      const isBaseUnit = ['g', 'ml', 'kg', 'l', 'kilo', 'litro'].some(u => unit.includes(u));
+                      
+                      if (isBaseUnit && cost > 0) {
+                        return `${(cost * 1000).toFixed(2)}€`;
+                      }
+                      return `${cost.toFixed(2)}€`;
+                    })()}
                   </div>
                 </div>
-                {updatingId === ingredient.id ? (
-                    <Loader2 size={18} className="animate-spin text-slate-400" />
-                  ) : (
-                    <ChevronRight size={18} className="text-slate-300" />
-                )}
+                <button 
+                  className="delete-btn-subtle"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmDelete(ingredient.id);
+                  }}
+                >
+                  <Trash2 size={18} />
+                </button>
+                <ChevronRight size={18} className="text-slate-300" />
               </div>
             </div>
           ))}
@@ -133,6 +368,23 @@ export default function Ingredients() {
           )}
         </div>
       )}
+
+      {modal && (
+        <IngredientModal
+          ingredient={modal.ingredient}
+          onClose={closeModal}
+          onSave={handleSave}
+          loading={saving}
+        />
+      )}
+
+      <ConfirmationModal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+        title="¿Eliminar insumo?"
+        message="Esta acción no se puede deshacer y podría afectar a las recetas que usan este ingrediente."
+      />
     </div>
   );
 }

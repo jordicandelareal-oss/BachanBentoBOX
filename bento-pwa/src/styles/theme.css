@@ -1,14 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap');
+
 :root {
-  /* Ported from mobile theme.js */
-  --color-brand: #0f172a;    /* Deep Navy */
-  --color-accent: #0ea5e9;   /* Sky Blue */
-  --color-bg: #f8fafc;       /* Slate 50 */
+  /* Premium Palette */
+  --color-navy: #0c1c2e;    /* Precise BaChan Navy */
+  --color-paper: #fefcf5;   /* Bone/Off-white paper */
+  --color-white: #ffffff;
+  
+  --color-brand: var(--color-navy);
+  --color-accent: #0ea5e9;   /* Keep sky blue for subtle accents */
+  --color-bg: var(--color-paper);
   --color-surface: rgba(255, 255, 255, 0.95);
-  --color-text: #1e293b;
-  --color-text-light: #64748b;
+  --color-text: #1a1a1a;
+  --color-text-light: #8c8c8c;
   --color-danger: #ef4444;
   --color-border: #e2e8f0;
-  --color-bachan-brown: #3d2b1f; /* Custom BaChan Brown for Nana */
+  --color-bachan-brown: #3d2b1f;
+
+  /* Typography */
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Inter', -apple-system, sans-serif;
 
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.08);
@@ -24,11 +34,12 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--color-bg);
   color: var(--color-text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden; /* Block horizontal scroll */
 }
 
 .app-wrapper {
@@ -36,6 +47,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden; /* Solid block */
 }
 
 .seigaiha-overlay {
@@ -55,16 +67,23 @@ body {
   max-width: 600px; /* Mobile centric max-width */
   margin: 0 auto;
   padding: 0 20px;
+  transition: max-width 0.3s ease;
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1000px; /* Wider for desktop dashboards */
+  }
 }
 
 .nav-header {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: var(--color-navy); /* Solid Navy Blue as requested */
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   position: sticky;
   top: 0;
   z-index: 1000;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .nav-content {
@@ -75,9 +94,10 @@ body {
 }
 
 .nav-brand {
+  font-family: var(--font-serif);
   font-weight: 800;
   font-size: 1.25rem;
-  color: var(--color-brand);
+  color: var(--color-paper);
   text-decoration: none;
 }
 
@@ -88,14 +108,14 @@ body {
 
 .nav-link {
   text-decoration: none;
-  color: var(--color-text-light);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.875rem;
   font-weight: 600;
   transition: color 0.2s;
 }
 
 .nav-link.active {
-  color: var(--color-accent);
+  color: var(--color-white);
 }
 
 .main-content {

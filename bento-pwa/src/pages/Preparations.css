@@ -1,0 +1,228 @@
+.preparations-editor-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: calc(100vh - 120px);
+}
+
+@media (min-width: 1024px) {
+  .preparations-editor-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .editor-left-panel {
+    width: 38%; /* Proportional width */
+    position: sticky;
+    top: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex-shrink: 0;
+  }
+
+  .editor-right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    padding-left: 24px; /* Space between panels */
+  }
+  
+  .ingredients-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 8px;
+  }
+}
+
+/* Mobile specific */
+@media (max-width: 1023px) {
+  .preparations-editor-layout {
+    height: auto;
+    padding-bottom: 100px; /* Space for floating button */
+  }
+  
+  .editor-left-panel {
+    margin-bottom: 24px;
+  }
+}
+
+/* Mini-cards for ingredients */
+.mini-card {
+  background: var(--color-white);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.mini-card:hover {
+  border-color: var(--color-navy);
+}
+
+.mini-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.mini-card-title {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.mini-card-details {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Quick Search */
+.internal-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 1px solid var(--color-beige);
+  padding: 12px 20px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  color: var(--color-navy);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+
+.internal-search input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  outline: none;
+}
+
+/* Premium Ghost Button */
+.premium-ghost-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid var(--color-beige);
+  color: var(--color-navy);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.premium-ghost-btn:hover {
+  background: var(--color-beige);
+  transform: translateX(-4px);
+}
+
+/* Enhanced Cost Summary */
+.cost-summary-card {
+  background: var(--color-paper);
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid var(--color-beige);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cost-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.cost-item .label {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--color-navy);
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+
+.cost-item .value {
+  font-weight: 900;
+  color: var(--color-navy);
+}
+
+.cost-item.primary .value {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.cost-item.secondary .value {
+  font-size: 1.25rem;
+  opacity: 0.8;
+}
+
+.internal-search svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-light);
+}
+
+/* Floating Save Button */
+@media (min-width: 1024px) {
+  .floating-save-container {
+    display: none !important;
+  }
+}
+
+.floating-save-container {
+  position: fixed;
+  bottom: 32px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.floating-save-btn {
+  pointer-events: auto;
+  background-color: var(--color-navy);
+  color: white;
+  padding: 16px 32px;
+  border-radius: 100px;
+  border: none;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(12, 28, 46, 0.3);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: slideInUp 0.5s ease-out;
+}
+
+.floating-save-btn:active {
+  transform: scale(0.95);
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

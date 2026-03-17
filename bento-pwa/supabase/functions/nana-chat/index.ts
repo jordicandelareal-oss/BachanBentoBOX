@@ -21,7 +21,7 @@ serve(async (req) => {
 
     // 2. Extract payload
     const body = await req.json()
-    const { prompt, contextData, tools, systemPrompt } = body
+    const { prompt, contextData, tools, systemPrompt, imageBase64 } = body
 
     if (!GEMINI_KEY) throw new Error("VITE_GEMINI_KEY not configured in Edge Function")
 
@@ -33,9 +33,20 @@ ${JSON.stringify(contextData)}
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`
     
+    // Construct parts array for multimodal support
+    const userParts: any[] = [{ text: prompt }]
+    if (imageBase64) {
+      userParts.push({
+        inline_data: {
+          mime_type: "image/jpeg",
+          data: imageBase64
+        }
+      })
+    }
+
     const payload = {
       system_instruction: { parts: [{ text: modifiedPrompt }] },
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      contents: [{ role: "user", parts: userParts }],
       tools: tools,
       generationConfig: {
         temperature: 0.4,
@@ -53,6 +64,6 @@ ${JSON.stringify(contextData)}
     return new Response(JSON.stringify(json), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: (error as Error).message }), { status: 400, headers: corsHeaders })
   }
 })

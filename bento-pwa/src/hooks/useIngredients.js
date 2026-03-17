@@ -7,20 +7,18 @@ export function useIngredients() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    // Diagnóstico inicial de conexión
     console.log("🔍 [Supabase] Iniciando conexión...");
     console.log("🔍 [Supabase] URL:", import.meta.env.VITE_SUPABASE_URL);
 
     fetchIngredients()
 
-    // Realtime subscription for live price updates
     const channel = supabase
       .channel('public:ingredients')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ingredients' }, payload => {
         if (payload.eventType === 'INSERT') {
-          setIngredients(prev => [...prev, payload.new])
+          fetchIngredients() // refetch to get joined data
         } else if (payload.eventType === 'UPDATE') {
-          setIngredients(prev => prev.map(i => i.id === payload.new.id ? payload.new : i))
+          fetchIngredients()
         } else if (payload.eventType === 'DELETE') {
           setIngredients(prev => prev.filter(i => i.id !== payload.old.id))
         }
@@ -43,10 +41,9 @@ export function useIngredients() {
         .from('ingredients')
         .select(`
           *,
-          net_cost_per_unit,
-          categories:category_id ( name ),
-          subcategories:subcategory_id ( name ),
-          units:unit_id ( name )
+          categories:category_id ( id, name ),
+          subcategories:subcategory_id ( id, name ),
+          units:unit_id ( id, name )
         `)
         .order('name')
         
@@ -59,7 +56,6 @@ export function useIngredients() {
         console.warn("⚠️ [Supabase] La tabla 'ingredients' está vacía o el RLS bloquea el acceso.");
       }
 
-      // Flatten the joined category/subcategory names to top-level fields
       const mapped = (data || []).map(ing => ({
         ...ing,
         category_name: ing.categories?.name || null,
@@ -76,14 +72,16 @@ export function useIngredients() {
     }
   }
 
-  async function updatePrice(id, newPrice) {
+  // Update full ingredient fields
+  async function updateIngredient(id, fields) {
     try {
       const { error: supError } = await supabase
         .from('ingredients')
-        .update({ purchase_price: newPrice })
+        .update(fields)
         .eq('id', id)
         
       if (supError) throw supError
+      await fetchIngredients()
       return { success: true }
     } catch (err) {
       console.error("❌ [Supabase Update Error]", err);
@@ -91,5 +89,40 @@ export function useIngredients() {
     }
   }
 
-  return { ingredients, loading, error, updatePrice, fetchIngredients }
+  // Add a new ingredient
+  async function addIngredient(fields) {
+    try {
+      const { error: supError } = await supabase
+        .from('ingredients')
+        .insert([fields])
+        
+      if (supError) throw supError
+      await fetchIngredients()
+      return { success: true }
+    } catch (err) {
+      console.error("❌ [Supabase Insert Error]", err);
+      return { success: false, error: err.message }
+    }
+  }
+
+  // Delete an ingredient
+  async function deleteIngredient(id) {
+    try {
+      const { error: supError } = await supabase
+        .from('ingredients')
+        .delete()
+        .eq('id', id)
+        
+      if (supError) throw supError
+      // State is updated automatically by the realtime listener, 
+      // but we can also manually filter for immediate feedback
+      setIngredients(prev => prev.filter(i => i.id !== id))
+      return { success: true }
+    } catch (err) {
+      console.error("❌ [Supabase Delete Error]", err);
+      return { success: false, error: err.message }
+    }
+  }
+
+  return { ingredients, loading, error, updateIngredient, addIngredient, deleteIngredient, fetchIngredients }
 }

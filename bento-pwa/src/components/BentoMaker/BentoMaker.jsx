@@ -6,36 +6,41 @@ import { useUnits } from '../../hooks/useUnits';
 import { 
   Package, Utensils, Plus, X, Save, ChevronRight, 
   TrendingUp, TrendingDown, DollarSign, Target, 
-  Trash2, Info
+  Trash2, Info, LayoutGrid, Scale
 } from 'lucide-react';
 import SequentialSelector from '../Common/SequentialSelector';
 import '../../styles/Common.css';
 import './BentoMaker.css';
 
-export default function BentoMaker() {
+export default function BentoMaker({ recipe = null, onClose }) {
   const { 
     bentoName, setBentoName, 
     salePrice, setSalePrice, 
     portions, setPortions,
     unitId, setUnitId,
     items, addItem, updateItemQuantity, removeItem,
-    totals, saveBento
-  } = useBentoMaker();
+    totals, saveBento, loadRecipeItems
+  } = useBentoMaker(recipe, 'bento');
   
   const { units } = useUnits();
-
   const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [showSelector, setShowSelector] = useState(false);
-
   const { ingredients } = useIngredients();
   const { recipes } = useRecipes('elaboracion');
+
+  React.useEffect(() => {
+    if (recipe?.id) {
+      loadRecipeItems(recipe.id);
+    }
+  }, [recipe?.id]);
 
   const handleSelectComponent = (item) => {
     const normalized = normalizeUnit(item.unit_name || (item.type === 'ingredient' ? 'g' : 'ud'));
     let baseCost = 0;
     
     if (item.type === 'ingredient') {
-      baseCost = item.net_cost_per_unit || (item.purchase_price / 1000);
+      baseCost = parseFloat(item.cost_per_unit || (item.purchase_price / item.purchase_format));
     } else {
       const recipeCost = item.cost_per_portion || 0;
       baseCost = (normalized === 'g' || normalized === 'ml') ? (recipeCost / 1000) : recipeCost;
@@ -57,73 +62,84 @@ export default function BentoMaker() {
     setIsSaving(true);
     try {
       await saveBento();
-      alert('¡Bento guardado con éxito! 🍱');
+      setIsSaving(false);
+      setIsSaved(true);
+      setTimeout(() => {
+        if (onClose) {
+          onClose();
+        } else {
+          setIsSaved(false);
+        }
+      }, 1500);
     } catch (error) {
       alert('Error: ' + error.message);
-    } finally {
       setIsSaving(false);
     }
   };
 
   return (
     <div className="page-container fade-in">
+      {onClose && (
+        <button onClick={onClose} className="flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors mb-6">
+          <ChevronRight className="rotate-180" size={18} /> Volver al listado
+        </button>
+      )}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Bento Maker</h1>
+          <h1 className="page-title">{recipe ? 'Editar Bento' : 'Bento Maker'}</h1>
           <p className="page-subtitle">Diseña productos finales y analiza rentabilidad</p>
         </div>
-        <div className="flex gap-2">
-          <button 
-            className="btn-save-main" 
-            onClick={handleSave}
-            disabled={isSaving || !bentoName || items.length === 0}
-          >
-            {isSaving ? '...' : <Save size={20} />}
-            <span>{isSaving ? 'Guardando' : 'Guardar'}</span>
-          </button>
-        </div>
+        <button 
+          className={`btn-primary ${isSaved ? 'bg-emerald-500' : ''}`} 
+          onClick={handleSave}
+          disabled={isSaving || isSaved || !bentoName || items.length === 0}
+        >
+          {isSaving ? '...' : isSaved ? '¡Guardado! ✓' : <Save size={20} />}
+          <span>{isSaving ? 'Guardando' : isSaved ? '' : 'Guardar Bento'}</span>
+        </button>
       </div>
 
       <div className="bento-layout">
         <div className="bento-main">
           {/* Header Info Card */}
-          <div className="premium-compact-card mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6">
-              <div className="md:col-span-6">
-                <label className="card-meta block mb-1">Nombre del Producto</label>
+          <div className="premium-form-card mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              <div className="md:col-span-12 lg:col-span-6">
+                <label className="form-label">Nombre del Producto</label>
                 <input 
                   type="text" 
                   value={bentoName} 
                   onChange={e => setBentoName(e.target.value)}
-                  className="w-full text-2xl font-black text-slate-900 border-b-2 border-slate-100 focus:border-slate-900 outline-none pb-2 bg-transparent"
+                  className="form-input-premium"
                   placeholder="Ej: Bento Teriyaki Premium..."
                 />
               </div>
-              <div className="md:col-span-3">
-                <label className="card-meta block mb-1">PVP Sugerido</label>
+              <div className="md:col-span-6 lg:col-span-3">
+                <label className="form-label">PVP Sugerido</label>
                 <div className="relative">
                   <input 
                     type="number" 
                     value={salePrice} 
                     onChange={e => setSalePrice(Number(e.target.value))}
-                    className="w-full text-xl font-bold text-slate-900 border-b-2 border-slate-100 outline-none pb-2 bg-transparent pr-8"
+                    className="form-input-premium pr-10"
                   />
-                  <span className="absolute right-0 bottom-3 text-slate-400 font-bold">€</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">€</span>
                 </div>
               </div>
-              <div className="md:col-span-3">
-                <label className="card-meta block mb-1">Unidades</label>
+              <div className="md:col-span-6 lg:col-span-3">
+                <label className="form-label">Rinde (Unid/Porciones)</label>
                 <div className="flex gap-2">
                   <input 
                     type="number" 
                     value={portions} 
                     onChange={e => setPortions(Number(e.target.value))}
-                    className="w-full text-xl font-bold text-slate-900 border-b-2 border-slate-100 outline-none pb-2 bg-transparent"
+                    className="form-input-premium"
                   />
                   <select
                     value={unitId}
                     onChange={e => setUnitId(e.target.value)}
-                    className="text-sm border-b-2 border-slate-100 outline-none bg-transparent"
+                    className="form-input-premium form-select-premium"
+                    style={{ minWidth: '80px' }}
                   >
                     <option value="">...</option>
                     {units.map(u => (
@@ -136,52 +152,54 @@ export default function BentoMaker() {
           </div>
 
           {/* Items Section */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-4 bg-slate-50 border-bottom border-slate-100 flex justify-between items-center">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <LayoutGrid size={18} /> Componentes del Bento
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="section-header p-6 pb-0 mb-0 border-none">
+              <h3 className="section-title">
+                <LayoutGrid size={20} className="text-sky-500" /> Componentes del Bento
               </h3>
               <button className="btn-add-item-small" onClick={() => setShowSelector(true)}>
                 <Plus size={14} /> Añadir
               </button>
             </div>
 
-            <div className="p-4">
+            <div className="p-6">
               {items.length === 0 ? (
                 <div className="text-center py-12">
-                   <Package className="mx-auto text-slate-200 mb-2" size={40} />
-                   <p className="text-slate-400 text-sm italic">Usa el selector para añadir insumos o recetas base</p>
+                   <Package className="mx-auto text-slate-100 mb-2" size={48} />
+                   <p className="text-slate-400 text-sm italic">Configura los componentes de este producto</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {items.map(item => (
-                    <div key={item._key} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-300 transition-colors">
+                    <div key={item._key} className="premium-card" style={{ padding: '16px', border: '1px solid #f1f5f9', background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                       <div className="flex-1">
-                        <div className="font-bold text-slate-800 flex items-center gap-2">
-                          {item.type === 'ingredient' ? <Package size={14} className="text-slate-400" /> : <Utensils size={14} className="text-slate-400" />}
+                        <div className="font-bold text-[#0f172a] text-sm flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                            {item.type === 'ingredient' ? <Package size={14} /> : <Utensils size={14} />}
+                          </div>
                           {item.name}
                         </div>
-                        <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                        <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-2 ml-11">
                           {(item.unit === 'g' || item.unit === 'ml') 
                             ? `${(item.costPerUnit * 1000).toFixed(2)}€/kg · l`
                             : `${item.costPerUnit.toFixed(2)}€/ud`}
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center bg-white border border-slate-200 rounded-xl px-2 shadow-sm">
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1 shadow-inner">
                           <input 
                             type="number" 
                             value={item.quantity} 
                             onChange={e => updateItemQuantity(item._key, e.target.value)}
-                            className="w-20 text-right py-2 text-sm font-black outline-none bg-transparent"
+                            className="w-16 text-right py-2 text-sm font-black text-[#0f172a] outline-none bg-transparent"
                           />
-                          <span className="text-[10px] font-bold text-slate-400 px-2 uppercase">{item.unit}</span>
+                          <span className="text-[10px] font-black text-slate-400 px-2 uppercase">{item.unit}</span>
                         </div>
-                        <div className="w-20 text-right font-black text-slate-900">
+                        <div className="w-20 text-right font-black text-[#0f172a] text-sm">
                           {(item.costPerUnit * item.quantity).toFixed(2)}€
                         </div>
-                        <button onClick={() => removeItem(item._key)} className="text-slate-300 hover:text-red-500 transition-colors">
-                          <Trash2 size={18} />
+                        <button onClick={() => removeItem(item._key)} className="text-slate-300 hover:text-[#f43f5e] transition-colors p-2 rounded-full hover:bg-rose-50" title="Eliminar componente">
+                          <Trash2 size={20} />
                         </button>
                       </div>
                     </div>
@@ -194,31 +212,31 @@ export default function BentoMaker() {
 
         <div className="bento-sidebar">
           {/* Rentability Card */}
-          <div className="rentability-card shadow-xl">
-            <h3 className="text-white font-black uppercase tracking-widest text-xs mb-6 opacity-60">Análisis Económico</h3>
+          <div className="rentability-card shadow-2xl">
+            <h3 className="text-white font-black uppercase tracking-widest text-[10px] mb-8 opacity-40">Análisis de Costes</h3>
             
-            <div className="space-y-6">
-              <div>
-                <div className="flex justify-between text-white/60 text-[10px] font-bold uppercase mb-1">
-                  <span>Coste Materia Prima</span>
-                  <DollarSign size={12} />
+            <div className="space-y-8">
+              <div className="group">
+                <div className="flex justify-between text-white/40 text-[9px] font-black uppercase tracking-tighter mb-2">
+                  <span>Inversión Materia Prima</span>
+                  <DollarSign size={12} className="opacity-50" />
                 </div>
-                <div className="text-3xl font-black text-white">{totals.totalCost.toFixed(2)}€</div>
+                <div className="text-4xl font-black text-white group-hover:text-sky-400 transition-colors">{totals.totalCost.toFixed(2)}<span className="text-lg ml-0.5 font-bold opacity-40">€</span></div>
               </div>
 
               <div>
-                <div className="flex justify-between text-white/60 text-[10px] font-bold uppercase mb-1">
-                  <span>Coste por Ración</span>
-                  <Target size={12} />
+                <div className="flex justify-between text-white/40 text-[9px] font-black uppercase tracking-tighter mb-2">
+                  <span>Coste unitario (Cálculo)</span>
+                  <Target size={12} className="opacity-50" />
                 </div>
-                <div className="text-xl font-black text-white">{totals.costPerPortion.toFixed(2)}€</div>
+                <div className="text-2xl font-black text-white">{totals.costPerPortion.toFixed(2)}<span className="text-base ml-0.5 font-bold opacity-40">€</span></div>
               </div>
 
-              <div className="pt-4 border-t border-white/10">
-                <div className="flex justify-between items-center">
+              <div className="pt-8 border-t border-white/5">
+                <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl">
                   <div>
-                    <div className="text-white/60 text-[10px] font-bold uppercase mb-1">Margen Bruto</div>
-                    <div className="text-4xl font-black text-white">{totals.margin.toFixed(1)}%</div>
+                    <div className="text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">Margen Real</div>
+                    <div className="text-4xl font-black text-white">{totals.margin.toFixed(1)}<span className="text-xl ml-0.5 opacity-30">%</span></div>
                   </div>
                   <div className={`margin-indicator ${totals.margin >= 70 ? 'good' : 'warning'}`}>
                     {totals.margin >= 70 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
@@ -227,10 +245,10 @@ export default function BentoMaker() {
               </div>
             </div>
 
-            <div className="mt-8 p-3 bg-white/5 rounded-xl flex gap-3 items-start">
-              <Info size={16} className="text-white/40 mt-0.5" />
-              <p className="text-white/40 text-[10px] leading-relaxed">
-                El margen recomendado por BaChan es del 70%. Ajusta el PVP o reduce costes si estás por debajo.
+            <div className="mt-8 p-4 bg-white/5 rounded-2xl flex gap-3 items-start border border-white/5">
+              <Info size={16} className="text-sky-400 mt-0.5 flex-shrink-0" />
+              <p className="text-white/40 text-[10px] leading-relaxed font-bold">
+                Para BaChan, el éxito está en un margen del 70%. Ajusta tus precios o recetas para optimizar el beneficio.
               </p>
             </div>
           </div>
@@ -247,9 +265,4 @@ export default function BentoMaker() {
       )}
     </div>
   );
-}
-
-// Minimal helper component for LayoutGrid icon in this file
-function LayoutGrid({ size }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>;
 }

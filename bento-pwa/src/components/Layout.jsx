@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useIngredients } from '../hooks/useIngredients'
+import { useRecipes } from '../hooks/useRecipes'
 import { processCommand } from '../lib/geminiClient'
-import NanaFAB from './Nana/NanaFAB'
 import NanaOverlay from './Nana/NanaOverlay'
 import '../styles/theme.css'
 
@@ -13,22 +13,32 @@ export default function Layout() {
   
   // Nana State
   const [isNanaVisible, setIsNanaVisible] = useState(false)
+  const [initialVisionMode, setInitialVisionMode] = useState(false)
   const [nanaState, setNanaState] = useState('IDLE')
   const [aiResponse, setAiResponse] = useState('')
   const { ingredients } = useIngredients()
+  const { recipes } = useRecipes()
 
-  const handleSendMessage = async (text) => {
+  const handleSendMessage = async (text, imageBase64 = null) => {
     setNanaState('THINKING')
     setAiResponse('')
     
     try {
-      const result = await processCommand(text, { ingredients: ingredients })
+      const result = await processCommand(text, { 
+        ingredients: ingredients,
+        recipes: recipes 
+      }, imageBase64)
       setAiResponse(result.message)
       setNanaState('IDLE')
     } catch (error) {
       console.error('Nana error:', error)
       setNanaState('ERROR')
     }
+  }
+
+  const openNana = (vision = false) => {
+    setInitialVisionMode(vision)
+    setIsNanaVisible(true)
   }
 
   return (
@@ -40,30 +50,26 @@ export default function Layout() {
           <NavLink to="/" className="nav-brand">🍱 BaChan</NavLink>
           <nav className="nav-links">
             <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Home</NavLink>
-            <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
+            <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Bentos</NavLink>
             <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
-            <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Bento</NavLink>
+            <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
           </nav>
         </div>
       </header>
       
       <main className="main-content">
         <div className="container">
-          <Outlet />
+          <Outlet context={{ openNana }} />
         </div>
       </main>
       
-      <NanaFAB 
-        onClick={() => setIsNanaVisible(true)} 
-        onLongPress={() => console.log('Voice test')} 
-      />
-
       <NanaOverlay 
         isVisible={isNanaVisible}
         onClose={() => setIsNanaVisible(false)}
         nanaState={nanaState}
         aiResponse={aiResponse}
         onSendMessage={handleSendMessage}
+        initialVisionMode={initialVisionMode}
       />
     </div>
   )

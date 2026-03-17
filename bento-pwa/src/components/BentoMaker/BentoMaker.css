@@ -1,6 +1,6 @@
 .bento-layout {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 340px;
   gap: 32px;
   align-items: start;
 }
@@ -15,16 +15,18 @@
   padding: 32px;
   border-radius: 32px;
   color: white;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 40px 80px -20px rgba(15, 23, 42, 0.4);
 }
 
 .margin-indicator {
-  width: 56px;
-  height: 56px;
-  border-radius: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
 .margin-indicator.good {
@@ -37,47 +39,16 @@
   color: white;
 }
 
-.btn-save-main {
-  background: var(--color-brand);
-  color: white;
-  border: none;
-  border-radius: 16px;
-  padding: 10px 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
-}
-
-.btn-save-main:hover:not(:disabled) {
-  transform: translateY(-2px);
-  background: #1e293b;
-}
-
-.btn-save-main:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.premium-compact-card {
-  background: white;
-  border-radius: 24px;
-  border: 1px solid #f1f5f9;
-  box-shadow: var(--shadow-sm);
-}
-
 .btn-add-item-small {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
   color: #0f172a;
   font-weight: 800;
-  font-size: 11px;
+  font-size: 0.7rem;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -86,47 +57,19 @@
 }
 
 .btn-add-item-small:hover {
-  background: #f8fafc;
-  border-color: #0f172a;
-}
-
-.category-tabs-wrapper {
-  margin-bottom: 24px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
-.category-tabs {
-  display: flex;
-  gap: 8px;
-  min-width: max-content;
-}
-
-.category-tab {
   background: white;
-  border: 1px solid #e2e8f0;
-  padding: 8px 20px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 13px;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  transform: translateY(-1px);
 }
 
-.category-tab.active {
-  background: #0f172a;
-  color: white;
-  border-color: #0f172a;
-}
-
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .bento-layout {
     grid-template-columns: 1fr;
   }
   
   .bento-sidebar {
     position: static;
+    margin-top: 24px;
   }
 }
