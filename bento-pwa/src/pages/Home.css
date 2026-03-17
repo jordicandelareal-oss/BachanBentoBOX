@@ -161,20 +161,25 @@
 
 /* FOOTER MASTER BUTTON */
 .home-footer-master {
+  position: fixed;
+  bottom: 0;
+  left: 0;
   width: 100%;
+  padding-bottom: 48px; /* Safe margin for desktop */
   display: flex;
   justify-content: center;
-  margin-top: auto;
-  padding-bottom: min(60px, 8vh); /* Ensure margin on PC */
+  z-index: 50;
+  pointer-events: none; /* Allow interaction with content behind */
 }
 
 @media (max-width: 768px) {
   .home-footer-master {
-    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
 }
 
 .master-ai-pill {
+  pointer-events: auto; /* Active button */
   background-color: var(--color-navy);
   color: white;
   border: none;
@@ -188,8 +193,8 @@
   font-size: 15px;
   letter-spacing: 0.1em;
   cursor: pointer;
-  box-shadow: 0 15px 35px rgba(12, 28, 46, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: 0 15px 35px rgba(12, 28, 46, 0.4);
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .master-ai-pill:hover {
