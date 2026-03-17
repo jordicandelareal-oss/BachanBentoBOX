@@ -2,44 +2,56 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #fefcf5; /* Bone/Off-white paper */
-  background-image: url('https://www.transparenttextures.com/patterns/p6-mini.png'); /* Enhanced paper texture */
+  background-color: var(--color-paper);
+  background-image: url('https://www.transparenttextures.com/patterns/p6-mini.png');
+  overflow-x: hidden;
 }
 
 /* HEADER SECTION */
 .header-navy {
-  background-color: #0c1c2e; /* Solid Navy Blue */
-  padding: 50px 0;
+  background-color: var(--color-navy);
+  padding: 60px 0; /* More space for a bigger logo */
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
+  min-height: 280px; /* Increased back slightly */
 }
 
 .seal-logo-wrapper {
-  width: 240px;
-  height: 240px;
+  width: auto;
+  height: 180px; /* Larger logo on desktop */
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .seal-logo-crema {
-  width: 100%;
-  height: auto;
-  /* Apply filters to achieve the "Soft Cream" look for the seal strokes/fills */
+  height: 100%;
+  width: auto;
   filter: sepia(0.4) brightness(1.1) contrast(0.9) hue-rotate(330deg) saturate(0.8);
+}
+
+/* On Mobile, logo shouldn't exceed 45% of the blue header's height */
+@media (max-width: 768px) {
+  .header-navy {
+    height: 40vh; /* Relative height for breathing room */
+    padding: 0;
+  }
+  .seal-logo-wrapper {
+    height: 45%; /* Increased from 40% */
+  }
 }
 
 /* BODY SECTION */
 .body-paper {
   flex: 1;
-  padding: 40px 20px;
+  padding: 40px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 30px;
   width: 100%;
+  background-image: radial-gradient(circle at center, rgba(0,0,0,0.01) 0%, transparent 70%);
 }
 
 .home-menu-container {
@@ -47,36 +59,64 @@
   max-width: 500px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px; /* Tighter gap for better flow */
+  margin-bottom: 60px;
+}
+
+@media (min-width: 1024px) {
+  .home-menu-container {
+    max-width: 1000px; /* Wider for 3 columns */
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Force 3 columns for symmetry */
+    gap: 24px;
+  }
 }
 
 .home-menu-card {
-  background: #ffffff;
-  border: none;
-  border-radius: 24px;
-  padding: 24px;
+  background: var(--color-crema);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 32px; /* Smoother corners */
+  padding: 32px 24px;
   display: flex;
+  flex-direction: column; /* Stacked for better desktop symmetry */
   align-items: center;
-  gap: 24px;
-  /* Soft and Deep shadow for elevation */
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+  text-align: center;
+  gap: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03), 0 1px 4px rgba(0, 0, 0, 0.01);
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   width: 100%;
-  text-align: left;
+}
+
+@media (max-width: 768px) {
+  .home-menu-card {
+    flex-direction: row; /* Keep horizontal on mobile */
+    text-align: left;
+    padding: 24px;
+  }
+}
+
+.home-menu-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  border-color: rgba(14, 165, 233, 0.2);
+  background: white;
 }
 
 .home-menu-card:active {
-  transform: scale(0.98);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+  transform: scale(0.96);
 }
 
 .menu-card-icon {
-  color: #1a1a1a;
+  color: var(--color-navy);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
 }
 
 .menu-card-text {
@@ -84,72 +124,85 @@
 }
 
 .menu-card-title {
-  font-family: 'Inter', -apple-system, sans-serif; /* Clean Sans Serif */
-  font-size: 20px;
+  font-family: var(--font-serif);
+  font-size: 24px;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--color-navy);
   margin: 0;
   letter-spacing: -0.01em;
 }
 
 .menu-card-desc {
+  font-family: var(--font-sans);
   font-size: 13px;
-  color: #8c8c8c; /* Subtle gray */
-  margin: 4px 0 0 0;
+  color: #6a737d;
+  margin: 8px 0 0 0;
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
-.home-menu-card svg:last-child {
-  color: #d1d1d1; /* Arrow color */
-}
-
-/* FOOTER DUAL BUTTONS */
-.home-dual-footer {
-  width: 100%;
-  max-width: 500px;
+.home-menu-card .arrow-icon {
   margin-top: auto;
-  padding-bottom: 40px;
+  opacity: 0.3;
+  transition: all 0.2s;
 }
 
-.pill-buttons-row {
-  display: flex;
-  gap: 12px;
+@media (max-width: 768px) {
+  .home-menu-card .arrow-icon {
+    margin-top: 0;
+  }
+}
+
+.home-menu-card:hover .arrow-icon {
+  opacity: 1;
+  color: var(--color-accent);
+  transform: translateX(4px);
+}
+
+/* FOOTER MASTER BUTTON */
+.home-footer-master {
   width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding-bottom: min(60px, 8vh); /* Ensure margin on PC */
 }
 
-.pill-btn-navy {
-  flex: 1;
-  background-color: #0c1c2e;
-  color: #ffffff;
+@media (max-width: 768px) {
+  .home-footer-master {
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+}
+
+.master-ai-pill {
+  background-color: var(--color-navy);
+  color: white;
   border: none;
-  border-radius: 100px; /* Full pill shape */
-  padding: 16px 20px;
+  border-radius: 100px;
+  padding: 18px 40px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.8px;
+  gap: 14px;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.1em;
   cursor: pointer;
-  box-shadow: 0 12px 24px rgba(12, 28, 46, 0.15);
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  box-shadow: 0 15px 35px rgba(12, 28, 46, 0.3);
+  transition: all 0.3s ease;
 }
 
-.pill-btn-navy:active {
-  transform: translateY(2px);
-  box-shadow: 0 6px 12px rgba(12, 28, 46, 0.1);
+.master-ai-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(12, 28, 46, 0.4);
+  background-color: #1a2a3e;
 }
 
-.pill-btn-navy span {
+.master-ai-pill:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.master-ai-pill span {
   text-transform: uppercase;
-}
-
-/* Ensure icons in pills are perfectly aligned */
-.pill-btn-navy svg {
-  flex-shrink: 0;
 }
 

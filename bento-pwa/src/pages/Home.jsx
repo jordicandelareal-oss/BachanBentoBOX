@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import AIActionSheet from '../components/Nana/AIActionSheet';
 import './Home.css';
 
 // Custom Line-Art Icons for 100% Fidelity
@@ -31,25 +33,16 @@ const IngredientsIcon = () => (
   </svg>
 );
 
-const CameraIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-    <circle cx="12" cy="13" r="4" />
-  </svg>
-);
-
-const NanaFaceIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="5"/>
-    <path d="M35 45C35 45 40 40 50 40C60 40 65 45 65 45" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M40 65C40 65 45 70 50 70C55 70 60 65 60 65" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    <circle cx="40" cy="50" r="3" fill="currentColor"/>
-    <circle cx="60" cy="50" r="3" fill="currentColor"/>
+const SparkleAIIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 3L14.5 9L21 11.5L14.5 14L12 21L9.5 14L3 11.5L9.5 9L12 3Z" fill="var(--color-accent)" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M19 3L19.5 5L21.5 5.5L19.5 6L19 8L18.5 6L16.5 5.5L18.5 5L19 3Z" fill="currentColor" />
+    <path d="M5 16L5.5 18L7.5 18.5L5.5 19L5 21L4.5 19L2.5 18.5L4.5 18L5 16Z" fill="currentColor" />
   </svg>
 );
 
 const ArrowIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="m9 18 6-6-6-6" />
   </svg>
 );
@@ -57,6 +50,7 @@ const ArrowIcon = () => (
 export default function Home() {
   const navigate = useNavigate();
   const { openNana } = useOutletContext();
+  const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
 
   const menuItems = [
     {
@@ -108,20 +102,20 @@ export default function Home() {
           ))}
         </div>
 
-        {/* FOOTER ACTION BUTTONS */}
-        <footer className="home-dual-footer">
-          <div className="pill-buttons-row">
-            <button className="pill-btn-navy" onClick={() => openNana(true)}>
-              <CameraIcon />
-              <span>NANA VISION</span>
-            </button>
-            <button className="pill-btn-navy" onClick={() => openNana(false)}>
-              <span style={{ fontSize: '20px', marginRight: '8px' }}>🎎</span>
-              <span>HABLAR CON NANA</span>
-            </button>
-          </div>
+        {/* FOOTER MASTER AI BUTTON */}
+        <footer className="home-footer-master">
+          <button className="master-ai-pill" onClick={() => setIsActionSheetOpen(true)}>
+            <SparkleAIIcon />
+            <span>NANA IA</span>
+          </button>
         </footer>
       </main>
+
+      <AIActionSheet 
+        isOpen={isActionSheetOpen} 
+        onClose={() => setIsActionSheetOpen(false)}
+        onSelectOption={(mode) => openNana(mode === 'vision')}
+      />
     </div>
   );
 }

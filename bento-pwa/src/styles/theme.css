@@ -4,12 +4,13 @@
   /* Premium Palette */
   --color-navy: #0c1c2e;    /* Precise BaChan Navy */
   --color-paper: #fefcf5;   /* Bone/Off-white paper */
+  --color-crema: #f9f5e8;   /* Refined cream for better contrast */
   --color-white: #ffffff;
   
   --color-brand: var(--color-navy);
   --color-accent: #0ea5e9;   /* Keep sky blue for subtle accents */
   --color-bg: var(--color-paper);
-  --color-surface: rgba(255, 255, 255, 0.95);
+  --color-surface: var(--color-crema);
   --color-text: #1a1a1a;
   --color-text-light: #8c8c8c;
   --color-danger: #ef4444;
@@ -17,8 +18,8 @@
   --color-bachan-brown: #3d2b1f;
 
   /* Typography */
-  --font-serif: 'Playfair Display', serif;
-  --font-sans: 'Inter', -apple-system, sans-serif;
+  --font-serif: 'Playfair Display', "Times New Roman", Times, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.08);
@@ -66,7 +67,7 @@ body {
   width: 100%;
   max-width: 600px; /* Mobile centric max-width */
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 16px; /* Standard 16px lateral margins */
   transition: max-width 0.3s ease;
 }
 
