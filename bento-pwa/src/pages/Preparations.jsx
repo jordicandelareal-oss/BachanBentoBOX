@@ -4,7 +4,7 @@ import { useBentoMaker, normalizeUnit } from '../hooks/useBentoMaker';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { usePrepCategories } from '../hooks/usePrepCategories';
-import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search } from 'lucide-react';
+import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search, AlertCircle, ChefHat, CheckCircle2 } from 'lucide-react';
 import SequentialSelector from '../components/Common/SequentialSelector';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import '../styles/Common.css';
@@ -89,7 +89,10 @@ export function Preparations() {
                 </div>
                 <div>
                   <h3 className="card-title">{recipe.name}</h3>
-                  <p className="card-meta">Rinde: {recipe.portions} piezas/kg</p>
+                  <p className="card-meta">
+                    Rinde: {recipe.portions} {recipe.yield_scenario === 'weight' ? (recipe.unit_name || 'Kg') : 'ud'}
+                    {recipe.platos_estimados > 0 && ` | 🍽️ ${recipe.platos_estimados} platos`}
+                  </p>
                 </div>
               </div>
               
@@ -139,7 +142,12 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
     portions, setPortions,
     unitId, setUnitId,
     prepCategoryId, setPrepCategoryId,
-    items, addItem, updateItemQuantity, removeItem,
+    platosEstimados, setPlatosEstimados,
+    items, setItems,
+    yieldScenario, setYieldScenario,
+    adjustmentPercent, setAdjustmentPercent,
+    netYield, setNetYield,
+    addItem, updateItemQuantity, removeItem,
     totals, saveBento, loadRecipeItems 
   } = useBentoMaker(recipe, 'elaboracion');
   
@@ -164,7 +172,8 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
     let baseCost = 0;
     
     if (item.type === 'ingredient') {
-      baseCost = parseFloat(item.cost_per_unit || (item.purchase_price / item.purchase_format));
+      const format = Number(item.purchase_format) || 1000;
+      baseCost = parseFloat(item.cost_per_unit || (item.purchase_price / format));
     } else {
       const recipeCost = item.cost_per_portion || 0;
       baseCost = (normalized === 'g' || normalized === 'ml') ? (recipeCost / 1000) : recipeCost;
@@ -190,9 +199,10 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
       await saveBento();
       setIsSaving(false);
       setIsSaved(true);
+      // Feedback visible during 1.5 seconds, then close
       setTimeout(() => {
         onClose();
-      }, 1500);
+      }, 1800);
     } catch (err) {
       alert("Error al guardar: " + err.message);
       setIsSaving(false);
@@ -210,88 +220,188 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
 
       <div className="preparations-editor-layout">
         {/* PANEL IZQUIERDO: DATOS GENERALES */}
-        <div className="editor-left-panel">
-          <div className="premium-form-card">
-            <h3 className="section-title mb-6" style={{ fontFamily: 'var(--font-serif)' }}>Datos Generales</h3>
-            
-            <div className="form-group mb-4">
-              <label className="form-label">Nombre de la elaboración</label>
-              <input 
-                type="text" 
-                value={bentoName} 
-                onChange={e => setBentoName(e.target.value)}
-                className="form-input-premium"
-                placeholder="Ej: Salsa Teriyaki..."
-              />
-            </div>
-            
-            <div className="form-group mb-4">
-              <label className="form-label">Categoría de Mise en Place</label>
-              <select 
-                value={prepCategoryId}
-                onChange={e => setPrepCategoryId(e.target.value)}
-                className="form-input-premium form-select-premium"
-              >
-                <option value="">Selecciona categoría...</option>
-                {prepCats.map(cat => <option key={cat.id} value={cat.id}>{cat.Name}</option>)}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="form-group">
-                <label className="form-label">Rendimiento</label>
+          <div className="editor-left-panel space-y-6">
+            <div className="premium-form-card">
+              <h3 className="section-title mb-6" style={{ fontFamily: 'var(--font-serif)' }}>Datos Generales</h3>
+              
+              <div className="form-group mb-4">
+                <label className="form-label">Nombre de la elaboración</label>
                 <input 
-                  type="number" 
-                  value={portions || ''} 
-                  onChange={e => setPortions(e.target.value === '' ? '' : Number(e.target.value))}
+                  type="text" 
+                  value={bentoName} 
+                  onChange={e => setBentoName(e.target.value)}
                   className="form-input-premium"
-                  placeholder="Cant."
+                  placeholder="Ej: Salsa Teriyaki..."
                 />
               </div>
-              <div className="form-group">
-                <label className="form-label">Unidad</label>
-                <select
-                  value={unitId}
-                  onChange={e => setUnitId(e.target.value)}
+              
+              <div className="form-group mb-6">
+                <label className="form-label">Categoría de Mise en Place</label>
+                <select 
+                  value={prepCategoryId}
+                  onChange={e => setPrepCategoryId(e.target.value)}
                   className="form-input-premium form-select-premium"
                 >
-                  <option value="">Unidad...</option>
-                  {units.map(u => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                  ))}
+                  <option value="">Selecciona categoría...</option>
+                  {prepCats.map(cat => <option key={cat.id} value={cat.id}>{cat.Name}</option>)}
                 </select>
               </div>
-            </div>
 
-            <div className="mt-10 pt-8 border-t border-slate-100">
-              <div className="cost-summary-card">
-                <div className="cost-item primary">
-                  <span className="label">Coste por Ración</span>
-                  <span className="value">{totals.costPerPortion.toFixed(2)} €</span>
-                </div>
-                <div className="cost-item secondary">
-                  <span className="label">Coste Total de Receta</span>
-                  <span className="value">{totals.totalCost.toFixed(2)} €</span>
+              {/* ESCENARIO DE SALIDA - BACK TO LEFT */}
+              <div className="form-group mb-6">
+                <label className="form-label">Escenario de Salida</label>
+                <div className="segmented-control">
+                  <button 
+                    className={`segment-btn ${yieldScenario === 'weight' ? 'active' : ''}`}
+                    onClick={() => setYieldScenario('weight')}
+                  >
+                    <div className="icon-bg">
+                      <Scale size={18} />
+                    </div>
+                    <span className="segment-label">Peso (Kg/L)</span>
+                  </button>
+                  <button 
+                    className={`segment-btn ${yieldScenario === 'units' ? 'active' : ''}`}
+                    onClick={() => setYieldScenario('units')}
+                  >
+                    <div className="icon-bg">
+                      <Package size={18} />
+                    </div>
+                    <span className="segment-label">Unidades (Pzs)</span>
+                  </button>
                 </div>
               </div>
-            </div>
 
-            {/* Desktop Save Button */}
-            <div className="hidden md:block mt-8">
-              <button 
-                disabled={isSaving || isSaved || !bentoName || items.length === 0}
-                onClick={handleSave}
-                className={`btn-primary w-full py-4 text-lg ${isSaved ? 'bg-emerald-500' : ''}`}
-                style={{ borderRadius: '16px', fontFamily: 'var(--font-serif)' }}
-              >
-                {isSaving ? 'Guardando...' : isSaved ? '✓ Guardado' : <><Save size={20} /> Guardar Elaboración</>}
-              </button>
+              {yieldScenario === 'weight' && (
+                <div className="space-y-4 mb-6 p-4 bg-sky-50/50 rounded-2xl border border-sky-100/50 scale-in">
+                  <div className="form-group">
+                    <span className="form-label uppercase text-[10px] opacity-60">Peso Bruto (Suma)</span>
+                    <div className="read-only-value">
+                      {totals.totalGrossWeight} g
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="form-label flex justify-between">
+                      <span>% Merma / Cocción</span>
+                      <span className={adjustmentPercent < 0 ? 'text-rose-500' : 'text-emerald-500'} style={{ fontWeight: 900 }}>
+                        {adjustmentPercent > 0 ? '+' : ''}{adjustmentPercent}%
+                      </span>
+                    </label>
+                    <input 
+                      type="range"
+                      min="-50"
+                      max="100"
+                      step="5"
+                      value={adjustmentPercent}
+                      onChange={e => setAdjustmentPercent(Number(e.target.value))}
+                      className="w-full accent-navy"
+                      style={{ height: '4px' }}
+                    />
+                    <div className="flex justify-between text-[8px] font-bold text-slate-400 mt-1 uppercase">
+                      <span>Merma (-50%)</span>
+                      <span>Hidratación (+100%)</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2 border-t border-sky-100">
+                    <span className="text-[10px] font-bold text-sky-600 uppercase">Peso Neto Final</span>
+                    <span className="text-lg font-black text-sky-700">{(totals.finalNetYield / 1000).toFixed(2)} Kg/L</span>
+                  </div>
+                </div>
+              )}
+
+              {yieldScenario === 'units' && (
+                <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 scale-in">
+                  <div className="form-group">
+                    <label className="form-label">Rendimiento (Piezas)</label>
+                    <input 
+                      type="number" 
+                      value={portions || ''} 
+                      onChange={e => setPortions(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="form-input-premium"
+                      placeholder="Cant. piezas"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Unidad</label>
+                    <select
+                      value={unitId}
+                      onChange={e => setUnitId(e.target.value)}
+                      className="form-input-premium form-select-premium"
+                    >
+                      <option value="">Unidad...</option>
+                      {units.map(u => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* COST SUMMARY - ALWAYS AT END OF LEFT */}
+              <div className="mt-10 pt-8 border-t border-slate-100">
+                <div className="cost-summary-card">
+                  <div className="cost-item primary">
+                    <span className="label">Coste por {yieldScenario === 'weight' ? 'Kg/L' : 'Ración'}</span>
+                    <span className={`value ${totals.costPerPortion > 500 ? 'text-rose-600' : ''}`}>
+                      {totals.costPerPortion.toFixed(2)} €
+                    </span>
+                  </div>
+                  {totals.costPerPortion > 500 && (
+                    <div className="warning-banner">
+                      <AlertCircle size={18} />
+                      <span>Revisar cantidades: Coste excesivo</span>
+                    </div>
+                  )}
+                  <div className="cost-item secondary">
+                    <span className="label">Coste Total de Receta</span>
+                    <span className="value">{totals.totalCost.toFixed(2)} €</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop Save Button */}
+              <div className="hidden md:block mt-8">
+                <button 
+                  disabled={isSaving || isSaved || !bentoName || items.length === 0 || totals.costPerPortion > 500}
+                  onClick={handleSave}
+                  className={`btn-primary w-full py-4 text-lg ${isSaved ? 'bg-emerald-500' : ''}`}
+                  style={{ borderRadius: '16px', fontFamily: 'var(--font-serif)', backgroundColor: totals.costPerPortion > 500 ? '#fca5a5' : undefined }}
+                >
+                  {isSaving ? 'Guardando...' : isSaved ? <><CheckCircle2 size={20} />  Guardado con éxito</> : <><Save size={20} /> Guardar Elaboración</>}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* PANEL DERECHO: INGREDIENTES */}
+        {/* PANEL DERECHO: PLATOS Y COMPONENTES */}
         <div className="editor-right-panel">
+          {/* PLATOS SUGERIDOS - PREMIUM STYLE ON RIGHT */}
+          <div className="form-group mb-6">
+            <label className="form-label flex items-center gap-2">
+              <ChefHat size={14} className="text-slate-400" /> platos sugeridos (Ref.)
+            </label>
+            <div className="flex items-center gap-4 p-4 bg-amber-50/50 rounded-2xl border border-amber-100 shadow-sm">
+              <div className="icon-bg-amber">
+                <Utensils size={18} className="text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <span className="text-[10px] font-black text-amber-600 uppercase block mb-1">Rinde para:</span>
+                <input 
+                  type="number" 
+                  value={platosEstimados || ''} 
+                  onChange={e => setPlatosEstimados(Number(e.target.value))}
+                  className="w-full bg-transparent border-none outline-none font-black text-navy text-xl p-0"
+                  placeholder="0"
+                />
+              </div>
+              <span className="text-xs font-black text-amber-600 uppercase">platos</span>
+            </div>
+            <p className="text-[9px] text-slate-400 mt-2 italic px-1 opacity-60">
+              * Este valor es informativo y no afecta a los costes calculados.
+            </p>
+          </div>
           <div className="section-header flex justify-between items-center mb-4">
             <h3 className="section-title">
               <Package size={20} className="text-sky-500" /> Ingredientes
@@ -322,19 +432,21 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
             ) : (
               <div className="space-y-3">
                 {filteredItems.map(item => (
-                  <div key={item._key} className="mini-card">
+                  <div key={item._key} className="mini-card compact">
                     <div 
                       className="mini-card-header" 
                       onClick={() => setExpandedItem(expandedItem === item._key ? null : item._key)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                        <div className="mini-icon-box">
                           {item.type === 'ingredient' ? <Package size={14} /> : <Utensils size={14} />}
                         </div>
                         <div>
                           <span className="mini-card-title">{item.name}</span>
-                          <div className="text-[10px] text-slate-400 font-bold">
-                            {item.quantity} {item.unit} · {(item.costPerUnit * item.quantity).toFixed(2)}€
+                          <div className="flex gap-2 items-center">
+                            <span className="text-[10px] text-slate-400 font-bold">{item.quantity} {item.unit}</span>
+                            <span className="text-[10px] text-slate-300">·</span>
+                            <span className="text-[10px] text-navy font-black">{(item.costPerUnit * item.quantity).toFixed(2)}€</span>
                           </div>
                         </div>
                       </div>
@@ -384,9 +496,10 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
       {/* FOOTER ACCIÓN FLOTANTE (MÓVIL) */}
       <div className="floating-save-container md:hidden">
         <button 
-          disabled={isSaving || isSaved || !bentoName || items.length === 0}
+          disabled={isSaving || isSaved || !bentoName || items.length === 0 || totals.costPerPortion > 500}
           onClick={handleSave}
           className={`floating-save-btn ${isSaved ? 'bg-emerald-500' : ''}`}
+          style={{ backgroundColor: totals.costPerPortion > 500 ? '#fca5a5' : undefined }}
         >
           {isSaving ? 'Guardando...' : isSaved ? '✓ Guardado' : <><Save size={20} /> Guardar Elaboración</>}
         </button>

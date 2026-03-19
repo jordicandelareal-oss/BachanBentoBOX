@@ -36,14 +36,25 @@ export default function BentoMaker({ recipe = null, onClose }) {
   }, [recipe?.id]);
 
   const handleSelectComponent = (item) => {
-    const normalized = normalizeUnit(item.unit_name || (item.type === 'ingredient' ? 'g' : 'ud'));
+    let normalized = 'ud';
     let baseCost = 0;
+    let initialQty = 1;
     
     if (item.type === 'ingredient') {
+      normalized = normalizeUnit(item.unit_name || 'g');
       baseCost = parseFloat(item.cost_per_unit || (item.purchase_price / item.purchase_format));
+      initialQty = 100; // Default 100g for ingredients
     } else {
-      const recipeCost = item.cost_per_portion || 0;
-      baseCost = (normalized === 'g' || normalized === 'ml') ? (recipeCost / 1000) : recipeCost;
+      // LÓGICA DUAL PARA ELABORACIONES
+      if (item.yield_scenario === 'weight') {
+        normalized = 'g';
+        baseCost = (item.cost_per_portion || 0) / 1000;
+        initialQty = 100; // Default 100g
+      } else {
+        normalized = 'ud';
+        baseCost = item.cost_per_portion || 0;
+        initialQty = 1; // Default 1 unit
+      }
     }
 
     addItem({
@@ -52,7 +63,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
       name: item.name,
       costPerUnit: baseCost,
       unit: normalized,
-      quantity: item.type === 'ingredient' ? 100 : 1
+      quantity: initialQty
     });
     setShowSelector(false);
   };
@@ -182,7 +193,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
                         <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-2 ml-11">
                           {(item.unit === 'g' || item.unit === 'ml') 
                             ? `${(item.costPerUnit * 1000).toFixed(2)}€/kg · l`
-                            : `${item.costPerUnit.toFixed(2)}€/ud`}
+                            : `${item.costPerUnit.toFixed(2)}€/pzs`}
                         </div>
                       </div>
                       <div className="flex items-center gap-6">
@@ -193,7 +204,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
                             onChange={e => updateItemQuantity(item._key, e.target.value)}
                             className="w-16 text-right py-2 text-sm font-black text-[#0f172a] outline-none bg-transparent"
                           />
-                          <span className="text-[10px] font-black text-slate-400 px-2 uppercase">{item.unit}</span>
+                          <span className="text-[10px] font-black text-slate-400 px-2 uppercase">{item.unit === 'ud' ? 'pzs' : item.unit}</span>
                         </div>
                         <div className="w-20 text-right font-black text-[#0f172a] text-sm">
                           {(item.costPerUnit * item.quantity).toFixed(2)}€

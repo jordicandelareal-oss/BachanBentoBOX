@@ -15,6 +15,16 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
   const [category, setCategory] = useState(null);
   const [subcategory, setSubcategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce global search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(globalSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [globalSearch]);
 
   // Reset states when type changes
   const handleTypeSelect = (selectedType) => {
@@ -61,14 +71,14 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
     return subs.filter(Boolean).sort();
   }, [type, category, ingredients]);
 
-  // Filter items based on all selections
+  // Filter items based on all selections (Legacy mode)
   const filteredItems = useMemo(() => {
     if (step !== 4) return [];
     const source = type === 'ingredient' ? ingredients : recipes;
     const catField = type === 'ingredient' ? 'category_name' : 'preparation_category';
     
     return source.filter(item => {
-      // Prevent circular dependency (don't show the same recipe if we are editing it)
+      // Prevent circular dependency
       if (item.id === excludeId && type === 'recipe') return false;
       
       const matchesCategory = item[catField] === category;
@@ -76,7 +86,24 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesCategory && matchesSubcategory && matchesSearch;
     });
-  }, [step, type, category, subcategory, ingredients, recipes, searchTerm]);
+  }, [step, type, category, subcategory, ingredients, recipes, searchTerm, excludeId]);
+
+  // Omnichannel mixed search for Step 1
+  const mixedResults = useMemo(() => {
+    if (!debouncedSearch || debouncedSearch.length < 2) return [];
+    
+    const term = debouncedSearch.toLowerCase();
+    
+    const ingResults = ingredients
+      .filter(ing => ing.name.toLowerCase().includes(term))
+      .map(ing => ({ ...ing, type: 'ingredient' }));
+      
+    const recResults = recipes
+      .filter(rec => rec.id !== excludeId && rec.name.toLowerCase().includes(term))
+      .map(rec => ({ ...rec, type: 'recipe' }));
+      
+    return [...ingResults, ...recResults].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 15);
+  }, [globalSearch, ingredients, recipes, excludeId]);
 
   const goBack = () => {
     if (step === 4) {
@@ -117,28 +144,87 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
         </div>
 
         <div className="selector-content">
-          {/* STEP 1: TYPE */}
+          {/* STEP 1: TYPE + GLOBAL SEARCH */}
           {step === 1 && (
             <div className="step-container fade-in">
-              <p className="step-label">Paso 1: ¿Qué vas a añadir?</p>
-              <div className="type-grid">
-                <button className="type-option" onClick={() => handleTypeSelect('ingredient')}>
-                  <div className="option-icon"><Package size={24} /></div>
-                  <div className="option-text">
-                    <span className="title">Insumo</span>
-                    <span className="desc">Producto de compra directa</span>
-                  </div>
-                  <ChevronRight size={18} className="arrow" />
-                </button>
-                <button className="type-option" onClick={() => handleTypeSelect('recipe')}>
-                  <div className="option-icon"><Utensils size={24} /></div>
-                  <div className="option-text">
-                    <span className="title">Elaboración</span>
-                    <span className="desc">Base preparada en cocina</span>
-                  </div>
-                  <ChevronRight size={18} className="arrow" />
-                </button>
+              {/* OMNICHANNEL SEARCH BAR */}
+              <div className="omnisearch-wrapper">
+                <div className="search-box-premium">
+                  <Search size={20} className="search-icon" />
+                  <input 
+                    type="text" 
+                    placeholder="Busca por nombre (ej: Pollo, Sal...)" 
+                    value={globalSearch}
+                    onChange={e => setGlobalSearch(e.target.value)}
+                    className="omnisearch-input"
+                    autoFocus
+                  />
+                  {globalSearch && (
+                    <button className="clear-search" onClick={() => setGlobalSearch('')}>
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {globalSearch.length >= 2 ? (
+                <div className="quick-results-container fade-in">
+                  <p className="results-label">Resultados encontrados:</p>
+                  <div className="item-selection-list">
+                    {mixedResults.map(item => (
+                      <button key={`${item.type}-${item.id}`} className="item-final-option" onClick={() => onSelect(item)}>
+                        <div className="item-main">
+                          <div className="item-icon-small">
+                            {item.type === 'ingredient' ? <Package size={14} /> : <Utensils size={14} />}
+                          </div>
+                          <div>
+                            <span className="item-name">{item.name}</span>
+                            <span className="item-meta">
+                              {item.type === 'ingredient' ? (item.unit_name || 'unid') : 'elaboración'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="item-value">
+                           {item.type === 'ingredient' ? (
+                             (() => {
+                               const cost = parseFloat(item.net_cost_per_unit || item.cost_per_unit || 0);
+                               const unit = (item.unit_name || '').toLowerCase();
+                               const isBaseUnit = ['g', 'ml', 'kg', 'l', 'kilo', 'litro'].some(u => unit.includes(u));
+                               if (isBaseUnit && cost > 0) return `${(cost * 1000).toFixed(2)}€/kg`;
+                               return `${cost.toFixed(2)}€`;
+                             })()
+                           ) : item.cost_per_portion ? (
+                             `${item.cost_per_portion.toFixed(2)}€`
+                           ) : '0.00€'}
+                        </div>
+                      </button>
+                    ))}
+                    {mixedResults.length === 0 && <p className="empty-msg">No se encontraron productos o elaboraciones.</p>}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="step-label">O navega por categorías:</p>
+                  <div className="type-grid">
+                    <button className="type-option" onClick={() => handleTypeSelect('ingredient')}>
+                      <div className="option-icon"><Package size={24} /></div>
+                      <div className="option-text">
+                        <span className="title">Insumo</span>
+                        <span className="desc">Producto de compra directa</span>
+                      </div>
+                      <ChevronRight size={18} className="arrow" />
+                    </button>
+                    <button className="type-option" onClick={() => handleTypeSelect('recipe')}>
+                      <div className="option-icon"><Utensils size={24} /></div>
+                      <div className="option-text">
+                        <span className="title">Elaboración</span>
+                        <span className="desc">Base preparada en cocina</span>
+                      </div>
+                      <ChevronRight size={18} className="arrow" />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

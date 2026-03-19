@@ -16,6 +16,10 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   const [portions, setPortions] = useState(initialRecipe?.portions || 1)
   const [unitId, setUnitId] = useState(initialRecipe?.Unid_Id || '')
   const [prepCategoryId, setPrepCategoryId] = useState(initialRecipe?.preparation_category_Id || '')
+  const [yieldScenario, setYieldScenario] = useState(initialRecipe?.yield_scenario || 'units')
+  const [adjustmentPercent, setAdjustmentPercent] = useState(initialRecipe?.adjustment_percent || 0)
+  const [netYield, setNetYield] = useState(initialRecipe?.net_yield || null)
+  const [platosEstimados, setPlatosEstimados] = useState(initialRecipe?.platos_estimados || 0)
   
   // Items can be ingredients or sub-recipes
   // { id, type: 'ingredient'|'recipe', name, costPerUnit, quantity, unit }
@@ -24,11 +28,36 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   // Calculate totals
   const totals = useMemo(() => {
     const totalCost = items.reduce((sum, item) => sum + (item.costPerUnit * item.quantity), 0)
-    const costPerPortion = portions > 0 ? totalCost / portions : 0
+    
+    // Calculate Gross Weight (only for items with weight units 'g' or 'ml')
+    const totalGrossWeight = items.reduce((sum, item) => {
+      if (item.unit === 'g' || item.unit === 'ml') return sum + item.quantity
+      return sum
+    }, 0)
+
+    let costPerPortion = 0
+    let finalNetYield = portions
+
+    if (yieldScenario === 'weight') {
+      // Scenario A: Weight
+      // WeightNeto = WeightBruto * (1 + adj/100)
+      finalNetYield = totalGrossWeight * (1 + (adjustmentPercent / 100))
+      costPerPortion = finalNetYield > 0 ? totalCost / (finalNetYield / 1000) : 0 // Cost per Kg/L
+    } else {
+      // Scenario B: Units
+      costPerPortion = portions > 0 ? totalCost / portions : 0
+    }
+
     const margin = salePrice > 0 ? ((salePrice - totalCost) / salePrice) * 100 : 0
 
-    return { totalCost, costPerPortion, margin }
-  }, [items, salePrice, portions])
+    return { 
+      totalCost, 
+      costPerPortion, 
+      margin, 
+      totalGrossWeight,
+      finalNetYield
+    }
+  }, [items, salePrice, portions, yieldScenario, adjustmentPercent])
 
   const addItem = (item) => {
     setItems(prev => [...prev, { ...item, _key: Math.random().toString(36).substring(7) }])
@@ -52,9 +81,14 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
         name: bentoName, 
         recipe_type: recipeType,
         sale_price: recipeType === 'elaboracion' ? 0 : salePrice,
+        preparation_category_Id: prepCategoryId || null,
         portions: portions,
         Unid_Id: unitId || null,
-        preparation_category_Id: prepCategoryId || null,
+        yield_scenario: yieldScenario,
+        adjustment_percent: adjustmentPercent,
+        net_yield: yieldScenario === 'weight' ? totals.finalNetYield : null,
+        cost_per_portion: totals.costPerPortion,
+        platos_estimados: platosEstimados,
         ...extraData 
       }, { onConflict: 'name' })
       .select()
@@ -87,42 +121,45 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
       .select(`
         quantity,
         ingredient:ingredients(
-          id, name, purchase_price, unit_id,
+          id, name, purchase_price, unit_id, purchase_format,
           units:unit_id(name)
         ),
         child_recipe:recipes!recipe_ingredients_child_recipe_id_fkey(
           id, name, portions, "Unid_Id", unit:units!Unid_Id(name),
-          preparation_category_Id, kitchen_category:preparation_categories!preparation_category_Id(Name)
+          yield_scenario, cost_per_portion
         )
       `)
       .eq('recipe_id', recipeId)
 
     if (error) throw error
 
-    // Fetch costs for child recipes if any
-    const childRecipeIds = data.filter(ri => !!ri.child_recipe).map(ri => ri.child_recipe.id)
-    let childCosts = []
-    if (childRecipeIds.length > 0) {
-      const { data: costs } = await supabase
-        .from('view_recipe_costs')
-        .select('recipe_id, cost_per_portion')
-        .in('recipe_id', childRecipeIds)
-      childCosts = costs || []
-    }
-
     const loadedItems = data.map(ri => {
       const isIngredient = !!ri.ingredient
       const item = isIngredient ? ri.ingredient : ri.child_recipe
       
-      const unitName = isIngredient ? (item.units?.name || 'g') : (item.unit?.name || 'ud')
-      const normalizedUnit = normalizeUnit(unitName)
-      
+      let unitName = 'ud'
       let baseCost = 0
+      let normalizedUnit = 'ud'
+
       if (isIngredient) {
-        baseCost = (item.purchase_price / 1000) // Assumes purchase price is per 1000g/ml or per piece
+        unitName = item.units?.name || 'g'
+        normalizedUnit = normalizeUnit(unitName)
+        let format = Number(item.purchase_format) || 1000;
+        const originalUnit = (item.units?.name || '').toLowerCase();
+        if (['kg', 'kilo', 'kilos', 'l', 'litro', 'litros'].includes(originalUnit) && format < 10) {
+          format = format * 1000;
+        }
+        baseCost = item.purchase_price / format;
       } else {
-        const recipeCost = childCosts.find(c => c.recipe_id === item.id)?.cost_per_portion || 0
-        baseCost = (normalizedUnit === 'g' || normalizedUnit === 'ml') ? (recipeCost / 1000) : recipeCost
+        // LÓGICA DUAL PARA ELABORACIONES (HIJAS)
+        // Si el escenario es peso, forzamos 'g' y dividimos el coste (que es por Kg) entre 1000
+        if (item.yield_scenario === 'weight') {
+          normalizedUnit = 'g'
+          baseCost = (item.cost_per_portion || 0) / 1000
+        } else {
+          normalizedUnit = 'ud'
+          baseCost = item.cost_per_portion || 0
+        }
       }
 
       return {
@@ -136,6 +173,14 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
       }
     })
     setItems(loadedItems)
+    
+    // Set scenario and adjustments from initialRecipe
+    if (initialRecipe) {
+      setYieldScenario(initialRecipe.yield_scenario || 'units');
+      setAdjustmentPercent(initialRecipe.adjustment_percent || 0);
+      setNetYield(initialRecipe.net_yield || null);
+      setPlatosEstimados(initialRecipe.platos_estimados || 0);
+    }
   }
 
   return {
@@ -146,6 +191,10 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
     prepCategoryId, setPrepCategoryId,
     items, addItem, updateItemQuantity, removeItem,
     totals,
+    yieldScenario, setYieldScenario,
+    adjustmentPercent, setAdjustmentPercent,
+    netYield, setNetYield,
+    platosEstimados, setPlatosEstimados,
     saveBento,
     loadRecipeItems,
     setItems
