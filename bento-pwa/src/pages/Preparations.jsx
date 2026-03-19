@@ -7,6 +7,7 @@ import { usePrepCategories } from '../hooks/usePrepCategories';
 import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search, AlertCircle, ChefHat, CheckCircle2 } from 'lucide-react';
 import SequentialSelector from '../components/Common/SequentialSelector';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
+import NumPad from '../components/Common/NumPad';
 import '../styles/Common.css';
 import './Ingredients.css'; 
 import './Preparations.css';
@@ -158,6 +159,31 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
   const [showSelector, setShowSelector] = useState(false);
   const [internalSearch, setInternalSearch] = useState('');
   const [expandedItem, setExpandedItem] = useState(null);
+  // NumPad state: { field: 'portions'|'platos'|key_of_item, label: string }
+  const [numPad, setNumPad] = useState(null);
+
+  const openNumPad = (field, label) => setNumPad({ field, label });
+  const closeNumPad = () => setNumPad(null);
+
+  const handleNumPadChange = (val) => {
+    if (!numPad) return;
+    if (numPad.field === 'portions') {
+      setPortions(val === '' ? '' : Number(val));
+    } else if (numPad.field === 'platos') {
+      setPlatosEstimados(val === '' ? 0 : Number(val));
+    } else {
+      // ingredient quantity
+      updateItemQuantity(numPad.field, val);
+    }
+  };
+
+  const getNumPadValue = () => {
+    if (!numPad) return '0';
+    if (numPad.field === 'portions') return String(portions || '');
+    if (numPad.field === 'platos') return String(platosEstimados || '');
+    const item = items.find(i => i._key === numPad.field);
+    return String(item?.quantity || '');
+  };
 
   useEffect(() => {
     if (recipe.id) loadRecipeItems(recipe.id);
@@ -382,19 +408,16 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
             <label className="form-label flex items-center gap-2">
               <ChefHat size={14} className="text-slate-400" /> platos sugeridos (Ref.)
             </label>
-            <div className="flex items-center gap-4 p-4 bg-amber-50/50 rounded-2xl border border-amber-100 shadow-sm">
+            <div 
+              className="flex items-center gap-4 p-4 bg-amber-50/50 rounded-2xl border border-amber-100 shadow-sm cursor-pointer"
+              onClick={() => openNumPad('platos', 'Platos Sugeridos')}
+            >
               <div className="icon-bg-amber">
                 <Utensils size={18} className="text-amber-600" />
               </div>
               <div className="flex-1">
                 <span className="text-[10px] font-black text-amber-600 uppercase block mb-1">Rinde para:</span>
-                <input 
-                  type="number" 
-                  value={platosEstimados || ''} 
-                  onChange={e => setPlatosEstimados(Number(e.target.value))}
-                  className="w-full bg-transparent border-none outline-none font-black text-navy text-xl p-0"
-                  placeholder="0"
-                />
+                <div className="font-black text-navy text-xl">{platosEstimados || '0'}</div>
               </div>
               <span className="text-xs font-black text-amber-600 uppercase">platos</span>
             </div>
@@ -458,14 +481,14 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
                     
                     {expandedItem === item._key && (
                       <div className="mini-card-details fade-in">
-                        <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1">
-                          <input 
-                            type="number" 
-                            autoFocus
-                            value={item.quantity} 
-                            onChange={e => updateItemQuantity(item._key, e.target.value)}
-                            className="w-16 text-right py-1 text-sm font-bold text-navy outline-none bg-transparent"
-                          />
+                        {/* Tap-to-edit quantity -> opens NumPad */}
+                        <div 
+                          className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 cursor-pointer"
+                          onClick={() => {
+                            openNumPad(item._key, `${item.name} (${item.unit})`);
+                          }}
+                        >
+                          <span className="w-16 text-right text-sm font-black text-navy">{item.quantity}</span>
                           <span className="text-[10px] font-black text-slate-400 px-2 uppercase">{item.unit}</span>
                         </div>
                         
@@ -494,16 +517,26 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
       </div>
 
       {/* FOOTER ACCIÓN FLOTANTE (MÓVIL) */}
-      <div className="floating-save-container md:hidden">
+      <div className="floating-save-container md:hidden" style={{ bottom: numPad ? '340px' : '32px', transition: 'bottom 0.3s ease' }}>
         <button 
           disabled={isSaving || isSaved || !bentoName || items.length === 0 || totals.costPerPortion > 500}
           onClick={handleSave}
-          className={`floating-save-btn ${isSaved ? 'bg-emerald-500' : ''}`}
-          style={{ backgroundColor: totals.costPerPortion > 500 ? '#fca5a5' : undefined }}
+          className={`floating-save-btn ${isSaved ? 'saved' : ''}`}
+          style={{ backgroundColor: isSaved ? '#10b981' : totals.costPerPortion > 500 ? '#fca5a5' : undefined }}
         >
-          {isSaving ? 'Guardando...' : isSaved ? '✓ Guardado' : <><Save size={20} /> Guardar Elaboración</>}
+          {isSaving ? 'Guardando...' : isSaved ? <><CheckCircle2 size={20} />  Guardado</> : <><Save size={20} /> Guardar Elaboración</>}
         </button>
       </div>
+
+      {/* CUSTOM NUMPAD */}
+      {numPad && (
+        <NumPad
+          value={getNumPadValue()}
+          onChange={handleNumPadChange}
+          onClose={closeNumPad}
+          label={numPad.label}
+        />
+      )}
 
       {showSelector && (
         <SequentialSelector 
