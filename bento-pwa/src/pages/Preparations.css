@@ -41,11 +41,37 @@
 @media (max-width: 1023px) {
   .preparations-editor-layout {
     height: auto;
-    padding-bottom: 100px; /* Space for floating button */
+    padding-bottom: 120px; /* Space for floating button */
   }
   
   .editor-left-panel {
     margin-bottom: 24px;
+  }
+
+  /* ===================================
+     ANTI-ZOOM: Minimum 16px on all inputs
+     Prevents iOS/Android automatic zoom
+     =================================== */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Padding lateral para ingredientes en móvil */
+  .mini-card.compact {
+    padding: 10px 16px;
+    margin-bottom: 8px;
+  }
+
+  /* Padding inferior de la zona de scroll para que el último item no quede tapado */
+  .ingredients-scroll-area {
+    padding-bottom: 16px;
+  }
+
+  /* Floating save button - safe area support */
+  .floating-save-container {
+    bottom: calc(32px + env(safe-area-inset-bottom, 0px));
   }
 }
 
