@@ -1,16 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Camera, Trash2, Scan, Image as ImageIcon, Edit2, X } from 'lucide-react';
+import ImageEditorModal from './ImageEditorModal';
 import './PhotoSelector.css';
 
 /**
- * Unified Photo Selector Component
- * @param {string} imageUrl - Current image URL
- * @param {function} onUpload - Callback when a file is selected (receives file)
- * @param {function} onRemove - Callback to clear the image
- * @param {function} onNanaScan - Optional callback to start Nana Vision
- * @param {string} label - Optional label (e.g. "Foto del plato")
- * @param {boolean} isCircular - Whether to render as a circle (for lists) or rectangle (for forms)
- * @param {string} placeholder - Text to show when no image
+ * Unified Photo Selector Component with built-in Editor
  */
 export default function PhotoSelector({ 
   imageUrl, 
@@ -22,12 +16,29 @@ export default function PhotoSelector({
   placeholder = "Añadir foto" 
 }) {
   const fileInputRef = useRef(null);
+  const [editorImage, setEditorImage] = useState(null);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) onUpload(file);
-    // Reset input value to allow selecting the same file again if needed
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setEditorImage(url);
+    }
+    // Reset input value to allow selecting the same file again
     e.target.value = '';
+  };
+
+  const handleEditorSave = (blob) => {
+    // If we have a local URL from createObjectURL, we should revoke it eventually
+    if (editorImage) URL.revokeObjectURL(editorImage);
+    
+    onUpload(blob);
+    setEditorImage(null);
+  };
+
+  const handleEditorCancel = () => {
+    if (editorImage) URL.revokeObjectURL(editorImage);
+    setEditorImage(null);
   };
 
   const triggerInput = () => {
@@ -83,6 +94,14 @@ export default function PhotoSelector({
           </button>
         )}
       </div>
+
+      {editorImage && (
+        <ImageEditorModal 
+          image={editorImage} 
+          onSave={handleEditorSave} 
+          onCancel={handleEditorCancel} 
+        />
+      )}
     </div>
   );
 }
