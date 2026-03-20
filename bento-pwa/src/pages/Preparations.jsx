@@ -211,7 +211,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
       name: item.name,
       costPerUnit: baseCost,
       unit: normalized,
-      quantity: item.type === 'ingredient' ? 100 : 1
+      quantity: ''
     });
     setShowSelector(false);
   };
@@ -251,7 +251,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
               <h3 className="section-title mb-6" style={{ fontFamily: 'var(--font-serif)' }}>Datos Generales</h3>
               
               <div className="form-group mb-4">
-                <label className="form-label">Nombre de la elaboración</label>
+                <label className="form-label">Nombre de la elaboración <span className="text-rose-500">*</span></label>
                 <input 
                   type="text" 
                   value={bentoName} 
@@ -262,7 +262,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
               </div>
               
               <div className="form-group mb-6">
-                <label className="form-label">Categoría de Mise en Place</label>
+                <label className="form-label">Categoría de Mise en Place <span className="text-rose-500">*</span></label>
                 <select 
                   value={prepCategoryId}
                   onChange={e => setPrepCategoryId(e.target.value)}
@@ -390,7 +390,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
               {/* Desktop Save Button */}
               <div className="hidden md:block mt-8">
                 <button 
-                  disabled={isSaving || isSaved || !bentoName || items.length === 0 || totals.costPerPortion > 500}
+                  disabled={isSaving || isSaved || !bentoName || !prepCategoryId || items.length === 0 || totals.costPerPortion > 500}
                   onClick={handleSave}
                   className={`btn-primary w-full py-4 text-lg ${isSaved ? 'bg-emerald-500' : ''}`}
                   style={{ borderRadius: '16px', fontFamily: 'var(--font-serif)', backgroundColor: totals.costPerPortion > 500 ? '#fca5a5' : undefined }}
@@ -519,7 +519,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
       {/* FOOTER ACCIÓN FLOTANTE (MÓVIL) */}
       <div className="floating-save-container md:hidden" style={{ bottom: numPad ? '340px' : '32px', transition: 'bottom 0.3s ease' }}>
         <button 
-          disabled={isSaving || isSaved || !bentoName || items.length === 0 || totals.costPerPortion > 500}
+          disabled={isSaving || isSaved || !bentoName || !prepCategoryId || items.length === 0 || totals.costPerPortion > 500}
           onClick={handleSave}
           className={`floating-save-btn ${isSaved ? 'saved' : ''}`}
           style={{ backgroundColor: isSaved ? '#10b981' : totals.costPerPortion > 500 ? '#fca5a5' : undefined }}

@@ -8,6 +8,7 @@ import Ingredients from './pages/Ingredients'
 import Recipes from './pages/Recipes'
 import BentoPage from './pages/BentoPage'
 import Preparations from './pages/Preparations'
+import CatalogSettings from './pages/CatalogSettings'
 import SplashScreen from './components/SplashScreen'
 import './styles/theme.css'
 import './styles/animations.css'
@@ -34,6 +35,7 @@ function App() {
             <Route path="preparations" element={<Preparations />} />
             <Route path="recipes" element={<Recipes />} />
             <Route path="bento-maker" element={<BentoPage />} />
+            <Route path="settings" element={<CatalogSettings />} />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -4,6 +4,7 @@ import { useUnits } from '../hooks/useUnits';
 import { supabase } from '../lib/supabaseClient';
 import { Package, Search, Plus, AlertCircle, Loader2, ChevronRight, LayoutGrid, X, Save, Trash2 } from 'lucide-react';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
+import NumPad from '../components/Common/NumPad';
 import '../styles/Common.css';
 import './Ingredients.css';
 
@@ -12,6 +13,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
   const { units } = useUnits();
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [numPad, setNumPad] = useState(null); // { field, label, value }
 
   const isNew = !ingredient.id;
 
@@ -50,6 +52,8 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
   }, [form.category_id]);
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
+
+  const canSave = !!form.name && !!form.category_id && !!form.subcategory_id;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -93,25 +97,25 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
           {/* Fila 1: Clasificación */}
           <div className="form-row mb-4">
             <div className="form-group">
-              <label className="form-label text-slate-500">Categoría</label>
+              <label className="form-label text-slate-500">Categoría <span className="text-red-500">*</span></label>
               <select
                 className="form-input form-select bg-slate-50"
                 value={form.category_id}
                 onChange={e => { set('category_id', e.target.value); set('subcategory_id', ''); }}
               >
-                <option value="">— Sin categoría —</option>
+                <option value="">— Elegir —</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label text-slate-500">Subcategoría</label>
+              <label className="form-label text-slate-500">Subcategoría <span className="text-red-500">*</span></label>
               <select
                 className="form-input form-select bg-slate-50"
                 value={form.subcategory_id}
                 onChange={e => set('subcategory_id', e.target.value)}
                 disabled={!form.category_id}
               >
-                <option value="">— Sin subcategoría —</option>
+                <option value="">— Elegir —</option>
                 {subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
@@ -121,27 +125,21 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
           <div className="form-row mb-4">
             <div className="form-group">
               <label className="form-label text-slate-500">Formato de Compra</label>
-              <input
-                className="form-input bg-slate-50"
-                type="number"
-                step="0.001"
-                min="0"
-                placeholder="Ej: 5.000 (kg/lt)"
-                value={form.purchase_format}
-                onChange={e => set('purchase_format', e.target.value)}
-              />
+              <div 
+                className="numpad-control bg-slate-50"
+                onClick={() => setNumPad({ field: 'purchase_format', label: 'Formato de Compra', value: form.purchase_format })}
+              >
+                {form.purchase_format || <span className="numpad-placeholder">Ej: 5.000</span>}
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label text-slate-500">Precio de Compra (€)</label>
-              <input
-                className="form-input bg-slate-50"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Ej: 8.50"
-                value={form.purchase_price}
-                onChange={e => set('purchase_price', e.target.value)}
-              />
+              <div 
+                className="numpad-control bg-slate-50"
+                onClick={() => setNumPad({ field: 'purchase_price', label: 'Precio de Compra', value: form.purchase_price })}
+              >
+                {form.purchase_price || <span className="numpad-placeholder">Ej: 8.50</span>}
+              </div>
             </div>
           </div>
 
@@ -201,12 +199,24 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
           <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn-primary" disabled={loading}>
+            <button type="submit" className="btn-primary" disabled={loading || !canSave}>
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               {isNew ? 'Añadir' : 'Guardar'}
             </button>
           </div>
         </form>
+
+        {numPad && (
+          <NumPad
+            label={numPad.label}
+            value={numPad.value}
+            onClose={() => setNumPad(null)}
+            onChange={(val) => {
+              set(numPad.field, val);
+              setNumPad(prev => ({ ...prev, value: val }));
+            }}
+          />
+        )}
       </div>
     </div>
   );
@@ -217,17 +227,57 @@ export default function Ingredients() {
   const { ingredients, loading, error, updateIngredient, addIngredient, deleteIngredient } = useIngredients();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('Todos');
+  const [activeSubcategory, setActiveSubcategory] = useState('Todos');
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
   const [modal, setModal] = useState(null); // null | { ingredient, isNew }
   const [confirmDelete, setConfirmDelete] = useState(null); // null | ingredientId
   const [saving, setSaving] = useState(false);
 
-  const categories = ['Todos', ...new Set(ingredients.map(ing => ing.category_name).filter(Boolean))].sort((a, b) => a === 'Todos' ? -1 : a.localeCompare(b));
+  // Fetch all categories for filter
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase.from('categories').select('id, name').order('name');
+      setCategories(data || []);
+    }
+    load();
+  }, []);
+
+  // Fetch subcategories when activeCategory changes
+  useEffect(() => {
+    if (activeCategory === 'Todos') {
+      setSubcategories([]);
+      setActiveSubcategory('Todos');
+      return;
+    }
+    async function load() {
+      const { data } = await supabase
+        .from('subcategories')
+        .select('id, name')
+        .eq('category_id', activeCategory)
+        .order('name');
+      setSubcategories(data || []);
+      setActiveSubcategory('Todos');
+    }
+    load();
+  }, [activeCategory]);
 
   const filteredIngredients = ingredients.filter(ing => {
     const matchesSearch = ing.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = activeCategory === 'Todos' || ing.category_name === activeCategory;
-    return matchesSearch && matchesCategory;
+    const matchesCategory = activeCategory === 'Todos' || ing.category_id === activeCategory;
+    const matchesSubcategory = activeSubcategory === 'Todos' || ing.subcategory_id === activeSubcategory;
+    return matchesSearch && matchesCategory && matchesSubcategory;
   });
+
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  const presentLetters = [...new Set(filteredIngredients.map(ing => ing.name[0]?.toUpperCase()))].filter(Boolean);
+
+  const scrollToLetter = (letter) => {
+    const el = document.getElementById(`letter-${letter}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const openEdit = (ingredient) => setModal({ ingredient, isNew: false });
   const openAdd = () => setModal({ ingredient: {}, isNew: true });
@@ -295,17 +345,45 @@ export default function Ingredients() {
 
       <div className="category-tabs-wrapper">
         <div className="category-tabs">
+          <button 
+            className={`category-tab ${activeCategory === 'Todos' ? 'active' : ''}`}
+            onClick={() => setActiveCategory('Todos')}
+          >
+            Todos
+          </button>
           {categories.map(cat => (
             <button 
-              key={cat || 'null'} 
-              className={`category-tab ${activeCategory === cat ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat)}
+              key={cat.id} 
+              className={`category-tab ${activeCategory === cat.id ? 'active' : ''}`}
+              onClick={() => setActiveCategory(cat.id)}
             >
-              {cat}
+              {cat.name}
             </button>
           ))}
         </div>
       </div>
+
+      {subcategories.length > 0 && (
+        <div className="category-tabs-wrapper mb-6" style={{ marginTop: '-12px' }}>
+          <div className="category-tabs">
+            <button 
+              className={`category-tab sub ${activeSubcategory === 'Todos' ? 'active' : ''}`}
+              onClick={() => setActiveSubcategory('Todos')}
+            >
+              Cualquier subcategoría
+            </button>
+            {subcategories.map(sub => (
+              <button 
+                key={sub.id} 
+                className={`category-tab sub ${activeSubcategory === sub.id ? 'active' : ''}`}
+                onClick={() => setActiveSubcategory(sub.id)}
+              >
+                {sub.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading && !ingredients.length ? (
         <div className="card-grid">
@@ -315,8 +393,17 @@ export default function Ingredients() {
         </div>
       ) : (
         <div className="card-grid">
-          {filteredIngredients.map(ingredient => (
-            <div key={ingredient.id} className="premium-card" onClick={() => openEdit(ingredient)}>
+          {filteredIngredients.map((ingredient, idx) => {
+            const firstLetter = ingredient.name[0]?.toUpperCase();
+            const isFirstOfLetter = idx === 0 || filteredIngredients[idx - 1].name[0]?.toUpperCase() !== firstLetter;
+            
+            return (
+              <div 
+                key={ingredient.id} 
+                id={isFirstOfLetter ? `letter-${firstLetter}` : undefined}
+                className="premium-card" 
+                onClick={() => openEdit(ingredient)}
+              >
               <div className="ingredient-info">
                 <div className="card-icon-wrapper">
                   <Package size={20} />
@@ -357,8 +444,9 @@ export default function Ingredients() {
                 </button>
                 <ChevronRight size={18} className="text-slate-300" />
               </div>
-            </div>
-          ))}
+              </div>
+            );
+          })}
 
           {!loading && filteredIngredients.length === 0 && (
             <div className="text-center py-12" style={{ textAlign: 'center', padding: '48px 0' }}>
@@ -385,6 +473,23 @@ export default function Ingredients() {
         title="¿Eliminar insumo?"
         message="Esta acción no se puede deshacer y podría afectar a las recetas que usan este ingrediente."
       />
+
+      {/* A-Z Sidebar */}
+      <div className="alphabet-sidebar">
+        {alphabet.map(letter => {
+          const isPresent = presentLetters.includes(letter);
+          return (
+            <button
+              key={letter}
+              className={`alphabet-letter ${isPresent ? 'present' : 'absent'}`}
+              onClick={() => isPresent && scrollToLetter(letter)}
+              disabled={!isPresent}
+            >
+              {letter}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

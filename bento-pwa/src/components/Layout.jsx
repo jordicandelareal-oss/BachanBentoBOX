@@ -53,6 +53,7 @@ export default function Layout() {
             <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Bentos</NavLink>
             <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
             <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
+            <NavLink to="/settings" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Categorías</NavLink>
           </nav>
         </div>
       </header>

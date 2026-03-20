@@ -208,50 +208,7 @@
   color: var(--color-text-light);
 }
 
-/* Floating Save Button */
-@media (min-width: 1024px) {
-  .floating-save-container {
-    display: none !important;
-  }
-}
 
-.floating-save-container {
-  position: fixed;
-  bottom: 32px;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  z-index: 100;
-  pointer-events: none;
-}
-
-.floating-save-btn {
-  pointer-events: auto;
-  background-color: var(--color-navy);
-  color: white;
-  padding: 16px 32px;
-  border-radius: 100px;
-  border: none;
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: 15px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 10px 30px rgba(12, 28, 46, 0.3);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  animation: slideInUp 0.5s ease-out;
-}
-
-.floating-save-btn:active {
-  transform: scale(0.95);
-}
-
-@keyframes slideInUp {
-  from { transform: translateY(100px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
 /* Segmented Control for Scenarios */
 .segmented-control {
   display: flex;
