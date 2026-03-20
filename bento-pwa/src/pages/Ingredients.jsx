@@ -571,29 +571,28 @@ export default function Ingredients() {
                 className="premium-card" 
                 onClick={() => openEdit(ingredient)}
               >
-              <div className="ingredient-info">
-                <div className="card-icon-wrapper overflow-hidden" style={{ padding: 0, background: ingredient.image_url ? 'transparent' : undefined }}>
+                {/* IZQUIERDA: AVATAR */}
+                <div className="card-avatar">
                   {ingredient.image_url ? (
-                    <img src={ingredient.image_url} alt={ingredient.name} className="w-full h-full object-cover" />
+                    <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400 font-bold">
+                    <div className="avatar-initials">
                       {ingredient.name.substring(0, 2).toUpperCase()}
                     </div>
                   )}
                 </div>
-                <div>
-                  <h3 className="card-title">{ingredient.name}</h3>
-                  <p className="card-meta">
-                    {ingredient.unit_name || 'unid'} · {ingredient.category_name || 'Sin categoría'}
-                    {ingredient.provider ? ` · ${ingredient.provider}` : ''}
+
+                {/* CENTRO: INFO */}
+                <div className="card-info-center">
+                  <h3 className="card-name-bold">{ingredient.name}</h3>
+                  <p className="card-subtext">
+                    {ingredient.category_name || 'General'} · {ingredient.brand || 'S/M'}
                   </p>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="card-meta" style={{ fontSize: '10px' }}>Precio / kg·lt</div>
-                  <div className="price-display">
+                
+                {/* DERECHA: PRECIO */}
+                <div className="card-price-right">
+                  <div className="price-main">
                     {(() => {
                       const cost = parseFloat(ingredient.cost_per_unit || 0);
                       const unit = (ingredient.unit_name || '').toLowerCase();
@@ -605,18 +604,25 @@ export default function Ingredients() {
                       return `${cost.toFixed(2)}€`;
                     })()}
                   </div>
+                  <div className="price-unit-label">
+                    / {ingredient.unit_name || 'unid'}
+                  </div>
                 </div>
-                <button 
-                  className="delete-btn-subtle"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setConfirmDelete(ingredient.id);
-                  }}
-                >
-                  <Trash2 size={18} />
-                </button>
-                <ChevronRight size={18} className="text-slate-300" />
-              </div>
+
+                {/* ACCIONES */}
+                <div className="card-actions-subtle">
+                  <button 
+                    className="delete-btn-subtle"
+                    style={{ opacity: 0.3 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmDelete(ingredient.id);
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  <ChevronRight size={16} className="text-slate-200" />
+                </div>
               </div>
             );
           })}
