@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useIngredients } from '../hooks/useIngredients'
 import { useRecipes } from '../hooks/useRecipes'
 import { processCommand } from '../lib/geminiClient'
-import { Box, Utensils, ClipboardList, Sparkles, Settings } from 'lucide-react'
+import { Box, CookingPot, Carrot, Sparkles, Settings } from 'lucide-react'
 import NanaOverlay from './Nana/NanaOverlay'
 import AIActionSheet from './Nana/AIActionSheet'
 import '../styles/theme.css'
@@ -70,11 +70,11 @@ export default function Layout() {
               <span>Bentos</span>
             </NavLink>
             <NavLink to="/preparations" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
-              <Utensils size={22} />
+              <CookingPot size={22} />
               <span>Elaboraciones</span>
             </NavLink>
             <NavLink to="/ingredients" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
-              <ClipboardList size={22} />
+              <Carrot size={22} />
               <span>Inventario</span>
             </NavLink>
             <button onClick={openNana} className="mobile-nav-item nana-btn">

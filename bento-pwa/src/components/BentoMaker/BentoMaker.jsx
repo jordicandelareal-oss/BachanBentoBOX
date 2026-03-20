@@ -4,7 +4,7 @@ import { useIngredients } from '../../hooks/useIngredients';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useUnits } from '../../hooks/useUnits';
 import { 
-  Package, Utensils, Plus, X, Save, ChevronRight, 
+  Carrot, CookingPot, Plus, X, Save, ChevronRight, 
   TrendingUp, TrendingDown, DollarSign, Target, 
   Trash2, Info, LayoutGrid, Scale, CheckCircle2, Camera
 } from 'lucide-react';
@@ -214,7 +214,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
             <div className="p-6">
               {items.length === 0 ? (
                 <div className="text-center py-12">
-                   <Package className="mx-auto text-slate-100 mb-2" size={48} />
+                   <Carrot className="mx-auto text-slate-100 mb-2" size={48} />
                    <p className="text-slate-400 text-sm italic">Configura los componentes de este producto</p>
                 </div>
               ) : (
@@ -224,7 +224,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
                       <div className="flex-1">
                         <div className="font-bold text-[#0f172a] text-sm flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                            {item.type === 'ingredient' ? <Package size={14} /> : <Utensils size={14} />}
+                            {item.type === 'ingredient' ? <Carrot size={14} /> : <CookingPot size={14} />}
                           </div>
                           <div>
                             {item.name}
