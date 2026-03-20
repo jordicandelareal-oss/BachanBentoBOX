@@ -100,10 +100,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
         Necesito encontrar la foto oficial de catálogo para este producto: ${queryContext}.
         
         USA 'suggestSearchQuery' con este formato exacto:
-        query="[Nombre del ingrediente] producto supermercado fondo blanco profesional"
-        
-        Ejemplo para brócoli: query="brocoli producto supermercado fondo blanco profesional"
-        Ejemplo para atún: query="atun claro lata producto supermercado profesional"
+        query="${form.name} raw ingredient isolated white background"
         
         NUNCA uses palabras sobre recetas o platos cocinados. Solo foto de producto crudo o envase.
       `;
@@ -114,16 +111,16 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
       if (!response.toolCalls || response.toolCalls.length === 0) {
         console.warn('🔍 [Nana Search] No tool call returned, falling back to direct search');
-        await fetchFromGoogleSearch(`${form.name} producto supermercado fondo blanco profesional`);
+        await fetchFromPexels(`${form.name} raw ingredient isolated white background`);
         return;
       }
 
-      // 1. Best case: Nana suggests a search query → call Google Search
+      // 1. Best case: Nana suggests a search query → call Pexels
       const searchQueryCall = response.toolCalls.find(c => c.name === 'suggestSearchQuery');
       if (searchQueryCall) {
-        const query = searchQueryCall.args.query_es || searchQueryCall.args.query || form.name;
+        const query = searchQueryCall.args.query_es || searchQueryCall.args.query || `${form.name} raw ingredient isolated white background`;
         console.log('✅ [Nana Search] Query suggested by Nana:', query);
-        await fetchFromGoogleSearch(query);
+        await fetchFromPexels(query);
         return;
       }
 
@@ -141,7 +138,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
         return;
       }
 
-      await fetchFromGoogleSearch(`${form.name} producto supermercado fondo blanco profesional`);
+      await fetchFromPexels(`${form.name} raw ingredient isolated white background`);
 
     } catch (err) {
       console.error('❌ [Nana Search] Error:', err);
@@ -151,16 +148,44 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     }
   };
 
-  // Fallback to direct Google Image Search opening
-  const fetchFromGoogleSearch = async (query) => {
+  // Real photo search via Pexels API (free, no CORS, high quality)
+  const fetchFromPexels = async (query) => {
     try {
-      console.log('📸 [Google Search] Opening Google Images for:', query);
-      const url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
-      window.open(url, '_blank', 'noopener,noreferrer');
-      alert("Se abrirá Google Imágenes. Copia la imagen o su enlace, y usa la opción de Pegar en el selector de fotos.");
-      setSuggesting(false);
-    } catch (err) {
-      console.error('📸 [Google Search] Error abriendo URL:', err);
+      console.log('📸 [Pexels] Searching for:', query);
+      const PEXELS_KEY = import.meta.env.VITE_PEXELS_KEY;
+      
+      const resp = await fetch(
+        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=6&orientation=square`,
+        { headers: { Authorization: PEXELS_KEY || '' } }
+      );
+      
+      if (!resp.ok) {
+        console.warn('📸 [Pexels] Not configured, using Unsplash proxy fallback');
+        const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`;
+        setSuggestedImage({ url: unsplashUrl, source: 'Unsplash Fallback' });
+        return;
+      }
+
+      const data = await resp.json();
+      console.log('📸 [Pexels] Results:', data.photos?.length, 'photos found');
+
+      if (data.photos && data.photos.length > 0) {
+        const gallery = data.photos.map(p => ({
+          url: p.src.medium,
+          source: `Pexels | ${p.photographer}`
+        }));
+        setSuggestedGallery(gallery);
+        setSuggestedImage(gallery[0]);
+      } else {
+        // Nada en Pexels -> Intenta destilar la query quitando sufijos
+        const simplerQuery = query.replace('raw ingredient isolated white background', '').trim() || query;
+        const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(simplerQuery)}`;
+        setSuggestedImage({ url: unsplashUrl, source: 'Unsplash (fallback)' });
+      }
+    } catch (pexelsErr) {
+      console.error('📸 [Pexels] Error:', pexelsErr);
+      const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`;
+      setSuggestedImage({ url: unsplashUrl, source: 'Unsplash (fallback)' });
     }
   };
 
