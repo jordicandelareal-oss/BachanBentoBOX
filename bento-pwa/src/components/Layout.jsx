@@ -52,6 +52,11 @@ export default function Layout() {
     <div className="app-wrapper">
       <div className="seigaiha-overlay"></div>
       
+      {/* TEST DE DESPLIEGUE STRIP */}
+      <div style={{ background: 'red', color: 'white', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', zIndex: 9999, position: 'relative', width: '100%' }}>
+        TEST DE DESPLIEGUE V1.3.0
+      </div>
+
       <header className="nav-header">
         <div className="container nav-content-wrapper">
           <div className="nav-top-row">

@@ -151,52 +151,16 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     }
   };
 
-  // Real photo search via Google Custom Search API (More accurate for raw ingredients than Pexels)
+  // Fallback to direct Google Image Search opening
   const fetchFromGoogleSearch = async (query) => {
     try {
-      console.log('📸 [Google Search] Searching for:', query);
-      const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
-      const GOOGLE_CX = import.meta.env.VITE_GOOGLE_CX; // Engine ID
-      
-      if (!GOOGLE_API_KEY || !GOOGLE_CX) {
-        console.warn('📸 [Google Search] Keys not configured. Falling back to Wikipedia/OpenFoodFacts proxy search.');
-        // Fallback: Si no hay API key, buscamos en Wikimedia como plan B gratuito
-        const wikiResp = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&piprop=original&titles=${encodeURIComponent(form.name)}&origin=*`);
-        const wikiData = await wikiResp.json();
-        const pages = wikiData.query?.pages;
-        if (pages) {
-          const pageId = Object.keys(pages)[0];
-          if (pages[pageId].original?.source) {
-             setSuggestedImage({ url: pages[pageId].original.source, source: 'Wikimedia Commons' });
-             return;
-          }
-        }
-        
-        // Último recurso si no hay keys ni wiki
-        setSuggestedImage({ url: `https://source.unsplash.com/300x300/?${encodeURIComponent(form.name + ' ingredient')}`, source: 'Unsplash (Fallback B)' });
-        return;
-      }
-
-      const resp = await fetch(
-        `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&cx=${GOOGLE_CX}&key=${GOOGLE_API_KEY}&searchType=image&num=6&imgSize=large`
-      );
-      
-      const data = await resp.json();
-      console.log('📸 [Google Search] Results:', data.items?.length, 'photos found');
-
-      if (data.items && data.items.length > 0) {
-        const gallery = data.items.map(p => ({
-          url: p.link,
-          source: `Google | ${p.displayLink}`
-        }));
-        setSuggestedGallery(gallery);
-        setSuggestedImage(gallery[0]);
-      } else {
-        alert("Google no encontró fotos con esos términos. Intenta un nombre más sencillo.");
-      }
+      console.log('📸 [Google Search] Opening Google Images for:', query);
+      const url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+      alert("Se abrirá Google Imágenes. Copia la imagen o su enlace, y usa la opción de Pegar en el selector de fotos.");
+      setSuggesting(false);
     } catch (err) {
-      console.error('📸 [Google Search] Error:', err);
-      alert("Error en la búsqueda de Google. Revisa las claves API en Vercel.");
+      console.error('📸 [Google Search] Error abriendo URL:', err);
     }
   };
 
@@ -777,13 +741,13 @@ export default function Ingredients() {
       )}
 
       {loading && !ingredients.length ? (
-        <div className="card-grid">
+        <div className="card-grid" style={{ paddingRight: '60px', maxWidth: '500px', margin: '0 auto' }}>
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="h-20 bg-slate-100 rounded-xl animate-pulse" style={{ height: '80px', background: '#f1f5f9', borderRadius: '16px' }} />
           ))}
         </div>
       ) : (
-        <div className="card-grid">
+        <div className="card-grid" style={{ paddingRight: '60px', maxWidth: '500px', margin: '0 auto' }}>
           {filteredIngredients.map((ingredient, idx) => {
             const firstLetter = ingredient.name[0]?.toUpperCase();
             const isFirstOfLetter = idx === 0 || filteredIngredients[idx - 1].name[0]?.toUpperCase() !== firstLetter;

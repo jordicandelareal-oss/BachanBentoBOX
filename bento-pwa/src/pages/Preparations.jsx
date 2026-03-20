@@ -75,13 +75,13 @@ export function Preparations() {
 
       <div className="category-tabs-wrapper">
         <div className="category-tabs">
-          {prepCats.map(cat => (
+          {(prepCats || []).map(cat => (
             <button 
-              key={cat.id} 
-              className={`category-tab ${activeTabId === cat.id ? 'active' : ''}`}
-              onClick={() => setActiveTabId(cat.id)}
+              key={cat?.id || Math.random()} 
+              className={`category-tab ${activeTabId === cat?.id ? 'active' : ''}`}
+              onClick={() => setActiveTabId(cat?.id)}
             >
-              {cat.Name}
+              {cat?.Name || 'Sin Nombre'}
             </button>
           ))}
         </div>
@@ -95,17 +95,17 @@ export function Preparations() {
         </div>
       ) : (
         <div className="card-grid">
-          {filteredRecipes.map(recipe => (
-            <div key={recipe.id} className="premium-card" onClick={() => setEditingRecipe(recipe)}>
+          {(filteredRecipes || []).map(recipe => (
+            <div key={recipe?.id || Math.random()} className="premium-card" onClick={() => setEditingRecipe(recipe)}>
               <div className="ingredient-info">
                 <div className="card-icon-wrapper">
                   <CookingPot size={20} />
                 </div>
                 <div>
-                  <h3 className="card-title">{recipe.name}</h3>
+                  <h3 className="card-title">{recipe?.name || 'Receta sin nombre'}</h3>
                   <p className="card-meta">
-                    Rinde: {recipe.portions} {recipe.yield_scenario === 'weight' ? (recipe.unit_name || 'Kg') : 'ud'}
-                    {recipe.platos_estimados > 0 && ` | 🍽️ ${recipe.platos_estimados} platos`}
+                    Rinde: {recipe?.portions || 0} {recipe?.yield_scenario === 'weight' ? (recipe?.unit_name || 'Kg') : 'ud'}
+                    {(recipe?.platos_estimados > 0) && ` | 🍽️ ${recipe?.platos_estimados} platos`}
                   </p>
                 </div>
               </div>
@@ -114,7 +114,7 @@ export function Preparations() {
                 <div className="text-right">
                   <div className="card-meta" style={{ fontSize: '10px' }}>Coste/Uni.</div>
                   <div className="price-display">
-                    {recipe.cost_per_portion ? `${recipe.cost_per_portion.toFixed(2)}€` : '0.00€'}
+                    {recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}
                   </div>
                 </div>
                   <div className="flex flex-col gap-2">
@@ -122,12 +122,12 @@ export function Preparations() {
                       className="delete-btn-subtle"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setConfirmDelete(recipe.id);
+                        setConfirmDelete(recipe?.id);
                       }}
                     >
                       <Trash2 size={18} />
                     </button>
-                    {recipe.image_url && (
+                    {recipe?.image_url && (
                       <button 
                         className="p-2 text-sky-500 hover:bg-sky-50 rounded-full transition-colors"
                         onClick={(e) => {
@@ -144,7 +144,7 @@ export function Preparations() {
             </div>
           ))}
 
-          {filteredRecipes.length === 0 && (
+          {(!filteredRecipes || filteredRecipes.length === 0) && (
             <div className="text-center py-12" style={{ textAlign: 'center', padding: '48px 0' }}>
               <CookingPot className="mx-auto text-slate-200 mb-4" size={48} style={{ margin: '0 auto 16px', color: '#e2e8f0' }} />
               <p style={{ color: '#94a3b8' }}>No hay elaboraciones en {activeTabName}</p>
