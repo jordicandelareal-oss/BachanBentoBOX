@@ -75,6 +75,46 @@ export async function uploadImage(imageBlob, bucketName = 'images', folder = 'in
 }
 
 /**
+ * Descarga una imagen externa usando AllOrigins para evitar CORS 
+ * y la sube al bucket 'images' de Supabase.
+ */
+export async function uploadFromUrl(url) {
+  try {
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const response = await fetch(proxyUrl);
+    
+    if (!response.ok) throw new Error('No se pudo descargar la imagen del servidor externo');
+    
+    const blob = await response.blob();
+    
+    if (!blob.type.startsWith('image/')) {
+      throw new Error(`El archivo descargado no es una imagen válida (${blob.type})`);
+    }
+
+    // Generar un nombre único
+    const fileName = `cat/prod_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+
+    const { data, error: uploadError } = await supabase.storage
+      .from('images')
+      .upload(fileName, blob, {
+        contentType: blob.type,
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('images')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  } catch (err) {
+    console.error('❌ [Critical Error] uploadFromUrl:', err);
+    throw err;
+  }
+}
+
+/**
  * Converts a Blob to a Base64 string.
  * @param {Blob} blob 
  * @returns {Promise<string>}

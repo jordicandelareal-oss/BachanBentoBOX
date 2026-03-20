@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { supabase } from '../lib/supabaseClient';
-import { Carrot, Search, Plus, AlertCircle, Loader2, ChevronRight, X, Save, Trash2, Camera, Scan, Image as ImageIcon, RotateCcw } from 'lucide-react';
+import { Carrot, Search, Plus, AlertCircle, Loader2, ChevronRight, X, Save, Trash2, Camera, Scan, Image as ImageIcon, RotateCcw, Sparkles } from 'lucide-react';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import NumPad from '../components/Common/NumPad';
 import { compressImage, uploadImage, blobToBase64 } from '../lib/imageUtils';
@@ -35,9 +35,10 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     barcode: ingredient.barcode || '',
   });
 
-  const [scanning, setScanning] = useState(false);
   const [capturedImages, setCapturedImages] = useState([]); // Array of base64 strings
   const [scanStep, setScanStep] = useState(0); // 0: Idle, 1: Front, 2: Table, 3: Barcode
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestedImage, setSuggestedImage] = useState(null); // { url, source }
 
   // Fetch ingredient categories (not preparation_categories)
   useEffect(() => {
@@ -74,7 +75,61 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     }
   };
 
-  const handleRemoveImage = () => set('image_url', '');
+  const handleRemoveImage = () => {
+    set('image_url', '');
+    setSuggestedImage(null);
+  };
+
+  const handleSuggestImage = async () => {
+    if (!form.name) {
+      alert('Primero introduce el nombre del ingrediente.');
+      return;
+    }
+    
+    setSuggesting(true);
+    setSuggestedImage(null);
+    
+    try {
+      const prompt = `Busca una imagen de catálogo oficial (preferiblemente Mercadona o retail general) para el ingrediente: "${form.name}" ${form.brand ? '(' + form.brand + ')' : ''} ${form.barcode ? 'con EAN ' + form.barcode : ''}. Usa la herramienta suggestProductImage para darme la URL directa de la imagen.`;
+      
+      const response = await processCommand(prompt, {
+        currentForm: form
+      });
+
+      if (response.toolCalls) {
+        const suggestCall = response.toolCalls.find(c => c.name === 'suggestProductImage');
+        if (suggestCall && suggestCall.args.image_url) {
+          setSuggestedImage({
+            url: suggestCall.args.image_url,
+            source: suggestCall.args.source || 'Retail Web'
+          });
+        } else {
+          alert('Nana no ha encontrado una foto clara en el catálogo. Inténtalo con más detalles en el nombre.');
+        }
+      }
+    } catch (err) {
+      console.error('Error sugiriendo imagen:', err);
+      alert('Hubo un problema al buscar la foto.');
+    } finally {
+      setSuggesting(false);
+    }
+  };
+
+  const handleAcceptSuggestion = async () => {
+    if (!suggestedImage) return;
+    
+    setSuggesting(true); // Re-use suggesting for loading state
+    try {
+      const { uploadFromUrl } = await import('../lib/imageUtils');
+      const publicUrl = await uploadFromUrl(suggestedImage.url);
+      set('image_url', publicUrl);
+      setSuggestedImage(null);
+    } catch (err) {
+      alert('Error al descargar/subir la imagen sugerida: ' + err.message);
+    } finally {
+      setSuggesting(false);
+    }
+  };
 
   const startNanaScan = () => {
     setScanning(true);
@@ -183,6 +238,52 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
               label="Foto del Insumo"
               placeholder="Haz clic para subir foto"
             />
+
+            {/* Sugerencia de IA */}
+            <div className="mt-4">
+              {!suggestedImage ? (
+                <button 
+                  type="button"
+                  onClick={handleSuggestImage}
+                  disabled={suggesting || !form.name}
+                  className={`w-full py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                    suggesting ? 'bg-slate-100 text-slate-400' : 'bg-sky-50 text-sky-600 hover:bg-sky-100'
+                  }`}
+                >
+                  {suggesting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  {suggesting ? 'Buscando en catálogo...' : 'Sugerir foto con IA'}
+                </button>
+              ) : (
+                <div className="bg-sky-50 rounded-2xl p-4 border border-sky-100 animate-in fade-in slide-in-from-top-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
+                      <img src={suggestedImage.url} alt="Sugerencia" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-sky-800 uppercase tracking-wider mb-1">Nana ha encontrado esta foto</p>
+                      <p className="text-xs text-sky-600 line-clamp-1">{suggestedImage.source}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <button 
+                      type="button"
+                      onClick={handleAcceptSuggestion}
+                      disabled={suggesting}
+                      className="flex-1 py-2 bg-sky-500 text-white rounded-lg text-xs font-black shadow-lg shadow-sky-200 active:scale-95 disabled:opacity-50"
+                    >
+                      ACEPTAR Y GUARDAR
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setSuggestedImage(null)}
+                      className="px-4 py-2 bg-white text-slate-400 rounded-lg text-xs font-bold border border-slate-200"
+                    >
+                      DESCARTAR
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Nana Scanning Interface Overlay (still needed for the process flow) */}
             {scanning && (
