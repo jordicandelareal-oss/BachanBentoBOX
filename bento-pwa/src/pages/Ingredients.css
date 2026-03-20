@@ -224,11 +224,19 @@
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(8px);
   display: flex;
-  align-items: center;
+  align-items: center; /* Desktop: center */
   justify-content: center;
   z-index: 1000;
   padding: 16px;
   animation: fadeIn 0.15s ease;
+  overflow-y: auto; /* Allow backdrop to scroll if modal is tall */
+}
+
+@media (max-width: 480px) {
+  .modal-backdrop {
+    align-items: flex-start; /* Mobile: start from top to avoid cutoff */
+    padding-top: 40px; /* Safe area for iPhone status bar */
+  }
 }
 
 .modal-card {
@@ -265,6 +273,34 @@
   font-weight: 900;
   color: #0f172a;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.modal-title-input {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #0f172a;
+  background: transparent;
+  border: 1px solid transparent;
+  width: 100%;
+  padding: 4px 8px;
+  margin-left: -8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  outline: none;
+  font-family: inherit;
+}
+
+.modal-title-input:focus {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.modal-title-input:hover {
+  border-color: #f1f5f9;
 }
 
 .modal-close-btn {
