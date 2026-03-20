@@ -38,6 +38,12 @@
   border-radius: 16px;
   overflow: hidden;
   background: #000;
+  --brightness: 100%;
+  --contrast: 100%;
+}
+
+.cropper-container img {
+  filter: brightness(var(--brightness)) contrast(var(--contrast)) !important;
 }
 
 .editor-controls {
