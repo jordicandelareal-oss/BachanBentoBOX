@@ -42,6 +42,18 @@ const TOOLS = [{
           category_name: { type: "string", description: "Sugerencia de categoría (ej: PROTEINA, VERDURA, etc.)" }
         }
       }
+    },
+    {
+      name: "suggestProductImage",
+      description: "Busca y sugiere una URL de imagen de catálogo para un producto específico (Mercadona/Retail).",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          image_url: { type: "string", description: "URL directa de la imagen del producto" },
+          source: { type: "string", description: "Fuente de la imagen (ej: Mercadona, OpenFoodFacts, etc.)" }
+        },
+        required: ["image_url"]
+      }
     }
   ]
 }]
