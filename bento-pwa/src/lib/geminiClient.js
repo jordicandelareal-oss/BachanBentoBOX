@@ -54,6 +54,27 @@ const TOOLS = [{
         },
         required: ["image_url"]
       }
+    },
+    {
+      name: "suggestProductGallery",
+      description: "Sugiere una galería de múltiples imágenes profesionales para un producto.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          images: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                url: { type: "string" },
+                source: { type: "string" }
+              },
+              required: ["url"]
+            }
+          }
+        },
+        required: ["images"]
+      }
     }
   ]
 }]
@@ -99,7 +120,9 @@ export async function processCommand(message, contextData = {}) {
           // [DIAGNOSTIC LOG]
           if (part.functionCall.name === 'suggestProductImage') {
              console.log("🔍 [Nana Search] URL Sugerida:", part.functionCall.args.image_url);
-             console.log("🔍 [Nana Search] Fuente:", part.functionCall.args.source);
+          }
+          if (part.functionCall.name === 'suggestProductGallery') {
+             console.log("🔍 [Nana Search] Galería Sugerida:", part.functionCall.args.images);
           }
           toolCalls.push({
             name: part.functionCall.name,

@@ -41,6 +41,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
   const [scanStep, setScanStep] = useState(0); // 0: Idle, 1: Front, 2: Table, 3: Barcode
   const [suggesting, setSuggesting] = useState(false);
   const [suggestedImage, setSuggestedImage] = useState(null); // { url, source }
+  const [suggestedGallery, setSuggestedGallery] = useState([]); // Array of { url, source }
 
   // Fetch ingredient categories (not preparation_categories)
   useEffect(() => {
@@ -90,21 +91,19 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     
     setSuggesting(true);
     setSuggestedImage(null);
+    setSuggestedGallery([]);
     
     try {
-      // Generación de query optimizada según instrucciones: nombre + marca + proveedor + términos retail
-      const queryContext = `Ingrediente: "${form.name}" ${form.brand ? '| Marca: ' + form.brand : ''} ${form.provider ? '| Proveedor: ' + form.provider : ''} ${form.barcode ? '| EAN: ' + form.barcode : ''}`;
+      const queryContext = `Producto: "${form.name}" ${form.brand ? '| Marca: ' + form.brand : ''} ${form.provider ? '| Proveedor: ' + form.provider : ''}`;
       
       const prompt = `
-        OBJETIVO: Encuentra una imagen de catálogo oficial para este producto: ${queryContext}.
+        OBJETIVO: Encuentra imágenes PROFESIONALES de catálogo para este producto: ${queryContext}.
         
-        INSTRUCCIONES DE BÚSQUEDA:
-        1. Genera mentalmente una búsqueda específica como: "${form.name} ${form.brand || ''} ${form.provider || ''} producto catálogo oficial".
-        2. Prioriza URLs oficiales de Mercadona, Carrefour, Open Food Facts o Amazon Grocery.
-        3. Si no encuentras una foto de catálogo (fondo blanco, retail), busca una imagen genérica de ALTA CALIDAD en Unsplash o Pixabay como fallback.
-        4. Sé flexible: si no hay foto exacta del proveedor, busca la versión genérica más profesional.
-        
-        Usa la herramienta suggestProductImage para devolver la URL.
+        INSTRUCCIONES:
+        1. Intenta encontrar la foto oficial de retail (Mercadona, etc.).
+        2. Si no es clara, busca una imagen de ALTA CALIDAD con "fondo blanco", "aislado" o "catálogo".
+        3. Usa 'suggestProductGallery' para darme 4-5 opciones de alta calidad.
+        4. Prioriza fondos blancos ("isolated", "white background").
       `;
       
       const response = await processCommand(prompt, {
@@ -112,14 +111,25 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       });
 
       if (response.toolCalls) {
+        // Handle Single Image (Legacy)
         const suggestCall = response.toolCalls.find(c => c.name === 'suggestProductImage');
         if (suggestCall && suggestCall.args.image_url) {
           setSuggestedImage({
             url: suggestCall.args.image_url,
             source: suggestCall.args.source || 'Retail Web'
           });
-        } else {
-          alert('Nana no ha encontrado una foto clara en el catálogo. Inténtalo con más detalles en el nombre.');
+        }
+
+        // Handle Gallery (New)
+        const galleryCall = response.toolCalls.find(c => c.name === 'suggestProductGallery');
+        if (galleryCall && galleryCall.args.images && galleryCall.args.images.length > 0) {
+          setSuggestedGallery(galleryCall.args.images);
+          // Auto-select first as preview
+          setSuggestedImage(galleryCall.args.images[0]);
+        }
+
+        if (!suggestCall && !galleryCall) {
+          alert('Nana no ha encontrado fotos claras. Prueba con términos más genéricos.');
         }
       }
     } catch (err) {
@@ -128,6 +138,10 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     } finally {
       setSuggesting(false);
     }
+  };
+
+  const handleSelectGalleryItem = (item) => {
+    setSuggestedImage(item);
   };
 
   const handleAcceptSuggestion = async () => {
@@ -263,46 +277,66 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
               placeholder="Haz clic para subir foto"
             />
 
-            {/* Sugerencia de IA */}
+            {/* Sugerencia de IA: Modo Galería */}
             <div className="mt-4">
-              {!suggestedImage ? (
+              {!suggestedImage && !suggestedGallery.length ? (
                 <button 
                   type="button"
                   onClick={handleSuggestImage}
                   disabled={suggesting || !form.name}
-                  className={`w-full py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                    suggesting ? 'bg-slate-100 text-slate-400' : 'bg-sky-50 text-sky-600 hover:bg-sky-100'
+                  className={`w-full py-4 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                    suggesting ? 'bg-slate-100 text-slate-400' : 'bg-sky-50 text-sky-600 hover:bg-sky-100 border border-sky-100'
                   }`}
                 >
-                  {suggesting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                  {suggesting ? 'Buscando en catálogo...' : 'Sugerir foto con IA'}
+                  {suggesting ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                  {suggesting ? 'Nana buscando opciones...' : 'Sugerir galería con IA'}
                 </button>
               ) : (
                 <div className="bg-sky-50 rounded-2xl p-4 border border-sky-100 animate-in fade-in slide-in-from-top-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
-                      <img src={suggestedImage.url} alt="Sugerencia" className="w-full h-full object-cover" />
+                  {/* Carrusel de Galería */}
+                  {suggestedGallery.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-2">
+                      {suggestedGallery.map((item, idx) => (
+                        <div 
+                          key={idx}
+                          role="button"
+                          onClick={() => handleSelectGalleryItem(item)}
+                          className={`w-16 h-16 rounded-xl overflow-hidden border-2 flex-shrink-0 cursor-pointer transition-all ${
+                            suggestedImage?.url === item.url ? 'border-sky-500 scale-105 shadow-md shadow-sky-100' : 'border-white opacity-50'
+                          }`}
+                        >
+                          <img src={item.url} alt={`Opción ${idx}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Previsualización del seleccionado */}
+                  <div className="flex items-center gap-4 bg-white/50 p-2 rounded-xl mb-4">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-white shadow-sm flex-shrink-0">
+                      <img src={suggestedImage?.url} alt="Sugerencia" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-bold text-sky-800 uppercase tracking-wider mb-1">Nana ha encontrado esta foto</p>
-                      <p className="text-xs text-sky-600 line-clamp-1">{suggestedImage.source}</p>
+                      <p className="text-[10px] font-black text-sky-800 uppercase tracking-widest">Opción Seleccionada</p>
+                      <p className="text-[11px] text-sky-600 line-clamp-1">{suggestedImage?.source || 'Catálogo Profesional'}</p>
                     </div>
                   </div>
-                  <div className="flex gap-2 mt-4">
+
+                  <div className="flex gap-2">
                     <button 
                       type="button"
                       onClick={handleAcceptSuggestion}
                       disabled={suggesting}
-                      className="flex-1 py-2 bg-sky-500 text-white rounded-lg text-xs font-black shadow-lg shadow-sky-200 active:scale-95 disabled:opacity-50"
+                      className="flex-1 py-3 bg-sky-500 text-white rounded-xl text-xs font-black shadow-lg shadow-sky-200 active:scale-95 disabled:opacity-50"
                     >
-                      ACEPTAR Y GUARDAR
+                      {suggesting ? 'GUARDANDO...' : 'ACEPTAR ESTA FOTO'}
                     </button>
                     <button 
                       type="button"
-                      onClick={() => setSuggestedImage(null)}
-                      className="px-4 py-2 bg-white text-slate-400 rounded-lg text-xs font-bold border border-slate-200"
+                      onClick={() => { setSuggestedImage(null); setSuggestedGallery([]); }}
+                      className="px-4 py-3 bg-white text-slate-400 rounded-xl text-xs font-bold border border-slate-200"
                     >
-                      DESCARTAR
+                      X
                     </button>
                   </div>
                 </div>
