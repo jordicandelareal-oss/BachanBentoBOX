@@ -1,0 +1,128 @@
+.photo-selector-container {
+  width: 100%;
+}
+
+.photo-box {
+  position: relative;
+  background: #f8fafc;
+  border: 2px dashed #e2e8f0;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-box.is-empty:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.photo-box.has-image {
+  border: 2px solid #f1f5f9;
+}
+
+.image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.selected-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.floating-remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #0f172a;
+  color: white;
+  border: 2px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 30;
+}
+
+.floating-remove-btn:hover {
+  background: #f43f5e;
+  transform: scale(1.1);
+}
+
+.empty-state {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  padding: 12px;
+}
+
+.placeholder-text {
+  font-size: 10px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nana-scan-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: #0f172a;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.nana-scan-badge:hover {
+  background: black;
+  transform: translateY(-1px);
+}
+
+.badge-text {
+  white-space: nowrap;
+}
+
+.is-circular .photo-box {
+  width: 100%;
+  height: 100%;
+}
+
+/* Form layout adaptation */
+.photo-selector-container:not(.is-circular) .photo-box {
+  min-height: 180px;
+}

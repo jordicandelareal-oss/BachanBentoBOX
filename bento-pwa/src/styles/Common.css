@@ -286,10 +286,9 @@
   position: fixed;
   bottom: 32px;
   left: 0;
-  right: 0;
   display: flex;
   justify-content: center;
-  z-index: 100;
+  z-index: 3000;
   pointer-events: none;
 }
 

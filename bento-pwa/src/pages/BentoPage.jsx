@@ -1,5 +1,7 @@
+import React, { useState } from 'react';
 import { ChefHat, Plus, TrendingUp, TrendingDown, Target, LayoutGrid, Trash2, Camera } from 'lucide-react';
 import { useRecipes } from '../hooks/useRecipes';
+import BentoMaker from '../components/BentoMaker/BentoMaker';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import Lightbox from '../components/Common/Lightbox';
 import '../styles/Common.css';

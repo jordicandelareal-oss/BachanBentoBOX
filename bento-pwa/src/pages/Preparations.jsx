@@ -6,6 +6,7 @@ import { useUnits } from '../hooks/useUnits';
 import { usePrepCategories } from '../hooks/usePrepCategories';
 import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search, AlertCircle, ChefHat, CheckCircle2, Camera } from 'lucide-react';
 import SequentialSelector from '../components/Common/SequentialSelector';
+import PhotoSelector from '../components/Common/PhotoSelector';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import Lightbox from '../components/Common/Lightbox';
 import NumPad from '../components/Common/NumPad';
@@ -188,9 +189,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
   const openNumPad = (field, label) => setNumPad({ field, label });
   const closeNumPad = () => setNumPad(null);
 
-  const handlePlatingPhoto = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleUpload = async (file) => {
     try {
       const compressed = await compressImage(file);
       const url = await uploadImage(compressed, 'images', 'plating');
@@ -199,6 +198,8 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
       alert('Error al subir foto: ' + err.message);
     }
   };
+
+  const handleRemoveImage = () => setImageUrl('');
 
   const handleNumPadChange = (val) => {
     if (!numPad) return;
@@ -246,7 +247,8 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
       name: item.name,
       costPerUnit: baseCost,
       unit: normalized,
-      quantity: ''
+      quantity: '',
+      category_name: item.category_name || item.preparation_category || 'General'
     });
     setShowSelector(false);
   };
@@ -287,22 +289,14 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
                 <div className="flex-1">
                   <h3 className="section-title" style={{ fontFamily: 'var(--font-serif)' }}>Datos Generales</h3>
                 </div>
-                <div className="w-24 h-24 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden relative flex items-center justify-center group hover:border-slate-300 transition-colors">
-                  {imageUrl ? (
-                    <>
-                      <img src={imageUrl} alt="Platado" className="w-full h-full object-cover" />
-                      <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                        <Camera size={20} className="text-white" />
-                        <input type="file" accept="image/*" className="hidden" onChange={handlePlatingPhoto} />
-                      </label>
-                    </>
-                  ) : (
-                    <label className="flex flex-col items-center gap-1 cursor-pointer p-4 text-center">
-                      <Camera size={20} className="text-slate-300" />
-                      <span className="text-[9px] font-bold text-slate-400">Foto plato</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={handlePlatingPhoto} />
-                    </label>
-                  )}
+                <div className="w-24 h-24">
+                  <PhotoSelector 
+                    imageUrl={imageUrl}
+                    onUpload={handleUpload}
+                    onRemove={handleRemoveImage}
+                    isCircular={false}
+                    placeholder="Sube foto"
+                  />
                 </div>
               </div>
               
