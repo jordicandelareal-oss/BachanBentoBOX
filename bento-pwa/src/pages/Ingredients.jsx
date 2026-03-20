@@ -220,9 +220,18 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-card" onClick={e => e.stopPropagation()}>
         <div className="modal-header border-b-0 pb-0">
-          <div className="flex flex-col">
-            <h2 className="modal-title">{isNew ? 'Añadir Insumo' : `Editar: ${ingredient.name}`}</h2>
-            {!isNew && <p className="text-xs text-slate-400 mt-1">ID: {ingredient.id.substring(0,8)}</p>}
+          <div className="flex flex-col w-full pr-8">
+            <div className="modal-title">
+              <span className="text-slate-400 whitespace-nowrap">{isNew ? 'Añadir:' : 'Editar:'}</span>
+              <input
+                className="modal-title-input"
+                value={form.name}
+                onChange={e => set('name', e.target.value)}
+                placeholder="Nombre del insumo..."
+                autoFocus={isNew}
+              />
+            </div>
+            {!isNew && <p className="text-xs text-slate-400 mt-0.5">ID: {ingredient.id.substring(0,8)}</p>}
           </div>
           <button className="modal-close-btn" onClick={onClose}><X size={20} /></button>
         </div>
@@ -322,20 +331,6 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
             )}
           </div>
 
-          {/* Nombre (Siempre el primero si es nuevo) */}
-          {isNew && (
-            <div className="form-group mb-4">
-              <label className="form-label">Nombre del Insumo *</label>
-              <input
-                className="form-input"
-                type="text"
-                required
-                placeholder="Ej: Aceite de Oliva"
-                value={form.name}
-                onChange={e => set('name', e.target.value)}
-              />
-            </div>
-          )}
 
           {/* Fila: Marca y Código de Barras */}
           <div className="form-row flex gap-2 mb-4" style={{ display: 'flex', gap: '10px', flexWrap: 'nowrap' }}>
