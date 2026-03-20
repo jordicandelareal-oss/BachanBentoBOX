@@ -6,9 +6,10 @@ import { useUnits } from '../../hooks/useUnits';
 import { 
   Package, Utensils, Plus, X, Save, ChevronRight, 
   TrendingUp, TrendingDown, DollarSign, Target, 
-  Trash2, Info, LayoutGrid, Scale
+  Trash2, Info, LayoutGrid, Scale, CheckCircle2
 } from 'lucide-react';
 import SequentialSelector from '../Common/SequentialSelector';
+import NumPad from '../Common/NumPad';
 import '../../styles/Common.css';
 import './BentoMaker.css';
 
@@ -28,6 +29,29 @@ export default function BentoMaker({ recipe = null, onClose }) {
   const [showSelector, setShowSelector] = useState(false);
   const { ingredients } = useIngredients();
   const { recipes } = useRecipes('elaboracion');
+  const [numPad, setNumPad] = useState(null); // { field: 'salePrice' | 'portions' | itemKey, label: string }
+
+  const openNumPad = (field, label) => setNumPad({ field, label });
+  const closeNumPad = () => setNumPad(null);
+
+  const handleNumPadChange = (val) => {
+    if (!numPad) return;
+    if (numPad.field === 'salePrice') {
+      setSalePrice(val === '' ? '' : Number(val));
+    } else if (numPad.field === 'portions') {
+      setPortions(val === '' ? '' : Number(val));
+    } else {
+      updateItemQuantity(numPad.field, val);
+    }
+  };
+
+  const getNumPadValue = () => {
+    if (!numPad) return '0';
+    if (numPad.field === 'salePrice') return String(salePrice || '');
+    if (numPad.field === 'portions') return String(portions || '');
+    const item = items.find(i => i._key === numPad.field);
+    return String(item?.quantity || '');
+  };
 
   React.useEffect(() => {
     if (recipe?.id) {
@@ -63,7 +87,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
       name: item.name,
       costPerUnit: baseCost,
       unit: normalized,
-      quantity: initialQty
+      quantity: ''
     });
     setShowSelector(false);
   };
@@ -127,30 +151,28 @@ export default function BentoMaker({ recipe = null, onClose }) {
               </div>
               <div className="md:col-span-6 lg:col-span-3">
                 <label className="form-label">PVP Sugerido</label>
-                <div className="relative">
-                  <input 
-                    type="number" 
-                    value={salePrice} 
-                    onChange={e => setSalePrice(Number(e.target.value))}
-                    className="form-input-premium pr-10"
-                  />
+                <div 
+                  className="numpad-control bg-white pr-10 relative"
+                  onClick={() => openNumPad('salePrice', 'PVP Sugerido (€)')}
+                >
+                  {salePrice || <span className="numpad-placeholder">0.00</span>}
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">€</span>
                 </div>
               </div>
               <div className="md:col-span-6 lg:col-span-3">
                 <label className="form-label">Rinde (Unid/Porciones)</label>
                 <div className="flex gap-2">
-                  <input 
-                    type="number" 
-                    value={portions} 
-                    onChange={e => setPortions(Number(e.target.value))}
-                    className="form-input-premium"
-                  />
+                  <div 
+                    className="numpad-control bg-white flex-1"
+                    onClick={() => openNumPad('portions', 'Rinde (Unid/Porciones)')}
+                  >
+                    {portions || <span className="numpad-placeholder">1</span>}
+                  </div>
                   <select
                     value={unitId}
                     onChange={e => setUnitId(e.target.value)}
                     className="form-input-premium form-select-premium"
-                    style={{ minWidth: '80px' }}
+                    style={{ minWidth: '100px' }}
                   >
                     <option value="">...</option>
                     {units.map(u => (
@@ -197,13 +219,13 @@ export default function BentoMaker({ recipe = null, onClose }) {
                         </div>
                       </div>
                       <div className="flex items-center gap-6">
-                        <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1 shadow-inner">
-                          <input 
-                            type="number" 
-                            value={item.quantity} 
-                            onChange={e => updateItemQuantity(item._key, e.target.value)}
-                            className="w-16 text-right py-2 text-sm font-black text-[#0f172a] outline-none bg-transparent"
-                          />
+                        <div 
+                          className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1 shadow-inner cursor-pointer"
+                          onClick={() => openNumPad(item._key, `${item.name} (${item.unit})`)}
+                        >
+                          <span className="w-16 text-right py-2 text-sm font-black text-[#0f172a]">
+                            {item.quantity || '0'}
+                          </span>
                           <span className="text-[10px] font-black text-slate-400 px-2 uppercase">{item.unit === 'ud' ? 'pzs' : item.unit}</span>
                         </div>
                         <div className="w-20 text-right font-black text-[#0f172a] text-sm">
@@ -272,6 +294,27 @@ export default function BentoMaker({ recipe = null, onClose }) {
           recipes={recipes}
           onSelect={handleSelectComponent}
           onClose={() => setShowSelector(false)}
+        />
+      )}
+
+      {/* FOOTER ACCIÓN FLOTANTE (MÓVIL) */}
+      <div className="floating-save-container md:hidden" style={{ bottom: numPad ? '340px' : '32px', transition: 'bottom 0.3s ease' }}>
+        <button 
+          disabled={isSaving || isSaved || !bentoName || items.length === 0}
+          onClick={handleSave}
+          className={`floating-save-btn ${isSaved ? 'saved' : ''}`}
+        >
+          {isSaving ? 'Guardando...' : isSaved ? <><CheckCircle2 size={20} /> ¡Guardado!</> : <><Save size={20} /> Guardar Bento</>}
+        </button>
+      </div>
+
+      {/* CUSTOM NUMPAD */}
+      {numPad && (
+        <NumPad
+          value={getNumPadValue()}
+          onChange={handleNumPadChange}
+          onClose={closeNumPad}
+          label={numPad.label}
         />
       )}
     </div>

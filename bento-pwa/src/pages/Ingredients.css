@@ -69,6 +69,64 @@
   border-color: #0f172a;
 }
 
+.category-tab.sub {
+  font-size: 11px;
+  padding: 6px 14px;
+}
+
+@media (max-width: 768px) {
+  .card-grid {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+/* ─── Alphabet Sidebar ───────────────────────────────────────── */
+.alphabet-sidebar {
+  position: fixed;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  padding: 8px 4px;
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.alphabet-letter {
+  background: none;
+  border: none;
+  font-size: 10px;
+  font-weight: 800;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.alphabet-letter.absent {
+  color: #e2e8f0;
+  cursor: default;
+}
+
+.alphabet-letter.present {
+  color: #64748b;
+}
+
+.alphabet-letter.present:hover {
+  background: var(--color-accent);
+  color: white;
+}
+
 /* ─── Modal ─────────────────────────────────────────────────── */
 .modal-backdrop {
   position: fixed;
