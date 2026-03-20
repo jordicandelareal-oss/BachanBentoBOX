@@ -35,6 +35,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     barcode: ingredient.barcode || '',
   });
 
+  const [scanning, setScanning] = useState(false);
   const [capturedImages, setCapturedImages] = useState([]); // Array of base64 strings
   const [scanStep, setScanStep] = useState(0); // 0: Idle, 1: Front, 2: Table, 3: Barcode
   const [suggesting, setSuggesting] = useState(false);
