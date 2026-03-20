@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { supabase } from '../lib/supabaseClient';
-import { Package, Search, Plus, AlertCircle, Loader2, ChevronRight, LayoutGrid, X, Save, Trash2 } from 'lucide-react';
+import { Package, Search, Plus, AlertCircle, Loader2, ChevronRight, LayoutGrid, X, Save, Trash2, Camera, Scan, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import NumPad from '../components/Common/NumPad';
+import { compressImage, uploadImage, blobToBase64 } from '../lib/imageUtils';
+import { processCommand } from '../lib/geminiClient';
 import '../styles/Common.css';
 import './Ingredients.css';
 
@@ -26,7 +28,14 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     unit_id: ingredient.unit_id || '',
     category_id: ingredient.category_id || '',
     subcategory_id: ingredient.subcategory_id || '',
+    image_url: ingredient.image_url || '',
+    brand: ingredient.brand || '',
+    barcode: ingredient.barcode || '',
   });
+
+  const [scanning, setScanning] = useState(false);
+  const [capturedImages, setCapturedImages] = useState([]); // Array of base64 strings
+  const [scanStep, setScanStep] = useState(0); // 0: Idle, 1: Front, 2: Table, 3: Barcode
 
   // Fetch ingredient categories (not preparation_categories)
   useEffect(() => {
@@ -53,6 +62,80 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file);
+      const url = await uploadImage(compressed);
+      set('image_url', url);
+    } catch (err) {
+      alert('Error al subir imagen: ' + err.message);
+    }
+  };
+
+  const handleRemoveImage = () => set('image_url', '');
+
+  const startNanaScan = () => {
+    setScanning(true);
+    setScanStep(1);
+    setCapturedImages([]);
+  };
+
+  const capturePhoto = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file);
+      const base64 = await blobToBase64(compressed);
+      
+      const newImages = [...capturedImages, base64];
+      setCapturedImages(newImages);
+
+      if (scanStep < 3) {
+        setScanStep(scanStep + 1);
+      } else {
+        // All photos captured, process with AI
+        setScanStep(4); // Processing state
+        const response = await processCommand("Analiza estas fotos de un ingrediente y extrae la información para registrarlo.", {
+          imagesBase64: newImages
+        });
+
+        // The tool call `fillIngredientData` will be handled in geminiClient 
+        // OR we can manually parse it here if we want immediate feedback.
+        // Let's assume the AI calls the tool and we need to handle it.
+        if (response.toolCalls) {
+          const fillCall = response.toolCalls.find(c => c.name === 'fillIngredientData');
+          if (fillCall) {
+            const { name, brand, barcode, purchase_format, category_name } = fillCall.args;
+            if (name) set('name', name);
+            if (brand) set('brand', brand);
+            if (barcode) set('barcode', barcode);
+            if (purchase_format) set('purchase_format', purchase_format.toString());
+            // Map category_name to id if exists
+            if (category_name) {
+              const cat = categories.find(c => c.name.toUpperCase() === category_name.toUpperCase());
+              if (cat) set('category_id', cat.id);
+            }
+          }
+        }
+        
+        // Also set the first image as the definitive one if not already set
+        if (!form.image_url && newImages.length > 0) {
+           const url = await uploadImage(await (await fetch(`data:image/jpeg;base64,${newImages[0]}`)).blob());
+           set('image_url', url);
+        }
+
+        setScanning(false);
+        setScanStep(0);
+      }
+    } catch (err) {
+      alert('Error en el escaneo: ' + err.message);
+      setScanning(false);
+      setScanStep(0);
+    }
+  };
+
   const canSave = !!form.name && !!form.category_id && !!form.subcategory_id;
 
   const handleSubmit = async (e) => {
@@ -65,6 +148,9 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       unit_id: form.unit_id || null,
       category_id: form.category_id || null,
       subcategory_id: form.subcategory_id || null,
+      image_url: form.image_url || null,
+      brand: form.brand || null,
+      barcode: form.barcode || null,
     };
     await onSave(payload);
   };
@@ -72,12 +158,92 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-card" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">{isNew ? 'Añadir Insumo' : `Editar: ${ingredient.name}`}</h2>
+        <div className="modal-header border-b-0 pb-0">
+          <div className="flex flex-col">
+            <h2 className="modal-title">{isNew ? 'Añadir Insumo' : `Editar: ${ingredient.name}`}</h2>
+            {!isNew && <p className="text-xs text-slate-400 mt-1">ID: {ingredient.id.substring(0,8)}</p>}
+          </div>
           <button className="modal-close-btn" onClick={onClose}><X size={20} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-form">
+        <form onSubmit={handleSubmit} className="modal-form pt-4">
+          
+          {/* SECCIÓN DE IMAGEN Y NANA SCAN */}
+          <div className="relative mb-8 group">
+            <div className="w-full h-48 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden relative flex items-center justify-center transition-all group-hover:border-slate-300">
+              {form.image_url ? (
+                <>
+                  <img src={form.image_url} alt="Ingrediente" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                    <label className="p-3 bg-white rounded-full cursor-pointer text-slate-700 hover:scale-110 transition-transform">
+                      <Camera size={20} />
+                      <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                    </label>
+                    <button type="button" onClick={handleRemoveImage} className="p-3 bg-rose-500 rounded-full text-white hover:scale-110 transition-transform">
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
+                    <ImageIcon size={32} />
+                  </div>
+                  <label className="text-sm font-bold text-slate-500 cursor-pointer bg-white px-4 py-2 rounded-xl border shadow-sm hover:bg-slate-50 transition-colors">
+                    Añadir foto
+                    <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                  </label>
+                </div>
+              )}
+
+              {/* Nana Scan Shortcut Overlay */}
+              {isNew && !scanning && (
+                <button 
+                  type="button" 
+                  onClick={startNanaScan}
+                  className="absolute bottom-4 right-4 bg-slate-900 text-white p-3 rounded-xl flex items-center gap-2 shadow-lg hover:bg-black transition-all hover:scale-105 active:scale-95 z-10"
+                >
+                  <Scan size={18} className="text-sky-400" />
+                  <span className="text-sm font-bold">Escanear con Nana</span>
+                </button>
+              )}
+
+              {/* Nana Scanning Interface */}
+              {scanning && (
+                <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center text-white p-6 text-center animate-in fade-in duration-300 z-50">
+                  {scanStep < 4 ? (
+                    <>
+                      <div className="w-16 h-16 bg-sky-500/20 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                        <Camera size={32} className="text-sky-400" />
+                      </div>
+                      <h3 className="text-lg font-bold mb-2">
+                        {scanStep === 1 && "Paso 1: Foto Frontal"}
+                        {scanStep === 2 && "Paso 2: Tabla Nutricional"}
+                        {scanStep === 3 && "Paso 3: Código de Barras"}
+                      </h3>
+                      <p className="text-slate-400 text-sm mb-6">
+                        {scanStep === 1 && "Muestra el envase de frente para reconocer marca y nombre."}
+                        {scanStep === 2 && "Asegura que el texto de la tabla sea legible."}
+                        {scanStep === 3 && "Céntralo bien para extraer el código EAN."}
+                      </p>
+                      <label className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-bold flex items-center gap-3 cursor-pointer hover:bg-sky-50 transition-colors">
+                        <Camera size={24} />
+                        Tomar Foto {scanStep}/3
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={capturePhoto} />
+                      </label>
+                      <button onClick={() => {setScanning(false); setScanStep(0);}} className="mt-8 text-slate-500 font-bold hover:text-white transition-colors">Cancelar</button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <div className="w-16 h-16 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4" />
+                      <h3 className="text-lg font-bold">Nana está analizando...</h3>
+                      <p className="text-slate-400 text-sm">Extrayendo datos y optimizando ficha</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Nombre (Siempre el primero si es nuevo) */}
           {isNew && (
@@ -93,6 +259,30 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
               />
             </div>
           )}
+
+          {/* Fila: Marca y Código de Barras */}
+          <div className="form-row mb-4">
+            <div className="form-group">
+              <label className="form-label text-slate-500">Marca</label>
+              <input
+                className="form-input bg-slate-50"
+                type="text"
+                placeholder="Ej: Gallo"
+                value={form.brand}
+                onChange={e => set('brand', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label text-slate-500">Código de Barras</label>
+              <input
+                className="form-input bg-slate-50 uppercase"
+                type="text"
+                placeholder="Código EAN"
+                value={form.barcode}
+                onChange={e => set('barcode', e.target.value)}
+              />
+            </div>
+          </div>
 
           {/* Fila 1: Clasificación */}
           <div className="form-row mb-4">
@@ -405,8 +595,14 @@ export default function Ingredients() {
                 onClick={() => openEdit(ingredient)}
               >
               <div className="ingredient-info">
-                <div className="card-icon-wrapper">
-                  <Package size={20} />
+                <div className="card-icon-wrapper overflow-hidden" style={{ padding: 0, background: ingredient.image_url ? 'transparent' : undefined }}>
+                  {ingredient.image_url ? (
+                    <img src={ingredient.image_url} alt={ingredient.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400 font-bold">
+                      {ingredient.name.substring(0, 2).toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h3 className="card-title">{ingredient.name}</h3>

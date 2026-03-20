@@ -4,10 +4,12 @@ import { useBentoMaker, normalizeUnit } from '../hooks/useBentoMaker';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { usePrepCategories } from '../hooks/usePrepCategories';
-import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search, AlertCircle, ChefHat, CheckCircle2 } from 'lucide-react';
+import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search, AlertCircle, ChefHat, CheckCircle2, Camera } from 'lucide-react';
 import SequentialSelector from '../components/Common/SequentialSelector';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
+import Lightbox from '../components/Common/Lightbox';
 import NumPad from '../components/Common/NumPad';
+import { compressImage, uploadImage } from '../lib/imageUtils';
 import '../styles/Common.css';
 import './Ingredients.css'; 
 import './Preparations.css';
@@ -18,6 +20,7 @@ export function Preparations() {
   const [editingRecipe, setEditingRecipe] = useState(null);
   const [activeTabId, setActiveTabId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [lightbox, setLightbox] = useState({ isOpen: false, imageUrl: '', title: '' });
 
   useEffect(() => {
     if (prepCats.length > 0 && !activeTabId) {
@@ -104,15 +107,28 @@ export function Preparations() {
                     {recipe.cost_per_portion ? `${recipe.cost_per_portion.toFixed(2)}€` : '0.00€'}
                   </div>
                 </div>
-                <button 
-                  className="delete-btn-subtle"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setConfirmDelete(recipe.id);
-                  }}
-                >
-                  <Trash2 size={18} />
-                </button>
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      className="delete-btn-subtle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDelete(recipe.id);
+                      }}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                    {recipe.image_url && (
+                      <button 
+                        className="p-2 text-sky-500 hover:bg-sky-50 rounded-full transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLightbox({ isOpen: true, imageUrl: recipe.image_url, title: recipe.name });
+                        }}
+                      >
+                        <Camera size={20} />
+                      </button>
+                    )}
+                  </div>
                 <ChevronRight size={18} className="text-slate-300" />
               </div>
             </div>
@@ -133,6 +149,12 @@ export function Preparations() {
         title="¿Eliminar elaboración?"
         message="Esta acción no se puede deshacer y eliminará permanentemente la receta y sus costos asociados."
       />
+      <Lightbox 
+        isOpen={lightbox.isOpen}
+        imageUrl={lightbox.imageUrl}
+        title={lightbox.title}
+        onClose={() => setLightbox({ ...lightbox, isOpen: false })}
+      />
     </div>
   );
 }
@@ -149,7 +171,8 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
     adjustmentPercent, setAdjustmentPercent,
     netYield, setNetYield,
     addItem, updateItemQuantity, removeItem,
-    totals, saveBento, loadRecipeItems 
+    totals, saveBento, loadRecipeItems,
+    imageUrl, setImageUrl
   } = useBentoMaker(recipe, 'elaboracion');
   
   const { units } = useUnits();
@@ -164,6 +187,18 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
 
   const openNumPad = (field, label) => setNumPad({ field, label });
   const closeNumPad = () => setNumPad(null);
+
+  const handlePlatingPhoto = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file);
+      const url = await uploadImage(compressed, 'images', 'plating');
+      setImageUrl(url);
+    } catch (err) {
+      alert('Error al subir foto: ' + err.message);
+    }
+  };
 
   const handleNumPadChange = (val) => {
     if (!numPad) return;
@@ -248,7 +283,28 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
         {/* PANEL IZQUIERDO: DATOS GENERALES */}
           <div className="editor-left-panel space-y-6">
             <div className="premium-form-card">
-              <h3 className="section-title mb-6" style={{ fontFamily: 'var(--font-serif)' }}>Datos Generales</h3>
+              <div className="flex gap-4 items-start mb-8">
+                <div className="flex-1">
+                  <h3 className="section-title" style={{ fontFamily: 'var(--font-serif)' }}>Datos Generales</h3>
+                </div>
+                <div className="w-24 h-24 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden relative flex items-center justify-center group hover:border-slate-300 transition-colors">
+                  {imageUrl ? (
+                    <>
+                      <img src={imageUrl} alt="Platado" className="w-full h-full object-cover" />
+                      <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                        <Camera size={20} className="text-white" />
+                        <input type="file" accept="image/*" className="hidden" onChange={handlePlatingPhoto} />
+                      </label>
+                    </>
+                  ) : (
+                    <label className="flex flex-col items-center gap-1 cursor-pointer p-4 text-center">
+                      <Camera size={20} className="text-slate-300" />
+                      <span className="text-[9px] font-bold text-slate-400">Foto plato</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handlePlatingPhoto} />
+                    </label>
+                  )}
+                </div>
+              </div>
               
               <div className="form-group mb-4">
                 <label className="form-label">Nombre de la elaboración <span className="text-rose-500">*</span></label>

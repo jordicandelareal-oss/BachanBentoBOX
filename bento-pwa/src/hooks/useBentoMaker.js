@@ -20,6 +20,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   const [adjustmentPercent, setAdjustmentPercent] = useState(initialRecipe?.adjustment_percent || 0)
   const [netYield, setNetYield] = useState(initialRecipe?.net_yield || null)
   const [platosEstimados, setPlatosEstimados] = useState(initialRecipe?.platos_estimados || 0)
+  const [imageUrl, setImageUrl] = useState(initialRecipe?.image_url || '')
   
   // Items can be ingredients or sub-recipes
   // { id, type: 'ingredient'|'recipe', name, costPerUnit, quantity, unit }
@@ -89,6 +90,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
         net_yield: yieldScenario === 'weight' ? totals.finalNetYield : null,
         cost_per_portion: totals.costPerPortion,
         platos_estimados: platosEstimados,
+        image_url: imageUrl || null,
         ...extraData 
       }, { onConflict: 'name' })
       .select()
@@ -180,6 +182,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
       setAdjustmentPercent(initialRecipe.adjustment_percent || 0);
       setNetYield(initialRecipe.net_yield || null);
       setPlatosEstimados(initialRecipe.platos_estimados || 0);
+      setImageUrl(initialRecipe.image_url || '');
     }
   }
 
@@ -195,6 +198,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
     adjustmentPercent, setAdjustmentPercent,
     netYield, setNetYield,
     platosEstimados, setPlatosEstimados,
+    imageUrl, setImageUrl,
     saveBento,
     loadRecipeItems,
     setItems

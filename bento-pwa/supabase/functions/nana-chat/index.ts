@@ -21,7 +21,7 @@ serve(async (req) => {
 
     // 2. Extract payload
     const body = await req.json()
-    const { prompt, contextData, tools, systemPrompt, imageBase64 } = body
+    const { prompt, contextData, tools, systemPrompt, imageBase64, imagesBase64 } = body
 
     if (!GEMINI_KEY) throw new Error("VITE_GEMINI_KEY not configured in Edge Function")
 
@@ -31,16 +31,30 @@ CONTEXTO ACTUAL EN TIEMPO REAL:
 ${JSON.stringify(contextData)}
 `
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`
     
     // Construct parts array for multimodal support
     const userParts: any[] = [{ text: prompt }]
+    
+    // Support single image for backward compatibility
     if (imageBase64) {
       userParts.push({
         inline_data: {
           mime_type: "image/jpeg",
           data: imageBase64
         }
+      })
+    }
+
+    // Support multiple images
+    if (imagesBase64 && Array.isArray(imagesBase64)) {
+      imagesBase64.forEach((img: string) => {
+        userParts.push({
+          inline_data: {
+            mime_type: "image/jpeg",
+            data: img
+          }
+        })
       })
     }
 

@@ -6,10 +6,11 @@ import { useUnits } from '../../hooks/useUnits';
 import { 
   Package, Utensils, Plus, X, Save, ChevronRight, 
   TrendingUp, TrendingDown, DollarSign, Target, 
-  Trash2, Info, LayoutGrid, Scale, CheckCircle2
+  Trash2, Info, LayoutGrid, Scale, CheckCircle2, Camera
 } from 'lucide-react';
 import SequentialSelector from '../Common/SequentialSelector';
 import NumPad from '../Common/NumPad';
+import { compressImage, uploadImage } from '../../lib/imageUtils';
 import '../../styles/Common.css';
 import './BentoMaker.css';
 
@@ -20,7 +21,8 @@ export default function BentoMaker({ recipe = null, onClose }) {
     portions, setPortions,
     unitId, setUnitId,
     items, addItem, updateItemQuantity, removeItem,
-    totals, saveBento, loadRecipeItems
+    totals, saveBento, loadRecipeItems,
+    imageUrl, setImageUrl
   } = useBentoMaker(recipe, 'bento');
   
   const { units } = useUnits();
@@ -33,6 +35,18 @@ export default function BentoMaker({ recipe = null, onClose }) {
 
   const openNumPad = (field, label) => setNumPad({ field, label });
   const closeNumPad = () => setNumPad(null);
+
+  const handlePlatingPhoto = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file);
+      const url = await uploadImage(compressed, 'images', 'plating');
+      setImageUrl(url);
+    } catch (err) {
+      alert('Error al subir foto: ' + err.message);
+    }
+  };
 
   const handleNumPadChange = (val) => {
     if (!numPad) return;
@@ -139,7 +153,27 @@ export default function BentoMaker({ recipe = null, onClose }) {
           {/* Header Info Card */}
           <div className="premium-form-card mb-6">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-              <div className="md:col-span-12 lg:col-span-6">
+              <div className="md:col-span-12 lg:col-span-2">
+                <label className="form-label">Platado Final</label>
+                <div className="relative w-full aspect-square bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden flex items-center justify-center group hover:border-slate-300 transition-colors">
+                  {imageUrl ? (
+                    <>
+                      <img src={imageUrl} alt="Platado" className="w-full h-full object-cover" />
+                      <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                        <Camera size={24} className="text-white" />
+                        <input type="file" accept="image/*" className="hidden" onChange={handlePlatingPhoto} />
+                      </label>
+                    </>
+                  ) : (
+                    <label className="flex flex-col items-center gap-2 cursor-pointer p-4 text-center">
+                      <Camera size={24} className="text-slate-300" />
+                      <span className="text-[10px] font-bold text-slate-400">Subir foto del plato</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handlePlatingPhoto} />
+                    </label>
+                  )}
+                </div>
+              </div>
+              <div className="md:col-span-12 lg:col-span-4">
                 <label className="form-label">Nombre del Producto</label>
                 <input 
                   type="text" 

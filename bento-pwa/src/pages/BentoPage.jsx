@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import BentoMaker from '../components/BentoMaker/BentoMaker';
-import { ChefHat, Plus, TrendingUp, TrendingDown, Target, LayoutGrid, Trash2 } from 'lucide-react';
+import { ChefHat, Plus, TrendingUp, TrendingDown, Target, LayoutGrid, Trash2, Camera } from 'lucide-react';
 import { useRecipes } from '../hooks/useRecipes';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
+import Lightbox from '../components/Common/Lightbox';
 import '../styles/Common.css';
 
 export default function BentoPage() {
   const { recipes: bentos, loading, deleteRecipe, fetchRecipes } = useRecipes('bento');
   const [editingBento, setEditingBento] = useState(false); // false (list), true (new), or object (edit)
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [lightbox, setLightbox] = useState({ isOpen: false, imageUrl: '', title: '' });
 
   const handleCreateNew = () => {
     setEditingBento(true);
@@ -101,15 +101,28 @@ export default function BentoPage() {
                        </div>
                     </div>
                   </div>
-                  <button 
-                    className="delete-btn-subtle"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setConfirmDelete(bento.id);
-                    }}
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      className="delete-btn-subtle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDelete(bento.id);
+                      }}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                    {bento.image_url && (
+                      <button 
+                        className="p-2 text-sky-500 hover:bg-sky-50 rounded-full transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLightbox({ isOpen: true, imageUrl: bento.image_url, title: bento.name });
+                        }}
+                      >
+                        <Camera size={20} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -129,6 +142,12 @@ export default function BentoPage() {
         onConfirm={handleDelete}
         title="¿Eliminar Bento?"
         message="Esta acción no se puede deshacer y borrará permanentemente este producto del catálogo."
+      />
+      <Lightbox 
+        isOpen={lightbox.isOpen}
+        imageUrl={lightbox.imageUrl}
+        title={lightbox.title}
+        onClose={() => setLightbox({ ...lightbox, isOpen: false })}
       />
     </div>
   );

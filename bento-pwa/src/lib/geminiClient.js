@@ -16,18 +16,32 @@ const TOOLS = [{
       }
     },
     {
-    name: "addIngredient",
-    description: "Añade un nuevo ingrediente a la base de datos.",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        item: { type: "string" },
-        price: { type: "number" },
-        unit_id: { type: "string" }
-      },
-      required: ["item", "price", "unit_id"]
+      name: "addIngredient",
+      description: "Añade un nuevo ingrediente a la base de datos.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          item: { type: "string" },
+          price: { type: "number" },
+          unit_id: { type: "string" }
+        },
+        required: ["item", "price", "unit_id"]
+      }
+    },
+    {
+      name: "fillIngredientData",
+      description: "Extrae datos de un ingrediente desde fotos (frontal, nutricional, código de barras).",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          name: { type: "string", description: "Nombre descriptivo del producto" },
+          brand: { type: "string", description: "Marca del producto" },
+          barcode: { type: "string", description: "Código de barras (EAN)" },
+          purchase_format: { type: "number", description: "Cantidad/Peso del envase (ej: 1000 para 1kg)" },
+          category_name: { type: "string", description: "Sugerencia de categoría (ej: PROTEINA, VERDURA, etc.)" }
+        }
+      }
     }
-  }
   ]
 }]
 
@@ -49,7 +63,8 @@ export async function processCommand(message, contextData = {}) {
         prompt: message,
         contextData: contextData,
         tools: TOOLS,
-        systemPrompt: SYSTEM_PROMPT
+        systemPrompt: SYSTEM_PROMPT,
+        imagesBase64: contextData.imagesBase64 || null
       }
     })
 
