@@ -97,48 +97,105 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       const queryContext = `Producto: "${form.name}" ${form.brand ? '| Marca: ' + form.brand : ''} ${form.provider ? '| Proveedor: ' + form.provider : ''}`;
       
       const prompt = `
-        OBJETIVO: Encuentra imágenes PROFESIONALES de catálogo para este producto: ${queryContext}.
+        Necesito una imagen profesional para: ${queryContext}.
         
-        INSTRUCCIONES:
-        1. Intenta encontrar la foto oficial de retail (Mercadona, etc.).
-        2. Si no es clara, busca una imagen de ALTA CALIDAD con "fondo blanco", "aislado" o "catálogo".
-        3. Usa 'suggestProductGallery' para darme 4-5 opciones de alta calidad.
-        4. Prioriza fondos blancos ("isolated", "white background").
+        USA 'suggestSearchQuery' con términos de búsqueda en inglés optimizados para encontrar 
+        una foto de producto limpia (fondo blanco o foto culinaria professional).
+        Ejemplo para brócoli: query="broccoli isolated white background food"
+        Ejemplo para atún: query="canned tuna product food photography"
       `;
       
-      const response = await processCommand(prompt, {
-        currentForm: form
-      });
+      console.log('🔍 [Nana Search] Sending prompt to Nana...');
+      const response = await processCommand(prompt, { currentForm: form });
+      console.log('🔍 [Nana Search] Full response:', response);
 
-      if (response.toolCalls) {
-        // Handle Single Image (Legacy)
-        const suggestCall = response.toolCalls.find(c => c.name === 'suggestProductImage');
-        if (suggestCall && suggestCall.args.image_url) {
-          setSuggestedImage({
-            url: suggestCall.args.image_url,
-            source: suggestCall.args.source || 'Retail Web'
-          });
-        }
-
-        // Handle Gallery (New)
-        const galleryCall = response.toolCalls.find(c => c.name === 'suggestProductGallery');
-        if (galleryCall && galleryCall.args.images && galleryCall.args.images.length > 0) {
-          setSuggestedGallery(galleryCall.args.images);
-          // Auto-select first as preview
-          setSuggestedImage(galleryCall.args.images[0]);
-        }
-
-        if (!suggestCall && !galleryCall) {
-          alert('Nana no ha encontrado fotos claras. Prueba con términos más genéricos.');
-        }
+      if (!response.toolCalls || response.toolCalls.length === 0) {
+        // Nana responded in text only — use the ingredient name directly as fallback query
+        console.warn('🔍 [Nana Search] No tool call returned, falling back to direct Pexels search');
+        await fetchFromPexels(form.name + ' food');
+        return;
       }
+
+      // 1. Best case: Nana suggests a search query → call Pexels for real photos
+      const searchQueryCall = response.toolCalls.find(c => c.name === 'suggestSearchQuery');
+      if (searchQueryCall) {
+        const query = searchQueryCall.args.query || searchQueryCall.args.query_es || form.name;
+        console.log('✅ [Nana Search] Query suggested by Nana:', query);
+        await fetchFromPexels(query);
+        return;
+      }
+
+      // 2. Legacy: Nana suggests a gallery of URLs
+      const galleryCall = response.toolCalls.find(c => c.name === 'suggestProductGallery');
+      if (galleryCall && galleryCall.args.images && galleryCall.args.images.length > 0) {
+        console.log('✅ [Nana Search] Gallery suggested:', galleryCall.args.images);
+        setSuggestedGallery(galleryCall.args.images);
+        setSuggestedImage(galleryCall.args.images[0]);
+        return;
+      }
+
+      // 3. Legacy: single URL from Nana
+      const suggestCall = response.toolCalls.find(c => c.name === 'suggestProductImage');
+      if (suggestCall && suggestCall.args.image_url) {
+        console.log('✅ [Nana Search] Single URL suggested:', suggestCall.args.image_url);
+        setSuggestedImage({ url: suggestCall.args.image_url, source: suggestCall.args.source || 'Catálogo' });
+        return;
+      }
+
+      // 4. Hard fallback: search Pexels with the ingredient name directly
+      console.warn('🔍 [Nana Search] No valid tool call, using direct Pexels fallback');
+      await fetchFromPexels(form.name + ' food ingredient');
+
     } catch (err) {
-      console.error('Error sugiriendo imagen:', err);
-      alert('Hubo un problema al buscar la foto.');
+      console.error('❌ [Nana Search] Error:', err);
+      alert('Hubo un problema al buscar la foto: ' + err.message);
     } finally {
       setSuggesting(false);
     }
   };
+
+  // Real photo search via Pexels API (free, no CORS, high quality)
+  const fetchFromPexels = async (query) => {
+    try {
+      console.log('📸 [Pexels] Searching for:', query);
+      // Pexels API key (free tier: 200 req/hour, no auth for public images)
+      const PEXELS_KEY = import.meta.env.VITE_PEXELS_KEY;
+      const resp = await fetch(
+        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=6&orientation=square`,
+        { headers: { Authorization: PEXELS_KEY || '' } }
+      );
+      
+      if (!resp.ok) {
+        // Pexels requires auth — fall back to a simple unpslash source URL
+        console.warn('📸 [Pexels] Not configured, using Unsplash source fallback');
+        const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`;
+        setSuggestedImage({ url: unsplashUrl, source: 'Unsplash' });
+        return;
+      }
+
+      const data = await resp.json();
+      console.log('📸 [Pexels] Results:', data.photos?.length, 'photos found');
+
+      if (data.photos && data.photos.length > 0) {
+        const gallery = data.photos.map(p => ({
+          url: p.src.medium,
+          source: `Pexels | ${p.photographer}`
+        }));
+        setSuggestedGallery(gallery);
+        setSuggestedImage(gallery[0]);
+      } else {
+        // Nothing found on Pexels — try Unsplash source as last resort
+        const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`;
+        setSuggestedImage({ url: unsplashUrl, source: 'Unsplash (fallback)' });
+      }
+    } catch (pexelsErr) {
+      console.error('📸 [Pexels] Error:', pexelsErr);
+      // Ultimate fallback: Unsplash source URL (always works, no API key)
+      const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`;
+      setSuggestedImage({ url: unsplashUrl, source: 'Unsplash (fallback)' });
+    }
+  };
+
 
   const handleSelectGalleryItem = (item) => {
     setSuggestedImage(item);

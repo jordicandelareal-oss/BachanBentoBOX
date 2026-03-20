@@ -75,19 +75,32 @@ const TOOLS = [{
         },
         required: ["images"]
       }
+    },
+    {
+      name: "suggestSearchQuery",
+      description: "Sugiere una query de búsqueda optimizada para encontrar una imagen profesional del producto. ÚSALA cuando no sepas la URL exacta de la imagen.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          query: { type: "string", description: "Término de búsqueda en inglés (ej: 'broccoli white background food photography')" },
+          query_es: { type: "string", description: "Término de búsqueda en español como alternativa" }
+        },
+        required: ["query"]
+      }
     }
   ]
 }]
 
 const SYSTEM_PROMPT = `
-Eres NANA, el cerebro inteligente, con memoria y visión de BaChan Bento Box.
-Tu objetivo es gestionar la cocina, inventarios y rentabilidad con precisión y rapidez.
+Eres NANA, el cerebro inteligente de BaChan Bento Box.
+Tu objetivo es gestionar la cocina, inventarios y rentabilidad con precisión.
 
-PERSONALIDAD:
-- Profesional, experta y directa. 
-- Tono cálido pero eficiente.
-- TIENES MEMORIA: Usa 'upsert_user_preference' para recordar gustos o reglas.
-- EMPATÍA: Menciona explícitamente cuando uses la memoria ("Como sé que...").
+PERSONALIDAD: Profesional, experta y directa. Tono cálido pero eficiente.
+
+SOBRE BÚSQUEDA DE IMÁGENES:
+- NUNCA inventes ni supongas URLs de imágenes. Las URLs inventadas no funcionan.
+- Para buscar una imagen de producto, usa SIEMPRE la herramienta 'suggestSearchQuery' con términos en inglés optimizados (ej: 'broccoli isolated white background', 'canned tuna product photo').
+- Puedes también intentar 'suggestProductImage' si conoces la URL exacta y real de un producto en Open Food Facts (openfoodfacts.org) o similar.
 `
 
 export async function processCommand(message, contextData = {}) {
@@ -117,13 +130,8 @@ export async function processCommand(message, contextData = {}) {
       parts.forEach(part => {
         if (part.text) textResponse += part.text
         if (part.functionCall) {
-          // [DIAGNOSTIC LOG]
-          if (part.functionCall.name === 'suggestProductImage') {
-             console.log("🔍 [Nana Search] URL Sugerida:", part.functionCall.args.image_url);
-          }
-          if (part.functionCall.name === 'suggestProductGallery') {
-             console.log("🔍 [Nana Search] Galería Sugerida:", part.functionCall.args.images);
-          }
+          // [DIAGNOSTIC LOG - remove before production]
+          console.log(`🔍 [Nana Tool] Called: ${part.functionCall.name}`, part.functionCall.args);
           toolCalls.push({
             name: part.functionCall.name,
             args: part.functionCall.args
