@@ -236,21 +236,23 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
           )}
 
           {/* Fila: Marca y Código de Barras */}
-          <div className="form-row mb-4">
-            <div className="form-group">
+          <div className="form-row flex gap-2 mb-4" style={{ display: 'flex', gap: '10px', flexWrap: 'nowrap' }}>
+            <div className="form-group" style={{ flex: 1, minWidth: 0 }}>
               <label className="form-label text-slate-500">Marca</label>
               <input
                 className="form-input bg-slate-50"
+                style={{ width: '100%', minWidth: 0 }}
                 type="text"
                 placeholder="Ej: Gallo"
                 value={form.brand}
                 onChange={e => set('brand', e.target.value)}
               />
             </div>
-            <div className="form-group">
+            <div className="form-group" style={{ flex: 2, minWidth: 0 }}>
               <label className="form-label text-slate-500">Código de Barras</label>
               <input
                 className="form-input bg-slate-50 uppercase"
+                style={{ width: '100%', minWidth: 0 }}
                 type="text"
                 placeholder="Código EAN"
                 value={form.barcode}
