@@ -33,6 +33,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     image_url: ingredient.image_url || '',
     brand: ingredient.brand || '',
     barcode: ingredient.barcode || '',
+    provider: ingredient.provider || '',
   });
 
   const [scanning, setScanning] = useState(false);
@@ -91,7 +92,20 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     setSuggestedImage(null);
     
     try {
-      const prompt = `Busca una imagen de catálogo oficial (preferiblemente Mercadona o retail general) para el ingrediente: "${form.name}" ${form.brand ? '(' + form.brand + ')' : ''} ${form.barcode ? 'con EAN ' + form.barcode : ''}. Usa la herramienta suggestProductImage para darme la URL directa de la imagen.`;
+      // Generación de query optimizada según instrucciones: nombre + marca + proveedor + términos retail
+      const queryContext = `Ingrediente: "${form.name}" ${form.brand ? '| Marca: ' + form.brand : ''} ${form.provider ? '| Proveedor: ' + form.provider : ''} ${form.barcode ? '| EAN: ' + form.barcode : ''}`;
+      
+      const prompt = `
+        OBJETIVO: Encuentra una imagen de catálogo oficial para este producto: ${queryContext}.
+        
+        INSTRUCCIONES DE BÚSQUEDA:
+        1. Genera mentalmente una búsqueda específica como: "${form.name} ${form.brand || ''} ${form.provider || ''} producto catálogo oficial".
+        2. Prioriza URLs oficiales de Mercadona, Carrefour, Open Food Facts o Amazon Grocery.
+        3. Si no encuentras una foto de catálogo (fondo blanco, retail), busca una imagen genérica de ALTA CALIDAD en Unsplash o Pixabay como fallback.
+        4. Sé flexible: si no hay foto exacta del proveedor, busca la versión genérica más profesional.
+        
+        Usa la herramienta suggestProductImage para devolver la URL.
+      `;
       
       const response = await processCommand(prompt, {
         currentForm: form
@@ -332,7 +346,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
           </div>
 
 
-          {/* Fila: Marca y Código de Barras */}
+          {/* Fila: Marca, Proveedor y Código de Barras */}
           <div className="form-row flex gap-2 mb-4" style={{ display: 'flex', gap: '10px', flexWrap: 'nowrap' }}>
             <div className="form-group" style={{ flex: 1, minWidth: 0 }}>
               <label className="form-label text-slate-500">Marca</label>
@@ -345,13 +359,24 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                 onChange={e => set('brand', e.target.value)}
               />
             </div>
-            <div className="form-group" style={{ flex: 2, minWidth: 0 }}>
+            <div className="form-group" style={{ flex: 1.2, minWidth: 0 }}>
+              <label className="form-label text-slate-500">Proveedor</label>
+              <input
+                className="form-input bg-slate-50"
+                style={{ width: '100%', minWidth: 0 }}
+                type="text"
+                placeholder="Ej: Mercadona"
+                value={form.provider}
+                onChange={e => set('provider', e.target.value)}
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1.8, minWidth: 0 }}>
               <label className="form-label text-slate-500">Código de Barras</label>
               <input
                 className="form-input bg-slate-50 uppercase"
                 style={{ width: '100%', minWidth: 0 }}
                 type="text"
-                placeholder="Código EAN"
+                placeholder="EAN"
                 value={form.barcode}
                 onChange={e => set('barcode', e.target.value)}
               />

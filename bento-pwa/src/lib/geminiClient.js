@@ -96,6 +96,11 @@ export async function processCommand(message, contextData = {}) {
       parts.forEach(part => {
         if (part.text) textResponse += part.text
         if (part.functionCall) {
+          // [DIAGNOSTIC LOG]
+          if (part.functionCall.name === 'suggestProductImage') {
+             console.log("🔍 [Nana Search] URL Sugerida:", part.functionCall.args.image_url);
+             console.log("🔍 [Nana Search] Fuente:", part.functionCall.args.source);
+          }
           toolCalls.push({
             name: part.functionCall.name,
             args: part.functionCall.args
