@@ -79,7 +79,13 @@ export default function ImageEditorModal({ image, onSave, onCancel }) {
       </div>
 
       <div className="image-editor-body">
-        <div className="cropper-container-wrapper shadow-2xl">
+        <div 
+          className="cropper-container-wrapper shadow-2xl"
+          style={{ 
+            '--brightness': `${100 + brightness}%`, 
+            '--contrast': `${100 + contrast}%` 
+          }}
+        >
           <Cropper
             src={image}
             style={{ height: '100%', width: '100%' }}
