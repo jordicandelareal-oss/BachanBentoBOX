@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { supabase } from '../lib/supabaseClient';
-import { Package, Search, Plus, AlertCircle, Loader2, ChevronRight, LayoutGrid, X, Save, Trash2, Camera, Scan, Image as ImageIcon, RotateCcw } from 'lucide-react';
+import { Carrot, Search, Plus, AlertCircle, Loader2, ChevronRight, X, Save, Trash2, Camera, Scan, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import NumPad from '../components/Common/NumPad';
 import { compressImage, uploadImage, blobToBase64 } from '../lib/imageUtils';
@@ -621,7 +621,7 @@ export default function Ingredients() {
 
           {!loading && filteredIngredients.length === 0 && (
             <div className="text-center py-12" style={{ textAlign: 'center', padding: '48px 0' }}>
-              <LayoutGrid className="mx-auto text-slate-200 mb-4" size={48} style={{ margin: '0 auto 16px', color: '#e2e8f0' }} />
+              <Carrot className="mx-auto text-slate-200 mb-4" size={48} style={{ margin: '0 auto 16px', color: '#e2e8f0' }} />
               <p style={{ color: '#94a3b8' }}>No se encontraron insumos</p>
             </div>
           )}

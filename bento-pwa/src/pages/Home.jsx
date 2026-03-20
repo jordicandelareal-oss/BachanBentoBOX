@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import AIActionSheet from '../components/Nana/AIActionSheet';
 import './Home.css';
+import { SquareMenu, CookingPot, Carrot, Sparkles } from 'lucide-react';
 
-// Custom Line-Art Icons for 100% Fidelity
 const BentoIcon = () => (
   <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -14,32 +14,10 @@ const BentoIcon = () => (
     <rect x="13" y="13" width="6" height="6" rx="1" />
   </svg>
 );
+const ChefIcon = () => <CookingPot size={42} strokeWidth={1.2} />;
+const IngredientsIcon = () => <Carrot size={42} strokeWidth={1.2} />;
 
-const ChefIcon = () => (
-  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 13.8V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9.8" />
-    <path d="M6 10h12M6 14h12c1 0 2 1 2 2s-1 2-2 2H6c-1 0-2-1-2-2s1-2 2-2z" />
-    <path d="M8 18v2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2" />
-    <path d="m11 22 2-4" />
-  </svg>
-);
-
-const IngredientsIcon = () => (
-  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-    <path d="m3.3 7 8.7 5 8.7-5" />
-    <path d="M12 22V12" />
-    <circle cx="12" cy="12" r="3" fill="currentColor" fillOpacity="0.1" />
-  </svg>
-);
-
-const SparkleAIIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 3L14.5 9L21 11.5L14.5 14L12 21L9.5 14L3 11.5L9.5 9L12 3Z" fill="var(--color-accent)" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M19 3L19.5 5L21.5 5.5L19.5 6L19 8L18.5 6L16.5 5.5L18.5 5L19 3Z" fill="currentColor" />
-    <path d="M5 16L5.5 18L7.5 18.5L5.5 19L5 21L4.5 19L2.5 18.5L4.5 18L5 16Z" fill="currentColor" />
-  </svg>
-);
+const SparkleAIIcon = () => <Sparkles size={24} color="var(--color-accent)" strokeWidth={1.5} />;
 
 const ArrowIcon = () => (
   <svg className="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

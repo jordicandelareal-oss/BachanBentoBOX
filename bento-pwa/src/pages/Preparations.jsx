@@ -90,7 +90,7 @@ export function Preparations() {
             <div key={recipe.id} className="premium-card" onClick={() => setEditingRecipe(recipe)}>
               <div className="ingredient-info">
                 <div className="card-icon-wrapper">
-                  <Utensils size={20} />
+                  <CookingPot size={20} />
                 </div>
                 <div>
                   <h3 className="card-title">{recipe.name}</h3>
@@ -137,7 +137,7 @@ export function Preparations() {
 
           {filteredRecipes.length === 0 && (
             <div className="text-center py-12" style={{ textAlign: 'center', padding: '48px 0' }}>
-              <LayoutGrid className="mx-auto text-slate-200 mb-4" size={48} style={{ margin: '0 auto 16px', color: '#e2e8f0' }} />
+              <CookingPot className="mx-auto text-slate-200 mb-4" size={48} style={{ margin: '0 auto 16px', color: '#e2e8f0' }} />
               <p style={{ color: '#94a3b8' }}>No hay elaboraciones en {activeTabName}</p>
             </div>
           )}
