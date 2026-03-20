@@ -196,6 +196,13 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     }
   };
 
+  // CORS-safe image proxy — wraps external URLs that may block cross-origin requests
+  const proxyImageUrl = (url) => {
+    if (!url) return url;
+    // Pexels and Unsplash CDNs are already CORS-safe; others go through weserv.nl
+    if (url.includes('pexels.com') || url.includes('unsplash.com') || url.includes('images.pexels')) return url;
+    return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=300&h=300&fit=cover`;
+  };
 
   const handleSelectGalleryItem = (item) => {
     setSuggestedImage(item);
