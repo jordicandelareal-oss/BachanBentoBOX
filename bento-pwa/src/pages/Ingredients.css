@@ -276,7 +276,7 @@
 
 @media (max-width: 480px) {
   .modal-header {
-    padding-top: 1.5rem; /* Extra breathing room from iPhone notch */
+    padding-top: 35px; /* Extra breathing room from iPhone notch/Dynamic Island */
   }
 }
 

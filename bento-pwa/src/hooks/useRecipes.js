@@ -42,8 +42,7 @@ export function useRecipes(type = null) {
         .from('recipes')
         .select(`
           *,
-          unit:units!Unid_Id(name),
-          kitchen_category:preparation_categories!preparation_category_Id(Name)
+          unit:units!Unid_Id(name)
         `)
         .order('name')
         
@@ -55,10 +54,10 @@ export function useRecipes(type = null) {
       if (recipesError) throw recipesError
 
       // Merge data (using cost_per_portion from recipes table)
-      const merged = recipesData.map(recipe => ({
+      const merged = (recipesData || []).map(recipe => ({
         ...recipe,
         unit_name: recipe.unit?.name || 'ud',
-        preparation_category: recipe.kitchen_category?.Name || null,
+        preparation_category: null, // We now get this from usePrepCategories
         cost_per_portion: recipe.cost_per_portion || 0
       }))
       
@@ -66,6 +65,17 @@ export function useRecipes(type = null) {
     } catch (err) {
       setError(err.message)
       console.error('Error fetching recipes:', err)
+      // Don't leave the list empty on join errors — try without the join
+      try {
+        const { data: fallback } = await supabase
+          .from('recipes')
+          .select('*')
+          .order('name')
+        if (fallback) {
+          setRecipes(fallback.map(r => ({ ...r, unit_name: 'ud', cost_per_portion: r.cost_per_portion || 0 })))
+          setError(null)
+        }
+      } catch (_) { /* If even the basic query fails, leave error state */ }
     } finally {
       setLoading(false)
     }

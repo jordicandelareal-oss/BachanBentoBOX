@@ -97,12 +97,16 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       const queryContext = `Producto: "${form.name}" ${form.brand ? '| Marca: ' + form.brand : ''} ${form.provider ? '| Proveedor: ' + form.provider : ''}`;
       
       const prompt = `
-        Necesito una imagen profesional para: ${queryContext}.
+        Necesito una imagen de CATÁLOGO (fondo blanco, estilo supermercado) para: ${queryContext}.
         
-        USA 'suggestSearchQuery' con términos de búsqueda en inglés optimizados para encontrar 
-        una foto de producto limpia (fondo blanco o foto culinaria professional).
-        Ejemplo para brócoli: query="broccoli isolated white background food"
-        Ejemplo para atún: query="canned tuna product food photography"
+        USA 'suggestSearchQuery' con términos en inglés que incluyan SIEMPRE:
+        "product white background supermarket" o "food ingredient isolated"
+        
+        Ejemplo para brócoli: query="broccoli product white background ingredient isolated"
+        Ejemplo para atún: query="canned tuna product supermarket catalog food"
+        Ejemplo para queso: query="cheese product food ingredient white background"
+        
+        NUNCA uses: "dish", "meal", "restaurant", "cooked", "plate" — queremos el ingrediente crudo o envasado.
       `;
       
       console.log('🔍 [Nana Search] Sending prompt to Nana...');
