@@ -4,7 +4,9 @@ import { useAuth } from '../hooks/useAuth'
 import { useIngredients } from '../hooks/useIngredients'
 import { useRecipes } from '../hooks/useRecipes'
 import { processCommand } from '../lib/geminiClient'
+import { Box, Utensils, ClipboardList, Sparkles, Settings } from 'lucide-react'
 import NanaOverlay from './Nana/NanaOverlay'
+import AIActionSheet from './Nana/AIActionSheet'
 import '../styles/theme.css'
 
 export default function Layout() {
@@ -12,6 +14,7 @@ export default function Layout() {
   const navigate = useNavigate()
   
   // Nana State
+  const [isActionSheetOpen, setIsActionSheetOpen] = useState(false)
   const [isNanaVisible, setIsNanaVisible] = useState(false)
   const [initialVisionMode, setInitialVisionMode] = useState(false)
   const [nanaState, setNanaState] = useState('IDLE')
@@ -36,8 +39,12 @@ export default function Layout() {
     }
   }
 
-  const openNana = (vision = false) => {
-    setInitialVisionMode(vision)
+  const openNana = () => {
+    setIsActionSheetOpen(true)
+  }
+
+  const handleAIActionSelect = (mode) => {
+    setInitialVisionMode(mode === 'vision')
     setIsNanaVisible(true)
   }
 
@@ -46,14 +53,38 @@ export default function Layout() {
       <div className="seigaiha-overlay"></div>
       
       <header className="nav-header">
-        <div className="container nav-content">
-          <NavLink to="/" className="nav-brand">🍱 BaChan</NavLink>
-          <nav className="nav-links">
-            <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Home</NavLink>
-            <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Bentos</NavLink>
-            <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
-            <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
-            <NavLink to="/settings" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Categorías</NavLink>
+        <div className="container nav-content-wrapper">
+          <div className="nav-top-row">
+            <NavLink to="/" className="nav-brand">🍱 BaChan</NavLink>
+            <div className="desktop-nav">
+              <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Bentos</NavLink>
+              <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
+              <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
+              <NavLink to="/settings" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Categorías</NavLink>
+            </div>
+          </div>
+          
+          <nav className="mobile-icon-nav">
+            <NavLink to="/bento-maker" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+              <Box size={22} />
+              <span>Bentos</span>
+            </NavLink>
+            <NavLink to="/preparations" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+              <Utensils size={22} />
+              <span>Elaboraciones</span>
+            </NavLink>
+            <NavLink to="/ingredients" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+              <ClipboardList size={22} />
+              <span>Inventario</span>
+            </NavLink>
+            <button onClick={openNana} className="mobile-nav-item nana-btn">
+              <Sparkles size={22} />
+              <span>Nana IA</span>
+            </button>
+            <NavLink to="/settings" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+              <Settings size={22} />
+              <span>Ajustes</span>
+            </NavLink>
           </nav>
         </div>
       </header>
@@ -64,6 +95,12 @@ export default function Layout() {
         </div>
       </main>
       
+      <AIActionSheet 
+        isOpen={isActionSheetOpen} 
+        onClose={() => setIsActionSheetOpen(false)}
+        onSelectOption={handleAIActionSelect}
+      />
+
       <NanaOverlay 
         isVisible={isNanaVisible}
         onClose={() => setIsNanaVisible(false)}

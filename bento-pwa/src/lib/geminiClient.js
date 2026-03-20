@@ -38,6 +38,7 @@ const TOOLS = [{
           brand: { type: "string", description: "Marca del producto" },
           barcode: { type: "string", description: "Código de barras (EAN)" },
           purchase_format: { type: "number", description: "Cantidad/Peso del envase (ej: 1000 para 1kg)" },
+          unit_name: { type: "string", description: "Unidad (kg, L, g, ml, ud)" },
           category_name: { type: "string", description: "Sugerencia de categoría (ej: PROTEINA, VERDURA, etc.)" }
         }
       }

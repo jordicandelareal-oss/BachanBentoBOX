@@ -10,6 +10,8 @@ import { processCommand } from '../lib/geminiClient';
 import '../styles/Common.css';
 import './Ingredients.css';
 
+import PhotoSelector from '../components/Common/PhotoSelector';
+
 // ─── Modal Component ──────────────────────────────────────────────────────────
 function IngredientModal({ ingredient, onClose, onSave, loading }) {
   const { units } = useUnits();
@@ -62,9 +64,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleUpload = async (file) => {
     try {
       const compressed = await compressImage(file);
       const url = await uploadImage(compressed);
@@ -102,20 +102,25 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
         });
 
         // The tool call `fillIngredientData` will be handled in geminiClient 
-        // OR we can manually parse it here if we want immediate feedback.
-        // Let's assume the AI calls the tool and we need to handle it.
         if (response.toolCalls) {
           const fillCall = response.toolCalls.find(c => c.name === 'fillIngredientData');
           if (fillCall) {
-            const { name, brand, barcode, purchase_format, category_name } = fillCall.args;
+            const { name, brand, barcode, purchase_format, category_name, unit_name } = fillCall.args;
             if (name) set('name', name);
             if (brand) set('brand', brand);
             if (barcode) set('barcode', barcode);
             if (purchase_format) set('purchase_format', purchase_format.toString());
+            
             // Map category_name to id if exists
             if (category_name) {
               const cat = categories.find(c => c.name.toUpperCase() === category_name.toUpperCase());
               if (cat) set('category_id', cat.id);
+            }
+
+            // Map unit_name to id if exists
+            if (unit_name) {
+              const unit = units.find(u => u.name.toLowerCase() === unit_name.toLowerCase());
+              if (unit) set('unit_id', unit.id);
             }
           }
         }
@@ -169,80 +174,50 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
         <form onSubmit={handleSubmit} className="modal-form pt-4">
           
           {/* SECCIÓN DE IMAGEN Y NANA SCAN */}
-          <div className="relative mb-8 group">
-            <div className="w-full h-48 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden relative flex items-center justify-center transition-all group-hover:border-slate-300">
-              {form.image_url ? (
-                <>
-                  <img src={form.image_url} alt="Ingrediente" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                    <label className="p-3 bg-white rounded-full cursor-pointer text-slate-700 hover:scale-110 transition-transform">
-                      <Camera size={20} />
-                      <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                    </label>
-                    <button type="button" onClick={handleRemoveImage} className="p-3 bg-rose-500 rounded-full text-white hover:scale-110 transition-transform">
-                      <Trash2 size={20} />
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
-                    <ImageIcon size={32} />
-                  </div>
-                  <label className="text-sm font-bold text-slate-500 cursor-pointer bg-white px-4 py-2 rounded-xl border shadow-sm hover:bg-slate-50 transition-colors">
-                    Añadir foto
-                    <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                  </label>
-                </div>
-              )}
+          <div className="mb-8 p-1">
+            <PhotoSelector 
+              imageUrl={form.image_url}
+              onUpload={handleUpload}
+              onRemove={handleRemoveImage}
+              onNanaScan={isNew ? startNanaScan : null}
+              label="Foto del Insumo"
+              placeholder="Haz clic para subir foto"
+            />
 
-              {/* Nana Scan Shortcut Overlay */}
-              {isNew && !scanning && (
-                <button 
-                  type="button" 
-                  onClick={startNanaScan}
-                  className="absolute bottom-4 right-4 bg-slate-900 text-white p-3 rounded-xl flex items-center gap-2 shadow-lg hover:bg-black transition-all hover:scale-105 active:scale-95 z-10"
-                >
-                  <Scan size={18} className="text-sky-400" />
-                  <span className="text-sm font-bold">Escanear con Nana</span>
-                </button>
-              )}
-
-              {/* Nana Scanning Interface */}
-              {scanning && (
-                <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center text-white p-6 text-center animate-in fade-in duration-300 z-50">
-                  {scanStep < 4 ? (
-                    <>
-                      <div className="w-16 h-16 bg-sky-500/20 rounded-full flex items-center justify-center mb-4 animate-pulse">
-                        <Camera size={32} className="text-sky-400" />
-                      </div>
-                      <h3 className="text-lg font-bold mb-2">
-                        {scanStep === 1 && "Paso 1: Foto Frontal"}
-                        {scanStep === 2 && "Paso 2: Tabla Nutricional"}
-                        {scanStep === 3 && "Paso 3: Código de Barras"}
-                      </h3>
-                      <p className="text-slate-400 text-sm mb-6">
-                        {scanStep === 1 && "Muestra el envase de frente para reconocer marca y nombre."}
-                        {scanStep === 2 && "Asegura que el texto de la tabla sea legible."}
-                        {scanStep === 3 && "Céntralo bien para extraer el código EAN."}
-                      </p>
-                      <label className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-bold flex items-center gap-3 cursor-pointer hover:bg-sky-50 transition-colors">
-                        <Camera size={24} />
-                        Tomar Foto {scanStep}/3
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={capturePhoto} />
-                      </label>
-                      <button onClick={() => {setScanning(false); setScanStep(0);}} className="mt-8 text-slate-500 font-bold hover:text-white transition-colors">Cancelar</button>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center">
-                      <div className="w-16 h-16 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4" />
-                      <h3 className="text-lg font-bold">Nana está analizando...</h3>
-                      <p className="text-slate-400 text-sm">Extrayendo datos y optimizando ficha</p>
+            {/* Nana Scanning Interface Overlay (still needed for the process flow) */}
+            {scanning && (
+              <div className="fixed inset-0 bg-slate-900/95 flex flex-col items-center justify-center text-white p-6 text-center z-[100] animate-in fade-in zoom-in duration-300">
+                {scanStep < 4 ? (
+                  <>
+                    <div className="w-20 h-20 bg-sky-500/20 rounded-full flex items-center justify-center mb-6 animate-pulse border-2 border-sky-500/30">
+                      <Camera size={40} className="text-sky-400" />
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
+                    <h3 className="text-2xl font-bold mb-3">
+                      {scanStep === 1 && "Paso 1: Foto Frontal"}
+                      {scanStep === 2 && "Paso 2: Tabla Nutricional"}
+                      {scanStep === 3 && "Paso 3: Código de Barras"}
+                    </h3>
+                    <p className="text-slate-400 text-sm mb-8 max-w-xs">
+                      {scanStep === 1 && "Muestra el envase de frente para reconocer marca y nombre."}
+                      {scanStep === 2 && "Asegura que el texto de la tabla sea legible."}
+                      {scanStep === 3 && "Céntralo bien para extraer el código EAN."}
+                    </p>
+                    <label className="bg-sky-500 text-white px-10 py-5 rounded-3xl font-black text-lg flex items-center gap-4 cursor-pointer hover:bg-sky-600 transition-all shadow-xl active:scale-95">
+                      <Camera size={28} />
+                      CAPTURA {scanStep}/3
+                      <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={capturePhoto} />
+                    </label>
+                    <button onClick={() => {setScanning(false); setScanStep(0);}} className="mt-10 text-slate-500 font-bold hover:text-white transition-colors underline underline-offset-8">Descartar escaneo</button>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <div className="w-20 h-20 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-6" />
+                    <h3 className="text-2xl font-bold mb-2">Nana está procesando...</h3>
+                    <p className="text-slate-400 text-sm">Extrayendo datos con IA de bajo coste</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Nombre (Siempre el primero si es nuevo) */}

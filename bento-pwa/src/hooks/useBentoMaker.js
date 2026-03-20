@@ -28,11 +28,11 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
 
   // Calculate totals
   const totals = useMemo(() => {
-    const totalCost = items.reduce((sum, item) => sum + (item.costPerUnit * item.quantity), 0)
+    const totalCost = items.reduce((sum, item) => sum + (item.costPerUnit * (Number(item.quantity) || 0)), 0)
     
     // Calculate Gross Weight (only for items with weight units 'g' or 'ml')
     const totalGrossWeight = items.reduce((sum, item) => {
-      if (item.unit === 'g' || item.unit === 'ml') return sum + item.quantity
+      if (item.unit === 'g' || item.unit === 'ml') return sum + (Number(item.quantity) || 0)
       return sum
     }, 0)
 
