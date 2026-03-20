@@ -81,8 +81,10 @@ body {
   background-color: var(--color-navy);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  width: 100%;
   z-index: 2000;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding: 8px 0;
@@ -181,10 +183,12 @@ body {
 .main-content {
   flex: 1;
   padding: 24px 0;
+  padding-top: calc(24px + 100px); /* Reserve space for fixed header (desktop approx 100px) */
 }
 
 @media (max-width: 767px) {
   .main-content {
-    padding-bottom: 24px; /* Reset padding-bottom */
+    padding-top: calc(24px + 90px); /* Mobile header is slightly shorter */
+    padding-bottom: 24px;
   }
 }
