@@ -40,6 +40,15 @@ export function Preparations() {
     />;
   }
 
+  // SECURTY CHECK (Prioridad 911): Prevent white screen if recipes is null/undefined
+  if (!recipes || !Array.isArray(recipes)) {
+    return (
+      <div className="page-container flex justify-center items-center h-64 text-slate-400">
+        <p>Cargando datos o sin conexión...</p>
+      </div>
+    );
+  }
+
   const filteredRecipes = recipes.filter(r => r.preparation_category_Id === activeTabId);
   const activeTabName = prepCats.find(c => c.id === activeTabId)?.Name || '...';
 

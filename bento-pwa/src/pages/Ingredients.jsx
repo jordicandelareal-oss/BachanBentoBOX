@@ -97,16 +97,15 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       const queryContext = `Producto: "${form.name}" ${form.brand ? '| Marca: ' + form.brand : ''} ${form.provider ? '| Proveedor: ' + form.provider : ''}`;
       
       const prompt = `
-        Necesito una imagen de CATÁLOGO (fondo blanco, estilo supermercado) para: ${queryContext}.
+        Necesito encontrar la foto oficial de catálogo para este producto: ${queryContext}.
         
-        USA 'suggestSearchQuery' con términos en inglés que incluyan SIEMPRE:
-        "product white background supermarket" o "food ingredient isolated"
+        USA 'suggestSearchQuery' con este formato exacto:
+        query="[Nombre del ingrediente] producto supermercado fondo blanco profesional"
         
-        Ejemplo para brócoli: query="broccoli product white background ingredient isolated"
-        Ejemplo para atún: query="canned tuna product supermarket catalog food"
-        Ejemplo para queso: query="cheese product food ingredient white background"
+        Ejemplo para brócoli: query="brocoli producto supermercado fondo blanco profesional"
+        Ejemplo para atún: query="atun claro lata producto supermercado profesional"
         
-        NUNCA uses: "dish", "meal", "restaurant", "cooked", "plate" — queremos el ingrediente crudo o envasado.
+        NUNCA uses palabras sobre recetas o platos cocinados. Solo foto de producto crudo o envase.
       `;
       
       console.log('🔍 [Nana Search] Sending prompt to Nana...');
@@ -114,41 +113,35 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       console.log('🔍 [Nana Search] Full response:', response);
 
       if (!response.toolCalls || response.toolCalls.length === 0) {
-        // Nana responded in text only — use the ingredient name directly as fallback query
-        console.warn('🔍 [Nana Search] No tool call returned, falling back to direct Pexels search');
-        await fetchFromPexels(form.name + ' food');
+        console.warn('🔍 [Nana Search] No tool call returned, falling back to direct search');
+        await fetchFromGoogleSearch(`${form.name} producto supermercado fondo blanco profesional`);
         return;
       }
 
-      // 1. Best case: Nana suggests a search query → call Pexels for real photos
+      // 1. Best case: Nana suggests a search query → call Google Search
       const searchQueryCall = response.toolCalls.find(c => c.name === 'suggestSearchQuery');
       if (searchQueryCall) {
-        const query = searchQueryCall.args.query || searchQueryCall.args.query_es || form.name;
+        const query = searchQueryCall.args.query_es || searchQueryCall.args.query || form.name;
         console.log('✅ [Nana Search] Query suggested by Nana:', query);
-        await fetchFromPexels(query);
+        await fetchFromGoogleSearch(query);
         return;
       }
 
-      // 2. Legacy: Nana suggests a gallery of URLs
+      // 2. Legacy callbacks
       const galleryCall = response.toolCalls.find(c => c.name === 'suggestProductGallery');
       if (galleryCall && galleryCall.args.images && galleryCall.args.images.length > 0) {
-        console.log('✅ [Nana Search] Gallery suggested:', galleryCall.args.images);
         setSuggestedGallery(galleryCall.args.images);
         setSuggestedImage(galleryCall.args.images[0]);
         return;
       }
 
-      // 3. Legacy: single URL from Nana
       const suggestCall = response.toolCalls.find(c => c.name === 'suggestProductImage');
       if (suggestCall && suggestCall.args.image_url) {
-        console.log('✅ [Nana Search] Single URL suggested:', suggestCall.args.image_url);
         setSuggestedImage({ url: suggestCall.args.image_url, source: suggestCall.args.source || 'Catálogo' });
         return;
       }
 
-      // 4. Hard fallback: search Pexels with the ingredient name directly
-      console.warn('🔍 [Nana Search] No valid tool call, using direct Pexels fallback');
-      await fetchFromPexels(form.name + ' food ingredient');
+      await fetchFromGoogleSearch(`${form.name} producto supermercado fondo blanco profesional`);
 
     } catch (err) {
       console.error('❌ [Nana Search] Error:', err);
@@ -158,45 +151,52 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     }
   };
 
-  // Real photo search via Pexels API (free, no CORS, high quality)
-  const fetchFromPexels = async (query) => {
+  // Real photo search via Google Custom Search API (More accurate for raw ingredients than Pexels)
+  const fetchFromGoogleSearch = async (query) => {
     try {
-      console.log('📸 [Pexels] Searching for:', query);
-      // Pexels API key (free tier: 200 req/hour, no auth for public images)
-      const PEXELS_KEY = import.meta.env.VITE_PEXELS_KEY;
-      const resp = await fetch(
-        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=6&orientation=square`,
-        { headers: { Authorization: PEXELS_KEY || '' } }
-      );
+      console.log('📸 [Google Search] Searching for:', query);
+      const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+      const GOOGLE_CX = import.meta.env.VITE_GOOGLE_CX; // Engine ID
       
-      if (!resp.ok) {
-        // Pexels requires auth — fall back to a simple unpslash source URL
-        console.warn('📸 [Pexels] Not configured, using Unsplash source fallback');
-        const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`;
-        setSuggestedImage({ url: unsplashUrl, source: 'Unsplash' });
+      if (!GOOGLE_API_KEY || !GOOGLE_CX) {
+        console.warn('📸 [Google Search] Keys not configured. Falling back to Wikipedia/OpenFoodFacts proxy search.');
+        // Fallback: Si no hay API key, buscamos en Wikimedia como plan B gratuito
+        const wikiResp = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&piprop=original&titles=${encodeURIComponent(form.name)}&origin=*`);
+        const wikiData = await wikiResp.json();
+        const pages = wikiData.query?.pages;
+        if (pages) {
+          const pageId = Object.keys(pages)[0];
+          if (pages[pageId].original?.source) {
+             setSuggestedImage({ url: pages[pageId].original.source, source: 'Wikimedia Commons' });
+             return;
+          }
+        }
+        
+        // Último recurso si no hay keys ni wiki
+        setSuggestedImage({ url: `https://source.unsplash.com/300x300/?${encodeURIComponent(form.name + ' ingredient')}`, source: 'Unsplash (Fallback B)' });
         return;
       }
 
+      const resp = await fetch(
+        `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&cx=${GOOGLE_CX}&key=${GOOGLE_API_KEY}&searchType=image&num=6&imgSize=large`
+      );
+      
       const data = await resp.json();
-      console.log('📸 [Pexels] Results:', data.photos?.length, 'photos found');
+      console.log('📸 [Google Search] Results:', data.items?.length, 'photos found');
 
-      if (data.photos && data.photos.length > 0) {
-        const gallery = data.photos.map(p => ({
-          url: p.src.medium,
-          source: `Pexels | ${p.photographer}`
+      if (data.items && data.items.length > 0) {
+        const gallery = data.items.map(p => ({
+          url: p.link,
+          source: `Google | ${p.displayLink}`
         }));
         setSuggestedGallery(gallery);
         setSuggestedImage(gallery[0]);
       } else {
-        // Nothing found on Pexels — try Unsplash source as last resort
-        const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`;
-        setSuggestedImage({ url: unsplashUrl, source: 'Unsplash (fallback)' });
+        alert("Google no encontró fotos con esos términos. Intenta un nombre más sencillo.");
       }
-    } catch (pexelsErr) {
-      console.error('📸 [Pexels] Error:', pexelsErr);
-      // Ultimate fallback: Unsplash source URL (always works, no API key)
-      const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`;
-      setSuggestedImage({ url: unsplashUrl, source: 'Unsplash (fallback)' });
+    } catch (err) {
+      console.error('📸 [Google Search] Error:', err);
+      alert("Error en la búsqueda de Google. Revisa las claves API en Vercel.");
     }
   };
 
