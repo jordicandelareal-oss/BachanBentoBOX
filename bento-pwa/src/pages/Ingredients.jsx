@@ -48,7 +48,8 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     error: null, 
     reason: null,
     maskKey: '',
-    maskCx: ''
+    maskCx: '',
+    testResult: null
   });
 
 
@@ -182,32 +183,35 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
         maskCx: mask(GOOGLE_CX)
       });
 
-      const searchUnsplash = async (term) => {
-        console.log('📸 [Unsplash] Iniciando búsqueda para:', term);
+      const testGoogle = async () => {
+        if (!GOOGLE_API_KEY || !GOOGLE_CX) return;
+        setApiDiagnostic(prev => ({ ...prev, testResult: 'Probando...' }));
         try {
-          // Búsqueda pública sin necesidad de API Key para resultados básicos
-          const resp = await fetch(`https://images.unsplash.com/search/photos?query=${encodeURIComponent(term)}&per_page=6`);
-          // Unsplash requiere parsear el HTML o usar la API. Para búsquedas rápidas sin key,
-          // usaremos la versión source.unsplash.com o similar si es posible, 
-          // pero lo más robusto es avisar que Unsplash requiere Client ID para JSON.
-          // Usaremos un fallback a un buscador público o simplemente a Wikipedia si Unsplash falla.
-          return { photos: [] }; 
-        } catch (e) { return { photos: [] }; }
+          // Búsqueda pura sin searchType=image para verificar conectividad
+          const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=test&num=1`;
+          const resp = await fetch(url);
+          const data = await resp.json();
+          if (resp.ok) {
+            setApiDiagnostic(prev => ({ ...prev, testResult: 'CONECTADO (Texto OK)' }));
+          } else {
+            setApiDiagnostic(prev => ({ ...prev, testResult: `FALLO: ${data.error?.message || 'Error desconocido'}` }));
+          }
+        } catch (e) {
+          setApiDiagnostic(prev => ({ ...prev, testResult: `ERROR RED: ${e.message}` }));
+        }
       };
 
-      const searchGoogle = async (term) => {
+      const searchGoogle = async (term, retryCount = 0) => {
         if (!GOOGLE_API_KEY || !GOOGLE_CX) return { items: [] };
         
-        // v1.3.7: Limpieza de URL con plus (+) en lugar de espacios
         const cleanTerm = term.replace(/\s+/g, '+');
-        console.log('Iniciando búsqueda en Google v1.3.7 para: ' + cleanTerm);
+        console.log(`Iniciando búsqueda Google v1.3.8 (Intento ${retryCount + 1}) para: ${cleanTerm}`);
         
         try {
           const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&searchType=image&q=${cleanTerm}&num=8`;
           
           const resp = await fetch(url, { 
-            headers: { 'Accept': 'application/json' },
-            credentials: 'omit' // Evitar cabeceras de sesión que causen 403
+            headers: { 'Accept': 'application/json' }
           });
 
           if (!resp.ok) {
@@ -259,11 +263,15 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       let gallery = [];
       const mainSearchTerm = queryParam || form.name;
       const hasGoogleKeys = !!(GOOGLE_API_KEY && GOOGLE_CX);
-
       if (hasGoogleKeys) {
-        // --- MODO ESTRICTO GOOGLE ---
-        let gData = await searchGoogle(mainSearchTerm);
-        if (!gData.items?.length) gData = await searchGoogle(form.name + " product packaging");
+        // --- MODO ESTRICTO GOOGLE v1.3.8 (Con Fallback Automático) ---
+        let gData = await searchGoogle(mainSearchTerm, 0);
+        
+        // Segundo intento con términos simplificados si el primero falló (o dio 403)
+        if (!gData.items?.length) {
+          console.warn('⚠️ [Google] Reintentando con términos simples...');
+          gData = await searchGoogle(form.name, 1);
+        }
         
         if (gData.items?.length) {
           gallery = gData.items.slice(0, 8).map(p => ({
@@ -271,9 +279,11 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
             source: `Google | ${p.displayLink}`
           }));
         } else {
-          console.warn('⚠️ [Google] Fallo o sin resultados. Probando Unsplash...');
-          const uData = await searchUnsplash(mainSearchTerm);
-          // Unsplash Fallback rápido si lo implementamos
+          console.warn('⚠️ [Google] Fallo persistente. Activando Fallback Wikipedia...');
+          const wikiUrl = await searchWikipedia(form.name);
+          if (wikiUrl) {
+            gallery.push({ url: applyProxy(wikiUrl), source: 'Wikipedia (Auto-Fallback)' });
+          }
         }
       } else {
         // --- MODO FALLBACK (Wikipedia / Pexels) Solo si NO hay Google ---
@@ -483,23 +493,29 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                 </button>
               ) : (
                 <div className="bg-sky-50 rounded-2xl p-4 border border-sky-100 animate-in fade-in slide-in-from-top-4">
-                  {/* --- PANEL DE DIAGNÓSTICO v1.3.7 --- */}
+                  {/* --- PANEL DE DIAGNÓSTICO v1.3.8 --- */}
                   <div className="mb-4 p-3 bg-white/80 rounded-xl border border-sky-200 text-[9px] font-mono leading-tight">
                     <div className="mb-2 pb-2 border-b border-sky-100">
                       <div className="flex justify-between mb-1">
                         <span className="text-slate-500 uppercase">Key:</span>
                         <span className="text-slate-700 font-bold">{apiDiagnostic.maskKey}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between mb-2">
                         <span className="text-slate-500 uppercase">CX:</span>
                         <span className="text-slate-700 font-bold">{apiDiagnostic.maskCx}</span>
                       </div>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); testGoogle(); }}
+                        className="w-full py-1.5 bg-sky-500 text-white rounded-md font-bold uppercase hover:bg-sky-600 transition-colors"
+                      >
+                        {apiDiagnostic.testResult || 'Test Conectividad Google'}
+                      </button>
                     </div>
                     {apiDiagnostic.error && (
                       <div className="pt-1 italic break-words">
                         <div className="text-rose-600 font-bold mb-1 uppercase">⚠️ ERROR: {apiDiagnostic.error}</div>
                         {apiDiagnostic.reason && (
-                          <div className="text-slate-500 text-[8px] bg-rose-50 p-1 rounded">MOTIVO: {apiDiagnostic.reason}</div>
+                          <div className="text-slate-500 text-[8px] bg-rose-50 p-1 rounded font-bold">MOTIVO: {apiDiagnostic.reason}</div>
                         )}
                       </div>
                     )}
