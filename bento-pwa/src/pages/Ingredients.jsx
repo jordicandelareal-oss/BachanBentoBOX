@@ -42,6 +42,8 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
   const [suggestedImage, setSuggestedImage] = useState(null); // { url, source }
   const [suggestedGallery, setSuggestedGallery] = useState([]); // Array of { url, source }
   const [imageError, setImageError] = useState(false);
+  const [apiDiagnostic, setApiDiagnostic] = useState({ key: false, cx: false, error: null });
+
 
   // Fetch ingredient categories (not preparation_categories)
   useEffect(() => {
@@ -159,21 +161,41 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       const PEXELS_KEY = import.meta.env.VITE_PEXELS_KEY;
 
       // 🔍 [LOGS DE VERIFICACIÓN]
-      console.log('🔍 [Config] VITE_GOOGLE_API_KEY:', GOOGLE_API_KEY ? 'CARGADA' : 'FALTA (Error en Vercel?)');
-      console.log('🔍 [Config] VITE_GOOGLE_CX:', GOOGLE_CX ? 'CARGADA' : 'FALTA (Error en Vercel?)');
+      console.log('🔍 [Config] VITE_GOOGLE_API_KEY:', GOOGLE_API_KEY ? 'CARGADA' : 'FALTA');
+      console.log('🔍 [Config] VITE_GOOGLE_CX:', GOOGLE_CX ? 'CARGADA' : 'FALTA');
+
+      setApiDiagnostic({ 
+        key: !!GOOGLE_API_KEY, 
+        cx: !!GOOGLE_CX, 
+        error: null 
+      });
 
       const searchGoogle = async (term) => {
         if (!GOOGLE_API_KEY || !GOOGLE_CX) return { items: [] };
         console.log('Iniciando búsqueda en Google para: ' + term);
-        const resp = await fetch(
-          `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&searchType=image&q=${encodeURIComponent(term)}&num=6`
-        );
-        if (!resp.ok) {
-          const errorData = await resp.json();
-          console.error('❌ [Google API Error]:', errorData);
+        
+        try {
+          const resp = await fetch(
+            `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&searchType=image&q=${encodeURIComponent(term)}&num=6`,
+            { headers: { 'Accept': 'application/json' } }
+          );
+
+          if (!resp.ok) {
+            const errorData = await resp.json();
+            const errMsg = errorData.error?.message || `Error ${resp.status}: ${resp.statusText}`;
+            console.error('❌ [Google API Error]:', errorData);
+            setApiDiagnostic(prev => ({ ...prev, error: errMsg }));
+            return { items: [] };
+          }
+
+          const data = await resp.json();
+          setApiDiagnostic(prev => ({ ...prev, error: null }));
+          return data;
+        } catch (err) {
+          console.error('❌ [Network Error]:', err);
+          setApiDiagnostic(prev => ({ ...prev, error: err.message }));
           return { items: [] };
         }
-        return await resp.json();
       };
 
       const searchPexels = async (term) => {
@@ -428,6 +450,27 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                 </button>
               ) : (
                 <div className="bg-sky-50 rounded-2xl p-4 border border-sky-100 animate-in fade-in slide-in-from-top-4">
+                  {/* --- PANEL DE DIAGNÓSTICO v1.3.4 --- */}
+                  <div className="mb-4 p-3 bg-white/80 rounded-xl border border-sky-200 text-[10px] font-mono leading-tight">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-slate-500 uppercase">Google API Key:</span>
+                      <span className={apiDiagnostic.key ? "text-emerald-600 font-bold" : "text-rose-600 font-bold"}>
+                        {apiDiagnostic.key ? "✓ CARGADA" : "✗ FALTA"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-slate-500 uppercase">Google CX (Buscador):</span>
+                      <span className={apiDiagnostic.cx ? "text-emerald-600 font-bold" : "text-rose-600 font-bold"}>
+                        {apiDiagnostic.cx ? "✓ CARGADA" : "✗ FALTA"}
+                      </span>
+                    </div>
+                    {apiDiagnostic.error && (
+                      <div className="mt-2 pt-2 border-t border-rose-100 text-rose-600 font-bold italic break-words">
+                        ⚠️ ERROR GOOGLE: {apiDiagnostic.error}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Cuadrícula de Galería (3 columnas) */}
                   {suggestedGallery.length > 0 && (
                     <div className="mb-4">
