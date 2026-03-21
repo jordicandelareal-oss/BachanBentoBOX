@@ -149,7 +149,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     }
   };
 
-  // Buscador de fotos en cascada: Google API -> Pexels API -> Wikipedia
+  // Buscador de fotos en cascada: Google API (Prioridad) -> Pexels API -> Wikipedia
   const fetchProductPhotos = async (queryParam) => {
     const applyProxy = (url) => `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=300&h=300&fit=cover`;
 
@@ -158,19 +158,27 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       const GOOGLE_CX = import.meta.env.VITE_GOOGLE_CX;
       const PEXELS_KEY = import.meta.env.VITE_PEXELS_KEY;
 
+      // 🔍 [LOGS DE VERIFICACIÓN]
+      console.log('🔍 [Config] VITE_GOOGLE_API_KEY:', GOOGLE_API_KEY ? 'CARGADA' : 'FALTA (Error en Vercel?)');
+      console.log('🔍 [Config] VITE_GOOGLE_CX:', GOOGLE_CX ? 'CARGADA' : 'FALTA (Error en Vercel?)');
+
       const searchGoogle = async (term) => {
         if (!GOOGLE_API_KEY || !GOOGLE_CX) return { items: [] };
-        console.log('📸 [Google] Searching for:', term);
+        console.log('Iniciando búsqueda en Google para: ' + term);
         const resp = await fetch(
-          `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(term)}&cx=${GOOGLE_CX}&key=${GOOGLE_API_KEY}&searchType=image&num=6`
+          `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&searchType=image&q=${encodeURIComponent(term)}&num=6`
         );
-        if (!resp.ok) return { items: [] };
+        if (!resp.ok) {
+          const errorData = await resp.json();
+          console.error('❌ [Google API Error]:', errorData);
+          return { items: [] };
+        }
         return await resp.json();
       };
 
       const searchPexels = async (term) => {
         if (!PEXELS_KEY) return { photos: [] }; 
-        console.log('📸 [Pexels] Searching for:', term);
+        console.log('📸 [Pexels] Iniciando búsqueda para:', term);
         const headers = { Authorization: PEXELS_KEY.trim() };
         const resp = await fetch(
           `https://api.pexels.com/v1/search?query=${encodeURIComponent(term)}&per_page=6&orientation=square&locale=es-ES`,
@@ -197,50 +205,50 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
       let gallery = [];
       const mainSearchTerm = queryParam || form.name;
+      const hasGoogleKeys = !!(GOOGLE_API_KEY && GOOGLE_CX);
 
-      // 1. Oficial de Google Custom Search (La mejor calidad comercial)
-      if (GOOGLE_API_KEY && GOOGLE_CX) {
+      if (hasGoogleKeys) {
+        // --- MODO ESTRICTO GOOGLE ---
         let gData = await searchGoogle(mainSearchTerm);
         if (!gData.items?.length) gData = await searchGoogle(form.name + " product packaging");
-        if (!gData.items?.length) gData = await searchGoogle(form.name);
-
+        
         if (gData.items?.length) {
           gallery = gData.items.slice(0, 6).map(p => ({
             url: applyProxy(p.link),
             source: `Google | ${p.displayLink}`
           }));
+        } else {
+          console.warn('⚠️ [Google] No se encontraron resultados. Fallbacks desactivados por llaves presentes.');
+        }
+      } else {
+        // --- MODO FALLBACK (Wikipedia / Pexels) Solo si NO hay Google ---
+        console.warn('⚠️ [Aviso] Llaves de Google ausentes. Usando motores secundarios.');
+        
+        // Intentar con Pexels
+        if (PEXELS_KEY) {
+          let data = await searchPexels(`${form.name} raw ingredient isolated white background`);
+          if (data.photos?.length) {
+            gallery = data.photos.map(p => ({
+              url: applyProxy(p.src.medium),
+              source: `Pexels | ${p.photographer}`
+            }));
+          }
+        }
+
+        // Si Pexels falló, intentar Wikipedia
+        if (gallery.length === 0) {
+          const wikiUrl = await searchWikipedia(form.name);
+          if (wikiUrl) {
+            gallery.push({
+              url: applyProxy(wikiUrl),
+              source: 'Wikipedia Commons'
+            });
+          }
         }
       }
 
-      // 2. Intentar con Pexels en cascada si Google falló
-      if (gallery.length === 0 && PEXELS_KEY) {
-        let data = await searchPexels(`${form.name} raw ingredient isolated white background`);
-        if (!data.photos?.length) data = await searchPexels(`${form.name} raw ingredient`);
-        if (!data.photos?.length) data = await searchPexels(form.name);
-
-        if (data.photos?.length) {
-          gallery = data.photos.map(p => ({
-            url: applyProxy(p.src.medium),
-            source: `Pexels | ${p.photographer}`
-          }));
-        }
-      }
-
-      // 3. Pexels/Google falló o no tienen llave, probamos Wikipedia de España
+      // Fallback final de emergencia (Solo si realmente no hay NADA tras los intentos permitidos)
       if (gallery.length === 0) {
-        console.warn('📸 [Fallback] Motores principales fallaron. Buscando en Wikipedia...');
-        const wikiUrl = await searchWikipedia(form.name);
-        if (wikiUrl) {
-          gallery.push({
-            url: applyProxy(wikiUrl),
-            source: 'Wikipedia Commons'
-          });
-        }
-      }
-
-      // 4. Fallback final garantizado: Icono de Letras
-      if (gallery.length === 0) {
-        console.warn('📸 [Fallback] Wiki falló. Usando Placeholder Genérico...');
         const textImg = `https://ui-avatars.com/api/?name=${encodeURIComponent(form.name)}&size=300&background=f0f9ff&color=0284c7&font-size=0.4&length=2`;
         gallery.push({ url: textImg, source: 'Icono Base' });
       }
@@ -420,27 +428,30 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                 </button>
               ) : (
                 <div className="bg-sky-50 rounded-2xl p-4 border border-sky-100 animate-in fade-in slide-in-from-top-4">
-                  {/* Carrusel de Galería */}
+                  {/* Cuadrícula de Galería (3 columnas) */}
                   {suggestedGallery.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-2">
-                       {suggestedGallery.map((item, idx) => (
-                        <div 
-                          key={item.url}
-                          role="button"
-                          onClick={() => { setSuggestedImage(item); setImageError(false); }}
-                          className={`w-16 h-16 rounded-xl overflow-hidden border-2 flex-shrink-0 cursor-pointer transition-all ${
-                            suggestedImage?.url === item.url ? 'border-sky-500 scale-105 shadow-md shadow-sky-100' : 'border-white opacity-50'
-                          }`}
-                        >
-                          <img src={item.url} alt={`Opción ${idx}`} crossOrigin={item.url.includes('ui-avatars') ? undefined : "anonymous"} className="w-full h-full object-cover" />
-                        </div>
-                      ))}
+                    <div className="mb-4">
+                      <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Opciones encontradas:</p>
+                      <div className="grid grid-cols-3 gap-2 pb-2">
+                         {suggestedGallery.map((item, idx) => (
+                          <div 
+                            key={item.url + idx}
+                            role="button"
+                            onClick={() => { setSuggestedImage(item); setImageError(false); }}
+                            className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                              suggestedImage?.url === item.url ? 'border-sky-500 scale-105 shadow-md shadow-sky-100 ring-2 ring-sky-100' : 'border-white opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <img src={item.url} alt={`Opción ${idx}`} crossOrigin={item.url.includes('ui-avatars') ? undefined : "anonymous"} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {/* Previsualización del seleccionado */}
-                  <div className="flex items-center gap-4 bg-white/50 p-2 rounded-xl mb-4">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-white shadow-sm flex-shrink-0 relative">
+                  {/* Previsualización del seleccionado con detalle de la fuente */}
+                  <div className="flex items-center gap-4 bg-white/50 p-2 rounded-xl mb-4 border border-white">
+                    <div className="w-14 h-14 rounded-lg overflow-hidden border border-white shadow-sm flex-shrink-0 relative bg-slate-100">
                       {!imageError ? (
                         <img 
                           src={suggestedImage?.url} 
