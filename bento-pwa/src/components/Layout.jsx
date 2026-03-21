@@ -5,6 +5,7 @@ import { useIngredients } from '../hooks/useIngredients'
 import { useRecipes } from '../hooks/useRecipes'
 import { processCommand } from '../lib/geminiClient'
 import { Box, CookingPot, Carrot, Sparkles, Settings } from 'lucide-react'
+import pkg from '../../package.json'
 import NanaOverlay from './Nana/NanaOverlay'
 import AIActionSheet from './Nana/AIActionSheet'
 import '../styles/theme.css'
@@ -54,7 +55,7 @@ export default function Layout() {
       
       {/* TEST DE DESPLIEGUE STRIP */}
       <div style={{ background: 'red', color: 'white', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', zIndex: 9999, position: 'relative', width: '100%' }}>
-        TEST DE DESPLIEGUE V1.3.0
+        TEST DE DESPLIEGUE v{pkg.version}
       </div>
 
       <header className="nav-header">
