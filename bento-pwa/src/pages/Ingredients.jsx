@@ -42,7 +42,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
   const [suggestedImage, setSuggestedImage] = useState(null); // { url, source }
   const [suggestedGallery, setSuggestedGallery] = useState([]); // Array of { url, source }
   const [imageError, setImageError] = useState(false);
-  const [apiDiagnostic, setApiDiagnostic] = useState({ key: false, cx: false, error: null });
+  const [apiDiagnostic, setApiDiagnostic] = useState({ key: false, cx: false, error: null, reason: null });
 
 
   // Fetch ingredient categories (not preparation_categories)
@@ -175,25 +175,31 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
         console.log('Iniciando búsqueda en Google para: ' + term);
         
         try {
-          const resp = await fetch(
-            `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&searchType=image&q=${encodeURIComponent(term)}&num=6`,
-            { headers: { 'Accept': 'application/json' } }
-          );
+          // v1.3.6: Parámetros mínimos para evitar restricciones
+          const url = new URL('https://www.googleapis.com/customsearch/v1');
+          url.searchParams.append('key', GOOGLE_API_KEY);
+          url.searchParams.append('cx', GOOGLE_CX);
+          url.searchParams.append('q', term);
+          url.searchParams.append('searchType', 'image');
+          url.searchParams.append('num', '8');
+
+          const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
 
           if (!resp.ok) {
             const errorData = await resp.json();
-            const errMsg = errorData.error?.message || `Error ${resp.status}: ${resp.statusText}`;
+            const errMsg = errorData.error?.message || `Error ${resp.status}`;
+            const errReason = errorData.error?.errors?.[0]?.reason || 'unknown';
             console.error('❌ [Google API Error]:', errorData);
-            setApiDiagnostic(prev => ({ ...prev, error: errMsg }));
+            setApiDiagnostic(prev => ({ ...prev, error: errMsg, reason: errReason }));
             return { items: [] };
           }
 
           const data = await resp.json();
-          setApiDiagnostic(prev => ({ ...prev, error: null }));
+          setApiDiagnostic(prev => ({ ...prev, error: null, reason: null }));
           return data;
         } catch (err) {
           console.error('❌ [Network Error]:', err);
-          setApiDiagnostic(prev => ({ ...prev, error: err.message }));
+          setApiDiagnostic(prev => ({ ...prev, error: err.message, reason: 'network_error' }));
           return { items: [] };
         }
       };
@@ -235,7 +241,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
         if (!gData.items?.length) gData = await searchGoogle(form.name + " product packaging");
         
         if (gData.items?.length) {
-          gallery = gData.items.slice(0, 6).map(p => ({
+          gallery = gData.items.slice(0, 8).map(p => ({
             url: applyProxy(p.link),
             source: `Google | ${p.displayLink}`
           }));
@@ -450,7 +456,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                 </button>
               ) : (
                 <div className="bg-sky-50 rounded-2xl p-4 border border-sky-100 animate-in fade-in slide-in-from-top-4">
-                  {/* --- PANEL DE DIAGNÓSTICO v1.3.4 --- */}
+                  {/* --- PANEL DE DIAGNÓSTICO v1.3.6 --- */}
                   <div className="mb-4 p-3 bg-white/80 rounded-xl border border-sky-200 text-[10px] font-mono leading-tight">
                     <div className="flex justify-between mb-1">
                       <span className="text-slate-500 uppercase">Google API Key:</span>
@@ -465,8 +471,11 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                       </span>
                     </div>
                     {apiDiagnostic.error && (
-                      <div className="mt-2 pt-2 border-t border-rose-100 text-rose-600 font-bold italic break-words">
-                        ⚠️ ERROR GOOGLE: {apiDiagnostic.error}
+                      <div className="mt-2 pt-2 border-t border-rose-100 italic break-words">
+                        <div className="text-rose-600 font-bold mb-1">⚠️ ERROR: {apiDiagnostic.error}</div>
+                        {apiDiagnostic.reason && (
+                          <div className="text-slate-500 text-[9px] bg-rose-50 p-1 rounded">REASON: {apiDiagnostic.reason}</div>
+                        )}
                       </div>
                     )}
                   </div>
