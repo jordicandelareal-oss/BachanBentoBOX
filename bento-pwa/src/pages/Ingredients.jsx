@@ -33,7 +33,6 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     image_url: ingredient.image_url || '',
     brand: ingredient.brand || '',
     barcode: ingredient.barcode || '',
-    provider: ingredient.provider || '',
   });
 
   const [scanning, setScanning] = useState(false);
@@ -42,6 +41,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
   const [suggesting, setSuggesting] = useState(false);
   const [suggestedImage, setSuggestedImage] = useState(null); // { url, source }
   const [suggestedGallery, setSuggestedGallery] = useState([]); // Array of { url, source }
+  const [imageError, setImageError] = useState(false);
 
   // Fetch ingredient categories (not preparation_categories)
   useEffect(() => {
@@ -92,6 +92,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     setSuggesting(true);
     setSuggestedImage(null);
     setSuggestedGallery([]);
+    setImageError(false);
     
     try {
       const queryContext = `Producto: "${form.name}" ${form.brand ? '| Marca: ' + form.brand : ''} ${form.provider ? '| Proveedor: ' + form.provider : ''}`;
@@ -111,16 +112,16 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
       if (!response.toolCalls || response.toolCalls.length === 0) {
         console.warn('🔍 [Nana Search] No tool call returned, falling back to direct search');
-        await fetchFromPexels(`${form.name} raw ingredient isolated white background`);
+        await fetchProductPhotos(`${form.name} raw ingredient isolated white background`);
         return;
       }
 
-      // 1. Best case: Nana suggests a search query → call Pexels
+      // 1. Best case: Nana suggests a search query → call Google/Pexels
       const searchQueryCall = response.toolCalls.find(c => c.name === 'suggestSearchQuery');
       if (searchQueryCall) {
         const query = searchQueryCall.args.query_es || searchQueryCall.args.query || `${form.name} raw ingredient isolated white background`;
         console.log('✅ [Nana Search] Query suggested by Nana:', query);
-        await fetchFromPexels(query);
+        await fetchProductPhotos(query);
         return;
       }
 
@@ -138,7 +139,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
         return;
       }
 
-      await fetchFromPexels(`${form.name} raw ingredient isolated white background`);
+      await fetchProductPhotos(`${form.name} raw ingredient isolated white background`);
 
     } catch (err) {
       console.error('❌ [Nana Search] Error:', err);
@@ -148,44 +149,113 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     }
   };
 
-  // Real photo search via Pexels API (free, no CORS, high quality)
-  const fetchFromPexels = async (query) => {
+  // Buscador de fotos en cascada: Google API -> Pexels API -> Wikipedia
+  const fetchProductPhotos = async (queryParam) => {
+    const applyProxy = (url) => `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=300&h=300&fit=cover`;
+
     try {
-      console.log('📸 [Pexels] Searching for:', query);
+      const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+      const GOOGLE_CX = import.meta.env.VITE_GOOGLE_CX;
       const PEXELS_KEY = import.meta.env.VITE_PEXELS_KEY;
-      
-      const resp = await fetch(
-        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=6&orientation=square`,
-        { headers: { Authorization: PEXELS_KEY || '' } }
-      );
-      
-      if (!resp.ok) {
-        console.warn('📸 [Pexels] Not configured, using Unsplash proxy fallback');
-        const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`;
-        setSuggestedImage({ url: unsplashUrl, source: 'Unsplash Fallback' });
-        return;
+
+      const searchGoogle = async (term) => {
+        if (!GOOGLE_API_KEY || !GOOGLE_CX) return { items: [] };
+        console.log('📸 [Google] Searching for:', term);
+        const resp = await fetch(
+          `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(term)}&cx=${GOOGLE_CX}&key=${GOOGLE_API_KEY}&searchType=image&num=6`
+        );
+        if (!resp.ok) return { items: [] };
+        return await resp.json();
+      };
+
+      const searchPexels = async (term) => {
+        if (!PEXELS_KEY) return { photos: [] }; 
+        console.log('📸 [Pexels] Searching for:', term);
+        const headers = { Authorization: PEXELS_KEY.trim() };
+        const resp = await fetch(
+          `https://api.pexels.com/v1/search?query=${encodeURIComponent(term)}&per_page=6&orientation=square&locale=es-ES`,
+          { headers }
+        );
+        if (!resp.ok) return { photos: [] };
+        return await resp.json();
+      };
+
+      const searchWikipedia = async (term) => {
+        try {
+          const wResp = await fetch(`https://es.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(term)}&gsrlimit=1&prop=pageimages&format=json&piprop=original&origin=*`);
+          const wData = await wResp.json();
+          const pages = wData.query?.pages;
+          if (pages) {
+            const pageId = Object.keys(pages)[0];
+            if (pageId !== '-1' && pages[pageId].original?.source) {
+              return pages[pageId].original.source;
+            }
+          }
+          return null;
+        } catch(e) { return null; }
+      };
+
+      let gallery = [];
+      const mainSearchTerm = queryParam || form.name;
+
+      // 1. Oficial de Google Custom Search (La mejor calidad comercial)
+      if (GOOGLE_API_KEY && GOOGLE_CX) {
+        let gData = await searchGoogle(mainSearchTerm);
+        if (!gData.items?.length) gData = await searchGoogle(form.name + " product packaging");
+        if (!gData.items?.length) gData = await searchGoogle(form.name);
+
+        if (gData.items?.length) {
+          gallery = gData.items.slice(0, 6).map(p => ({
+            url: applyProxy(p.link),
+            source: `Google | ${p.displayLink}`
+          }));
+        }
       }
 
-      const data = await resp.json();
-      console.log('📸 [Pexels] Results:', data.photos?.length, 'photos found');
+      // 2. Intentar con Pexels en cascada si Google falló
+      if (gallery.length === 0 && PEXELS_KEY) {
+        let data = await searchPexels(`${form.name} raw ingredient isolated white background`);
+        if (!data.photos?.length) data = await searchPexels(`${form.name} raw ingredient`);
+        if (!data.photos?.length) data = await searchPexels(form.name);
 
-      if (data.photos && data.photos.length > 0) {
-        const gallery = data.photos.map(p => ({
-          url: p.src.medium,
-          source: `Pexels | ${p.photographer}`
-        }));
-        setSuggestedGallery(gallery);
-        setSuggestedImage(gallery[0]);
-      } else {
-        // Nada en Pexels -> Intenta destilar la query quitando sufijos
-        const simplerQuery = query.replace('raw ingredient isolated white background', '').trim() || query;
-        const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(simplerQuery)}`;
-        setSuggestedImage({ url: unsplashUrl, source: 'Unsplash (fallback)' });
+        if (data.photos?.length) {
+          gallery = data.photos.map(p => ({
+            url: applyProxy(p.src.medium),
+            source: `Pexels | ${p.photographer}`
+          }));
+        }
       }
-    } catch (pexelsErr) {
-      console.error('📸 [Pexels] Error:', pexelsErr);
-      const unsplashUrl = `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`;
-      setSuggestedImage({ url: unsplashUrl, source: 'Unsplash (fallback)' });
+
+      // 3. Pexels/Google falló o no tienen llave, probamos Wikipedia de España
+      if (gallery.length === 0) {
+        console.warn('📸 [Fallback] Motores principales fallaron. Buscando en Wikipedia...');
+        const wikiUrl = await searchWikipedia(form.name);
+        if (wikiUrl) {
+          gallery.push({
+            url: applyProxy(wikiUrl),
+            source: 'Wikipedia Commons'
+          });
+        }
+      }
+
+      // 4. Fallback final garantizado: Icono de Letras
+      if (gallery.length === 0) {
+        console.warn('📸 [Fallback] Wiki falló. Usando Placeholder Genérico...');
+        const textImg = `https://ui-avatars.com/api/?name=${encodeURIComponent(form.name)}&size=300&background=f0f9ff&color=0284c7&font-size=0.4&length=2`;
+        gallery.push({ url: textImg, source: 'Icono Base' });
+      }
+
+      setSuggestedGallery(gallery);
+      setSuggestedImage(gallery[0]);
+
+    } catch (err) {
+      console.error('📸 [Search] Error Crítico:', err);
+      // Fallback seguro antierrores
+      const textImg = `https://ui-avatars.com/api/?name=${encodeURIComponent(form.name)}&size=300&background=fef2f2&color=dc2626&font-size=0.4&length=2`;
+      const option = { url: textImg, source: 'Sin Imagen' };
+      setSuggestedGallery([option]);
+      setSuggestedImage(option);
+      setImageError(false); // La imagen generada no debería fallar
     }
   };
 
@@ -303,7 +373,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()}>
+      <div className="modal-card" style={{ paddingTop: '2rem' }} onClick={e => e.stopPropagation()}>
         <div className="modal-header border-b-0 pb-0">
           <div className="flex flex-col w-full pr-8">
             <div className="modal-title">
@@ -353,16 +423,16 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                   {/* Carrusel de Galería */}
                   {suggestedGallery.length > 0 && (
                     <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-2">
-                      {suggestedGallery.map((item, idx) => (
+                       {suggestedGallery.map((item, idx) => (
                         <div 
-                          key={idx}
+                          key={item.url}
                           role="button"
-                          onClick={() => handleSelectGalleryItem(item)}
+                          onClick={() => { setSuggestedImage(item); setImageError(false); }}
                           className={`w-16 h-16 rounded-xl overflow-hidden border-2 flex-shrink-0 cursor-pointer transition-all ${
                             suggestedImage?.url === item.url ? 'border-sky-500 scale-105 shadow-md shadow-sky-100' : 'border-white opacity-50'
                           }`}
                         >
-                          <img src={item.url} alt={`Opción ${idx}`} className="w-full h-full object-cover" />
+                          <img src={item.url} alt={`Opción ${idx}`} crossOrigin={item.url.includes('ui-avatars') ? undefined : "anonymous"} className="w-full h-full object-cover" />
                         </div>
                       ))}
                     </div>
@@ -370,30 +440,52 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
                   {/* Previsualización del seleccionado */}
                   <div className="flex items-center gap-4 bg-white/50 p-2 rounded-xl mb-4">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-white shadow-sm flex-shrink-0">
-                      <img src={suggestedImage?.url} alt="Sugerencia" className="w-full h-full object-cover" />
+                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-white shadow-sm flex-shrink-0 relative">
+                      {!imageError ? (
+                        <img 
+                          src={suggestedImage?.url} 
+                          alt="Sugerencia" 
+                          key={suggestedImage?.url}
+                          crossOrigin={suggestedImage?.url?.includes('ui-avatars') ? undefined : "anonymous"}
+                          onLoad={() => setImageError(false)}
+                          onError={() => setImageError(true)}
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-red-50 flex items-center justify-center">
+                          <span className="text-red-500 font-bold text-xs">X</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-[10px] font-black text-sky-800 uppercase tracking-widest">Opción Seleccionada</p>
-                      <p className="text-[11px] text-sky-600 line-clamp-1">{suggestedImage?.source || 'Catálogo Profesional'}</p>
-                    </div>
+                    {imageError ? (
+                      <div className="flex-1">
+                        <p className="text-[11px] text-red-500 font-bold">Error al cargar la imagen</p>
+                      </div>
+                    ) : (
+                      <div className="flex-1">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fuente de la Imagen</p>
+                        <p className="text-[11px] text-slate-700 font-medium line-clamp-1">{suggestedImage?.source}</p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-2">
+                    {!imageError && (
+                      <button 
+                        type="button"
+                        onClick={handleAcceptSuggestion}
+                        disabled={suggesting}
+                        className="flex-1 py-3 bg-sky-500 text-white rounded-xl text-xs font-black shadow-lg shadow-sky-200 active:scale-95 disabled:opacity-50"
+                      >
+                        {suggesting ? 'GUARDANDO...' : 'ACEPTAR ESTA FOTO'}
+                      </button>
+                    )}
                     <button 
                       type="button"
-                      onClick={handleAcceptSuggestion}
-                      disabled={suggesting}
-                      className="flex-1 py-3 bg-sky-500 text-white rounded-xl text-xs font-black shadow-lg shadow-sky-200 active:scale-95 disabled:opacity-50"
+                      onClick={() => { setSuggestedImage(null); setSuggestedGallery([]); setImageError(false); }}
+                      className="px-4 py-3 bg-white text-slate-400 rounded-xl text-xs font-bold border border-slate-200 w-full"
                     >
-                      {suggesting ? 'GUARDANDO...' : 'ACEPTAR ESTA FOTO'}
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => { setSuggestedImage(null); setSuggestedGallery([]); }}
-                      className="px-4 py-3 bg-white text-slate-400 rounded-xl text-xs font-bold border border-slate-200"
-                    >
-                      X
+                      {imageError ? 'CERRAR Y DESCARTAR' : 'X'}
                     </button>
                   </div>
                 </div>
