@@ -9,6 +9,9 @@ import {
   Trash2, Info, LayoutGrid, Scale, CheckCircle2, Camera
 } from 'lucide-react';
 import PhotoSelector from '../Common/PhotoSelector';
+import SequentialSelector from '../Common/SequentialSelector';
+import NumPad from '../Common/NumPad';
+import { compressImage, uploadImage } from '../../lib/imageUtils';
 
 export default function BentoMaker({ recipe = null, onClose }) {
   const { 
@@ -151,7 +154,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
                   imageUrl={imageUrl}
                   onUpload={handleUpload}
                   onRemove={handleRemoveImage}
-                  label="Platado Final"
+                  label="Emplatado Final"
                   placeholder="Subir foto del plato"
                 />
               </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronRight, Package, Utensils, Search, X, ArrowLeft } from 'lucide-react';
+import { ChevronRight, Package, Utensils, Search, X, ArrowLeft, Loader2 } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 import './SequentialSelector.css';
 
 /**
@@ -17,6 +18,10 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
   const [searchTerm, setSearchTerm] = useState('');
   const [globalSearch, setGlobalSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  
+  // Dynamic Categories
+  const [dynamicCategories, setDynamicCategories] = useState([]);
+  const [loadingCats, setLoadingCats] = useState(false);
 
   // Debounce global search
   useEffect(() => {
@@ -25,6 +30,46 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
     }, 300);
     return () => clearTimeout(timer);
   }, [globalSearch]);
+
+  // Fetch categories when type changes
+  useEffect(() => {
+    if (!type) {
+      setDynamicCategories([]);
+      return;
+    }
+
+    async function fetchCats() {
+      setLoadingCats(true);
+      try {
+        const table = type === 'ingredient' ? 'categories' : 'preparation_categories';
+        const nameField = type === 'ingredient' ? 'name' : 'Name';
+        
+        const { data, error } = await supabase
+          .from(table)
+          .select(`id, ${nameField}`)
+          .order(nameField);
+
+        if (error) throw error;
+        
+        const formatted = data.map(c => ({
+          id: c.id,
+          name: c[nameField]
+        }));
+        
+        if (formatted.length === 0) {
+          formatted.push({ id: 'general', name: 'General' });
+        }
+        
+        setDynamicCategories(formatted);
+      } catch (err) {
+        console.error('Error fetching dynamic categories:', err);
+      } finally {
+        setLoadingCats(false);
+      }
+    }
+
+    fetchCats();
+  }, [type]);
 
   // Reset states when type changes
   const handleTypeSelect = (selectedType) => {
@@ -35,7 +80,7 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
   };
 
   const handleCategorySelect = (selectedCat) => {
-    setCategory(selectedCat);
+    setCategory(selectedCat); // selectedCat is now {id, name}
     setSubcategory(null);
     // If it's a recipe, we skip subcategories (step 3) and go straight to items (step 4)
     if (type === 'recipe') {
@@ -51,21 +96,14 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
   };
 
   // Get unique categories based on type
-  const categoriesLoad = useMemo(() => {
-    if (!type) return [];
-    const source = type === 'ingredient' ? ingredients : recipes;
-    // Ingredients use category_name, recipes use preparation_category
-    const catField = type === 'ingredient' ? 'category_name' : 'preparation_category';
-    const cats = [...new Set(source.map(item => item[catField] || 'General'))];
-    return cats.filter(Boolean).sort();
-  }, [type, ingredients, recipes]);
+  const categoriesLoad = dynamicCategories;
 
   // Get unique subcategories based on category (only for ingredients)
   const subcategoriesLoad = useMemo(() => {
     if (type !== 'ingredient' || !category) return [];
     const subs = [...new Set(
       ingredients
-        .filter(ing => ing.category_name === category)
+        .filter(ing => ing.category_id === category.id)
         .map(ing => ing.subcategory_name || 'General')
     )];
     return subs.filter(Boolean).sort();
@@ -81,7 +119,8 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
       // Prevent circular dependency
       if (item.id === excludeId && type === 'recipe') return false;
       
-      const matchesCategory = item[catField] === category;
+      const itemCatId = type === 'ingredient' ? item.category_id : item.preparation_category_Id;
+      const matchesCategory = category.id === 'general' ? !itemCatId : itemCatId === category.id;
       const matchesSubcategory = type === 'recipe' || (item.subcategory_name || 'General') === subcategory;
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesCategory && matchesSubcategory && matchesSearch;
@@ -228,14 +267,19 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
             </div>
           )}
 
-          {/* STEP 2: CATEGORY */}
+           {/* STEP 2: CATEGORY */}
           {step === 2 && (
             <div className="step-container fade-in">
               <p className="step-label">Paso 2: Elige categoría</p>
               <div className="selection-list">
-                {categoriesLoad.length > 0 ? categoriesLoad.map(cat => (
-                  <button key={cat} className="selection-option" onClick={() => handleCategorySelect(cat)}>
-                    <span className="name">{cat}</span>
+                {loadingCats ? (
+                   <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                      <Loader2 size={32} className="animate-spin mb-4" />
+                      <p className="text-xs font-bold uppercase tracking-widest">Cargando categorías...</p>
+                   </div>
+                ) : categoriesLoad.length > 0 ? categoriesLoad.map(cat => (
+                  <button key={cat.id} className="selection-option" onClick={() => handleCategorySelect(cat)}>
+                    <span className="name">{cat.name}</span>
                     <ChevronRight size={18} className="arrow" />
                   </button>
                 )) : (

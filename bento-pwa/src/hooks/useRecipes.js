@@ -57,27 +57,69 @@ export function useRecipes(type = null) {
       const merged = (recipesData || []).map(recipe => ({
         ...recipe,
         unit_name: recipe.unit?.name || 'ud',
-        preparation_category: null, // We now get this from usePrepCategories
+        preparation_category: null, 
         cost_per_portion: recipe.cost_per_portion || 0
       }))
       
       setRecipes(merged)
+      setError(null)
     } catch (err) {
       setError(err.message)
       console.error('Error fetching recipes:', err)
-      // Don't leave the list empty on join errors — try without the join
+      // Fallback
       try {
-        const { data: fallback } = await supabase
-          .from('recipes')
-          .select('*')
-          .order('name')
+        const { data: fallback } = await supabase.from('recipes').select('*').order('name')
         if (fallback) {
           setRecipes(fallback.map(r => ({ ...r, unit_name: 'ud', cost_per_portion: r.cost_per_portion || 0 })))
           setError(null)
         }
-      } catch (_) { /* If even the basic query fails, leave error state */ }
+      } catch (_) { }
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Toggle public visibility
+  async function togglePublish(recipeId, currentStatus) {
+    try {
+      const newStatus = !currentStatus;
+      
+      // 1. Update recipe table
+      const { error: recipeError } = await supabase
+        .from('recipes')
+        .update({ is_published: newStatus })
+        .eq('id', recipeId);
+      
+      if (recipeError) throw recipeError;
+
+      // 2. Sync with menu_items
+      if (newStatus) {
+        const { data: recipe } = await supabase
+          .from('recipes')
+          .select('*')
+          .eq('id', recipeId)
+          .single();
+
+        if (recipe) {
+          const menuItem = {
+            id: recipeId,
+            name: recipe.name,
+            description: recipe.description || '',
+            price: Number(recipe.sale_price || recipe.cost_per_portion || 0),
+            image_url: recipe.image_url || '',
+            recipe_id: recipeId,
+            is_active: true
+          };
+          await supabase.from('menu_items').upsert([menuItem]);
+        }
+      } else {
+        await supabase.from('menu_items').delete().eq('recipe_id', recipeId);
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error("❌ [Supabase Toggle Error]", err);
+      return { success: false, error: err.message };
     }
   }
 
@@ -90,7 +132,6 @@ export function useRecipes(type = null) {
         .eq('id', id)
         
       if (supError) throw supError
-      // State is updated by fetchRecipes in the realtime listener
       return { success: true }
     } catch (err) {
       console.error("❌ [Supabase Delete Error]", err);
@@ -98,5 +139,5 @@ export function useRecipes(type = null) {
     }
   }
 
-  return { recipes, loading, error, deleteRecipe, fetchRecipes }
+  return { recipes, loading, error, deleteRecipe, fetchRecipes, togglePublish }
 }

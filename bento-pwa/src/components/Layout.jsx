@@ -14,12 +14,15 @@ export default function Layout() {
   const { signOut } = useAuth()
   const navigate = useNavigate()
   
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false)
+  
   // Nana State
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false)
   const [isNanaVisible, setIsNanaVisible] = useState(false)
   const [initialVisionMode, setInitialVisionMode] = useState(false)
   const [nanaState, setNanaState] = useState('IDLE')
   const [aiResponse, setAiResponse] = useState('')
+  
   const { ingredients } = useIngredients()
   const { recipes } = useRecipes()
 
@@ -51,12 +54,75 @@ export default function Layout() {
 
   return (
     <div className="app-wrapper">
-      <div className="seigaiha-overlay"></div>
-      
-      {/* TEST DE DESPLIEGUE STRIP */}
-      <div style={{ background: 'red', color: 'white', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', zIndex: 9999, position: 'relative', width: '100%' }}>
-        TEST DE DESPLIEGUE v{pkg.version}
-      </div>
+      {/* VERSION INFO FLOATING BUTTON */}
+      <button 
+        onClick={() => setIsVersionModalOpen(true)}
+        style={{ 
+          position: 'fixed', 
+          bottom: '20px', 
+          left: '20px', 
+          zIndex: 9999, 
+          background: 'rgba(0,0,0,0.3)', 
+          color: 'white', 
+          border: 'none', 
+          borderRadius: '50%', 
+          width: '40px', 
+          height: '40px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          fontSize: '12px', 
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          opacity: 0.5,
+          transition: 'opacity 0.2s'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.5'}
+      >
+        v
+      </button>
+
+      {/* VERSION MODAL */}
+      {isVersionModalOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '20px',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+            textAlign: 'center',
+            maxWidth: '90%',
+            width: '320px'
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#1a1a1a' }}>Información de Versión</h3>
+            <p style={{ margin: '0 0 20px 0', color: '#666' }}>Versión: v{pkg.version} - Test de Despliegue</p>
+            <button 
+              onClick={() => setIsVersionModalOpen(false)}
+              style={{
+                background: '#0c1c2e',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
 
       <header className="nav-header">
         <div className="container nav-content-wrapper">
