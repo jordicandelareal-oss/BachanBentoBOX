@@ -14,7 +14,7 @@ export async function compressImage(file) {
       img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_SIZE = 1024;
+        const MAX_SIZE = 800;
         let width = img.width;
         let height = img.height;
 

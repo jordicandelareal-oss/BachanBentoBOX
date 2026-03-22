@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import AIActionSheet from '../components/Nana/AIActionSheet';
 import './Home.css';
-import { SquareMenu, CookingPot, Carrot, Sparkles } from 'lucide-react';
+import { SquareMenu, CookingPot, Carrot, Sparkles, ShoppingBag, TrendingUp } from 'lucide-react';
+
+
 
 const BentoIcon = () => (
   <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
@@ -32,7 +34,23 @@ export default function Home() {
 
   const menuItems = [
     {
+      id: 'pos',
+      title: 'TPV / Caja',
+      desc: 'Cobro rápido y gestión de pedidos',
+      icon: <ShoppingBag size={42} strokeWidth={1.2} />,
+      path: '/pos'
+    },
+    {
+      id: 'sales',
+      title: 'Ventas',
+      desc: 'Dashboard y análisis histórico',
+      icon: <TrendingUp size={42} strokeWidth={1.2} />,
+      path: '/admin/ventas'
+    },
+
+    {
       id: 'bentos',
+
       title: 'Bentos',
       desc: 'Catálogo de productos finales y rentabilidad',
       icon: <BentoIcon />,

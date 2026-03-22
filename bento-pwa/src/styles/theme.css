@@ -51,17 +51,6 @@ body {
   overflow-x: hidden; /* Solid block */
 }
 
-.seigaiha-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url('https://www.transparenttextures.com/patterns/seigaiha.png');
-  opacity: 0.05;
-  pointer-events: none;
-  z-index: -1;
-}
 
 .container {
   width: 100%;

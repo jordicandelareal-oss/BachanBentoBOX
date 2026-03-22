@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { ChefHat, Plus, TrendingUp, TrendingDown, Target, LayoutGrid, Trash2, Camera } from 'lucide-react';
+import { ChefHat, Plus, TrendingUp, TrendingDown, Target, LayoutGrid, Trash2, Camera, CheckCircle2 } from 'lucide-react';
+
 import { useRecipes } from '../hooks/useRecipes';
+
 import BentoMaker from '../components/BentoMaker/BentoMaker';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import Lightbox from '../components/Common/Lightbox';
 import '../styles/Common.css';
 
 export default function BentoPage() {
-  const { recipes: bentos, loading, deleteRecipe, fetchRecipes } = useRecipes('bento');
+  const { recipes: bentos, loading, deleteRecipe, fetchRecipes, togglePublish } = useRecipes('bento');
   const [editingBento, setEditingBento] = useState(false); // false (list), true (new), or object (edit)
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [lightbox, setLightbox] = useState({ isOpen: false, imageUrl: '', title: '' });
@@ -105,6 +107,17 @@ export default function BentoPage() {
                   </div>
                   <div className="flex flex-col gap-2">
                     <button 
+                      className={`p-2 rounded-full transition-all ${bento.is_published ? 'bg-emerald-50 text-emerald-500' : 'text-slate-200 hover:bg-slate-50'}`}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const result = await togglePublish(bento.id, bento.is_published);
+                        if (!result.success) alert(result.error);
+                      }}
+                      title={bento.is_published ? "Publicado en Tienda" : "Publicar en Tienda"}
+                    >
+                      <CheckCircle2 size={20} />
+                    </button>
+                    <button 
                       className="delete-btn-subtle"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -125,6 +138,7 @@ export default function BentoPage() {
                       </button>
                     )}
                   </div>
+
                 </div>
               </div>
             );

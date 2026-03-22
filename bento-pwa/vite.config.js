@@ -10,10 +10,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'BaChan Bento Maker',
-        short_name: 'Bento Maker',
-        description: 'Gestor de rentabilidad y escandallos para BaChan',
-        theme_color: '#1B263B',
+        name: 'BaChan POS & ERP',
+        short_name: 'BaChan TPV',
+        description: 'Sistema de gestión interna y punto de venta para BaChan',
+        theme_color: '#0f172a',
+
         background_color: '#F8F9FA',
         display: 'standalone',
         orientation: 'portrait',
