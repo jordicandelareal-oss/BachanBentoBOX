@@ -78,7 +78,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
     
     if (item.type === 'ingredient') {
       normalized = normalizeUnit(item.unit_name || 'g');
-      baseCost = parseFloat(item.cost_per_unit || (item.purchase_price / item.purchase_format));
+      baseCost = parseFloat(item.cost_per_unit || 0);
     } else {
       // LÓGICA DUAL PARA ELABORACIONES
       if (item.yield_scenario === 'weight') {

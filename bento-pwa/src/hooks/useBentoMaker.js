@@ -146,12 +146,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
       if (isIngredient) {
         unitName = item.units?.name || 'g'
         normalizedUnit = normalizeUnit(unitName)
-        let format = Number(item.purchase_format) || 1000;
-        const originalUnit = (item.units?.name || '').toLowerCase();
-        if (['kg', 'kilo', 'kilos', 'l', 'litro', 'litros'].includes(originalUnit) && format < 10) {
-          format = format * 1000;
-        }
-        baseCost = item.purchase_price / format;
+        baseCost = parseFloat(item.cost_per_unit || 0);
       } else {
         // LÓGICA DUAL PARA ELABORACIONES (HIJAS)
         // Si el escenario es peso, forzamos 'g' y dividimos el coste (que es por Kg) entre 1000

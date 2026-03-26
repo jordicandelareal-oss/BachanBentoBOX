@@ -205,7 +205,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
         if (!GOOGLE_API_KEY || !GOOGLE_CX) return { items: [] };
         
         const cleanTerm = term.replace(/\s+/g, '+');
-        console.log(`Iniciando búsqueda Google v1.3.8 (Intento ${retryCount + 1}) para: ${cleanTerm}`);
+        console.log(`Iniciando búsqueda Google v1.4.0 (Intento ${retryCount + 1}) para: ${cleanTerm}`);
         
         try {
           const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&searchType=image&q=${cleanTerm}&num=8`;
@@ -264,7 +264,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       const mainSearchTerm = queryParam || form.name;
       const hasGoogleKeys = !!(GOOGLE_API_KEY && GOOGLE_CX);
       if (hasGoogleKeys) {
-        // --- MODO ESTRICTO GOOGLE v1.3.8 (Con Fallback Automático) ---
+        // --- MODO ESTRICTO GOOGLE v1.4.0 (Con Fallback Automático) ---
         let gData = await searchGoogle(mainSearchTerm, 0);
         
         // Segundo intento con términos simplificados si el primero falló (o dio 403)
@@ -493,7 +493,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                 </button>
               ) : (
                 <div className="bg-sky-50 rounded-2xl p-4 border border-sky-100 animate-in fade-in slide-in-from-top-4">
-                  {/* --- PANEL DE DIAGNÓSTICO v1.3.8 --- */}
+                  {/* --- PANEL DE DIAGNÓSTICO v1.4.0 --- */}
                   <div className="mb-4 p-3 bg-white/80 rounded-xl border border-sky-200 text-[9px] font-mono leading-tight">
                     <div className="mb-2 pb-2 border-b border-sky-100">
                       <div className="flex justify-between mb-1">
@@ -744,7 +744,6 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
             </div>
           </div>
 
-          {/* Fila 4: Resultado Operativo */}
           <div style={{
             backgroundColor: '#f0f7ff',
             border: '1px solid #bae6fd',
@@ -765,11 +764,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                fontWeight: 800,
                color: '#0c4a6e'
             }}>
-              {form.purchase_format && form.purchase_price && parseFloat(form.purchase_format) > 0
-                ? `${(parseFloat(form.purchase_price) / parseFloat(form.purchase_format)).toFixed(2)}`
-                : ingredient.cost_per_unit
-                  ? `${parseFloat(ingredient.cost_per_unit).toFixed(2)}`
-                  : '0.00'}€ {form.unit_id ? `/ ${units.find(u => u.id === form.unit_id)?.name || ''}` : ''}
+              {(parseFloat(ingredient.cost_per_unit || 0) * 1000).toFixed(2)}€ / KG
             </div>
           </div>
 
@@ -999,22 +994,12 @@ export default function Ingredients() {
                   </p>
                 </div>
                 
-                {/* DERECHA: PRECIO */}
                 <div className="card-price-right">
                   <div className="price-main">
-                    {(() => {
-                      const cost = parseFloat(ingredient.cost_per_unit || 0);
-                      const unit = (ingredient.unit_name || '').toLowerCase();
-                      const isBaseUnit = ['g', 'ml', 'kg', 'l', 'kilo', 'litro'].some(u => unit.includes(u));
-                      
-                      if (isBaseUnit && cost > 0) {
-                        return `${(cost * 1000).toFixed(2)}€`;
-                      }
-                      return `${cost.toFixed(2)}€`;
-                    })()}
+                    {(parseFloat(ingredient.cost_per_unit || 0) * 1000).toFixed(2)}€
                   </div>
                   <div className="price-unit-label">
-                    / {ingredient.unit_name || 'unid'}
+                    / KG
                   </div>
                 </div>
 
