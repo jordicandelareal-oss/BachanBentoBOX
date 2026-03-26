@@ -243,8 +243,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
     let baseCost = 0;
     
     if (item.type === 'ingredient') {
-      const format = Number(item.purchase_format) || 1000;
-      baseCost = parseFloat(item.cost_per_unit || (item.purchase_price / format));
+      baseCost = parseFloat(item.cost_per_unit || 0);
     } else {
       const recipeCost = item.cost_per_portion || 0;
       baseCost = (normalized === 'g' || normalized === 'ml') ? (recipeCost / 1000) : recipeCost;
