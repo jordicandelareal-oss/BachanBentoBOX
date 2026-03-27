@@ -104,7 +104,10 @@ export function Preparations() {
                 <div>
                   <h3 className="card-title">{recipe?.name || 'Receta sin nombre'}</h3>
                   <p className="card-meta">
-                    Rinde: {recipe?.portions || 0} {recipe?.yield_scenario === 'weight' ? (recipe?.unit_name || 'Kg') : 'ud'}
+                    RINDE: {recipe?.yield_scenario === 'weight' 
+                      ? (recipe.net_yield >= 1000 ? `${(recipe.net_yield / 1000).toFixed(2)} Kg` : `${recipe.net_yield || 0} g`)
+                      : `${recipe?.portions || 0} ${recipe?.unit_name || 'ud'}`
+                    }
                     {(recipe?.platos_estimados > 0) && ` | 🍽️ ${recipe?.platos_estimados} platos`}
                   </p>
                 </div>
@@ -112,7 +115,9 @@ export function Preparations() {
               
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <div className="card-meta" style={{ fontSize: '10px' }}>Coste/Uni.</div>
+                  <div className="card-meta" style={{ fontSize: '10px' }}>
+                    {recipe?.yield_scenario === 'weight' ? 'Coste/Kg' : 'Coste/Uni.'}
+                  </div>
                   <div className="price-display">
                     {recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}
                   </div>
@@ -239,14 +244,26 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
   );
 
   const handleSelectComponent = (item) => {
-    const normalized = normalizeUnit(item.unit_name || (item.type === 'ingredient' ? 'g' : 'ud'));
+    // For ingredients: use the unit from DB (unit_name); never assume 'ud' if it's a weight unit
+    // For sub-recipes: if weight scenario → 'g', else 'ud'
+    let normalized;
     let baseCost = 0;
-    
+
     if (item.type === 'ingredient') {
-      baseCost = parseFloat(item.cost_per_unit || 0);
+      // Inherit unit from the ingredient's own unit_name field
+      normalized = normalizeUnit(item.unit_name || 'g');
+      // Prioritize net_cost_per_unit (which includes waste) over cost_per_unit
+      baseCost = parseFloat(item.net_cost_per_unit || item.cost_per_unit || 0);
     } else {
-      const recipeCost = item.cost_per_portion || 0;
-      baseCost = (normalized === 'g' || normalized === 'ml') ? (recipeCost / 1000) : recipeCost;
+      // Sub-elaboration: if it yields by weight, cost is already €/Kg → convert to €/g
+      const recipeCost = parseFloat(item.cost_per_portion || 0);
+      if (item.yield_scenario === 'weight') {
+        normalized = 'g';
+        baseCost = recipeCost / 1000; // €/Kg → €/g
+      } else {
+        normalized = 'ud';
+        baseCost = recipeCost;
+      }
     }
 
     addItem({
@@ -427,7 +444,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
               <div className="mt-10 pt-8 border-t border-slate-100">
                 <div className="cost-summary-card">
                   <div className="cost-item primary">
-                    <span className="label">Coste por {yieldScenario === 'weight' ? 'Kg/L' : 'Ración'}</span>
+                    <span className="label">Coste por {yieldScenario === 'weight' ? 'KG' : 'Ración'}</span>
                     <span className={`value ${totals.costPerPortion > 500 ? 'text-rose-600' : ''}`}>
                       {totals.costPerPortion.toFixed(2)} €
                     </span>

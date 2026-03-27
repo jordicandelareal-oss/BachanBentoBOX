@@ -4,10 +4,12 @@ import { supabase } from '../lib/supabaseClient'
 export const normalizeUnit = (unit) => {
   if (!unit) return 'g';
   const u = unit.toLowerCase().trim();
+  if (['g', 'gr', 'gramo', 'gramos', 'grs'].includes(u)) return 'g';
   if (['kg', 'kilo', 'kilos'].includes(u)) return 'g';
   if (['l', 'litro', 'litros'].includes(u)) return 'ml';
-  if (['ud', 'unid', 'unidad', 'unidades', 'rac', 'racion', 'uni'].includes(u)) return 'ud';
-  return unit;
+  if (['ml', 'mls', 'ml.'].includes(u)) return 'ml';
+  if (['ud', 'unid', 'unidad', 'unidades', 'rac', 'racion', 'uni', 'pz', 'pieza', 'piezas'].includes(u)) return 'ud';
+  return u;
 }
 
 export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
@@ -123,7 +125,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
       .select(`
         quantity,
         ingredient:ingredients(
-          id, name, purchase_price, unit_id, purchase_format,
+          id, name, purchase_price, net_cost_per_unit, cost_per_unit, unit_id, purchase_format,
           units:unit_id(name)
         ),
         child_recipe:recipes!recipe_ingredients_child_recipe_id_fkey(
@@ -146,7 +148,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
       if (isIngredient) {
         unitName = item.units?.name || 'g'
         normalizedUnit = normalizeUnit(unitName)
-        baseCost = parseFloat(item.cost_per_unit || 0);
+        baseCost = parseFloat(item.net_cost_per_unit || item.cost_per_unit || 0);
       } else {
         // LÓGICA DUAL PARA ELABORACIONES (HIJAS)
         // Si el escenario es peso, forzamos 'g' y dividimos el coste (que es por Kg) entre 1000
