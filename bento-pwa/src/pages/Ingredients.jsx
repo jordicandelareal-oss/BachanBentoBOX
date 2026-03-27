@@ -205,7 +205,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
         if (!GOOGLE_API_KEY || !GOOGLE_CX) return { items: [] };
         
         const cleanTerm = term.replace(/\s+/g, '+');
-        console.log(`Iniciando búsqueda Google v1.4.0 (Intento ${retryCount + 1}) para: ${cleanTerm}`);
+        console.log(`Iniciado búsqueda Google v1.4.1 (Intento ${retryCount + 1}) para: ${cleanTerm}`);
         
         try {
           const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&searchType=image&q=${cleanTerm}&num=8`;
@@ -264,7 +264,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       const mainSearchTerm = queryParam || form.name;
       const hasGoogleKeys = !!(GOOGLE_API_KEY && GOOGLE_CX);
       if (hasGoogleKeys) {
-        // --- MODO ESTRICTO GOOGLE v1.4.0 (Con Fallback Automático) ---
+        // --- MODO ESTRICTO GOOGLE v1.4.1 (Con Fallback Automático) ---
         let gData = await searchGoogle(mainSearchTerm, 0);
         
         // Segundo intento con términos simplificados si el primero falló (o dio 403)
@@ -429,6 +429,8 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Evita que se propague a los padres (ej. el overlay del modal)
+    
     const payload = {
       name: form.name,
       purchase_format: form.purchase_format ? parseFloat(form.purchase_format) : null,
@@ -441,6 +443,8 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       brand: form.brand || null,
       barcode: form.barcode || null,
     };
+
+    console.log('📝 [Form] Intentando guardar componente:', payload);
     await onSave(payload);
   };
 
@@ -856,17 +860,29 @@ export default function Ingredients() {
 
   const handleSave = async (payload) => {
     setSaving(true);
-    let result;
-    if (modal.isNew) {
-      result = await addIngredient(payload);
-    } else {
-      result = await updateIngredient(modal.ingredient.id, payload);
-    }
-    setSaving(false);
-    if (!result.success) {
-      alert('Error al guardar: ' + result.error);
-    } else {
-      closeModal();
+    console.log('🚀 [Supabase] Ejecutando guardado con payload:', payload);
+    
+    try {
+      let result;
+      if (modal.isNew) {
+        result = await addIngredient(payload);
+      } else {
+        result = await updateIngredient(modal.ingredient.id, payload);
+      }
+      
+      setSaving(false);
+      
+      if (!result.success) {
+        console.error('❌ [Supabase] Error en la respuesta:', result.error);
+        alert('Error al guardar: ' + result.error);
+      } else {
+        console.log('✅ [Supabase] Guardado con éxito');
+        closeModal();
+      }
+    } catch (err) {
+      setSaving(false);
+      console.error('🔥 [Critical] Error inesperado en handleSave:', err);
+      alert('Error inesperado al intentar guardar: ' + err.message);
     }
   };
 

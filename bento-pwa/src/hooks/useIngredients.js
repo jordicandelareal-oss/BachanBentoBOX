@@ -7,9 +7,6 @@ export function useIngredients() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    console.log("🔍 [Supabase] Iniciando conexión...");
-    console.log("🔍 [Supabase] URL:", import.meta.env.VITE_SUPABASE_URL);
-
     fetchIngredients()
 
     const channel = supabase
@@ -23,9 +20,7 @@ export function useIngredients() {
           setIngredients(prev => prev.filter(i => i.id !== payload.old.id))
         }
       })
-      .subscribe((status) => {
-        console.log("🔍 [Supabase Realtime] Status:", status);
-      })
+      .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
