@@ -3,6 +3,7 @@ import { useBentoMaker, normalizeUnit } from '../../hooks/useBentoMaker';
 import { useIngredients } from '../../hooks/useIngredients';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useUnits } from '../../hooks/useUnits';
+import { useMenuCategories } from '../../hooks/useMenuCategories';
 import { 
   Carrot, CookingPot, Plus, X, Save, ChevronRight, 
   TrendingUp, TrendingDown, DollarSign, Target, 
@@ -21,9 +22,11 @@ export default function BentoMaker({ recipe = null, onClose }) {
     unitId, setUnitId,
     items, addItem, updateItemQuantity, removeItem,
     totals, saveBento, loadRecipeItems,
-    imageUrl, setImageUrl
+    imageUrl, setImageUrl,
+    menuCategoryId, setMenuCategoryId
   } = useBentoMaker(recipe, 'bento');
   
+  const { categories: menuCategories } = useMenuCategories();
   const { units } = useUnits();
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -50,9 +53,9 @@ export default function BentoMaker({ recipe = null, onClose }) {
   const handleNumPadChange = (val) => {
     if (!numPad) return;
     if (numPad.field === 'salePrice') {
-      setSalePrice(val === '' ? '' : Number(val));
+      setSalePrice(val === '' ? '' : val);
     } else if (numPad.field === 'portions') {
-      setPortions(val === '' ? '' : Number(val));
+      setPortions(val === '' ? '' : val);
     } else {
       updateItemQuantity(numPad.field, val);
     }
@@ -169,6 +172,19 @@ export default function BentoMaker({ recipe = null, onClose }) {
                 />
               </div>
               <div className="md:col-span-6 lg:col-span-3">
+                <label className="form-label">Categoría del Menú</label>
+                <select
+                  value={menuCategoryId}
+                  onChange={e => setMenuCategoryId(e.target.value)}
+                  className="form-input-premium form-select-premium"
+                >
+                  <option value="">Selecciona categoría</option>
+                  {menuCategories.filter(c => c.is_active).map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-6 lg:col-span-3">
                 <label className="form-label">PVP Sugerido</label>
                 <div 
                   className="numpad-control bg-white pr-10 relative"
@@ -250,7 +266,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
                           onClick={() => openNumPad(item._key, `${item.name} (${item.unit})`)}
                         >
                           <span className="w-16 text-right py-2 text-sm font-black text-[#0f172a]">
-                            {item.quantity || '0'}
+                            {item.quantity !== undefined && item.quantity !== '' ? Number(item.quantity).toLocaleString('es-ES', { maximumFractionDigits: 3 }) : '0'}
                           </span>
                           <span className="text-[10px] font-black text-slate-400 px-2 uppercase">{item.unit === 'ud' ? 'pzs' : item.unit}</span>
                         </div>

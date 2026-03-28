@@ -108,6 +108,7 @@ export function useRecipes(type = null) {
             price: Number(recipe.sale_price || recipe.cost_per_portion || 0),
             image_url: recipe.image_url || '',
             recipe_id: recipeId,
+            menu_category_id: recipe.menu_category_id || null,
             is_active: true
           };
           await supabase.from('menu_items').upsert([menuItem]);

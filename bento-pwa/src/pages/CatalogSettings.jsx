@@ -3,7 +3,7 @@ import { useCatalogSettings } from '../hooks/useCatalogSettings';
 import { 
   Settings, Folder, Tag, ChefHat, Plus, 
   Trash2, Edit2, Check, X, Loader2, ArrowLeft,
-  ChevronRight
+  ChevronRight, BookOpen
 } from 'lucide-react';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import { useNavigate } from 'react-router-dom';
@@ -11,16 +11,27 @@ import '../styles/Common.css';
 import './CatalogSettings.css';
 
 const TABS = [
+  { id: 'menu', label: 'Menú: Categorías', icon: BookOpen, table: 'menu_categories' },
   { id: 'cats', label: 'Insumos: Categorías', icon: Folder, table: 'categories' },
   { id: 'subs', label: 'Insumos: Subcategorías', icon: Tag, table: 'subcategories' },
   { id: 'preps', label: 'Elaboraciones: Categorías', icon: ChefHat, table: 'preparation_categories' }
 ];
+
+import { useMenuCategories } from '../hooks/useMenuCategories';
 
 export default function CatalogSettings() {
   const { 
     categories, subcategories, prepCategories, 
     loading, error, addItem, updateItem, deleteItem 
   } = useCatalogSettings();
+  
+  const {
+    categories: menuCategories,
+    loading: menuLoading,
+    addCategory: addMenuCategory,
+    updateCategory: updateMenuCategory,
+    deleteCategory: deleteMenuCategory
+  } = useMenuCategories();
   
   const [activeTab, setActiveTab] = useState('cats');
   const [newItemName, setNewItemName] = useState('');
@@ -34,6 +45,7 @@ export default function CatalogSettings() {
   const currentTab = TABS.find(t => t.id === activeTab);
 
   const getItems = () => {
+    if (activeTab === 'menu') return menuCategories;
     if (activeTab === 'cats') return categories;
     if (activeTab === 'subs') {
       return subcategories.filter(s => !selectedParentId || s.category_id === selectedParentId);
@@ -47,11 +59,17 @@ export default function CatalogSettings() {
     if (activeTab === 'subs' && !selectedParentId) return alert('Selecciona una categoría padre');
 
     setIsActionLoading(true);
-    const payload = activeTab === 'subs' 
-      ? { name: newItemName, category_id: selectedParentId }
-      : activeTab === 'preps' ? { Name: newItemName } : { name: newItemName };
-    
-    const result = await addItem(currentTab.table, payload);
+    let result;
+    if (activeTab === 'menu') {
+      result = await addMenuCategory(newItemName);
+    } else {
+      const payload = activeTab === 'subs' 
+        ? { name: newItemName, category_id: selectedParentId }
+        : activeTab === 'preps' ? { Name: newItemName } : { name: newItemName };
+      
+      result = await addItem(currentTab.table, payload);
+    }
+
     if (result.success) setNewItemName('');
     setIsActionLoading(false);
   };
@@ -59,16 +77,25 @@ export default function CatalogSettings() {
   const handleUpdate = async (id) => {
     if (!editValue.trim()) return setEditingId(null);
     setIsActionLoading(true);
-    const fieldName = activeTab === 'preps' ? 'Name' : 'name';
-    const result = await updateItem(currentTab.table, id, { [fieldName]: editValue });
-    if (result.success) setEditingId(null);
+    if (activeTab === 'menu') {
+      const result = await updateMenuCategory(id, { name: editValue });
+      if (result.success) setEditingId(null);
+    } else {
+      const fieldName = activeTab === 'preps' ? 'Name' : 'name';
+      const result = await updateItem(currentTab.table, id, { [fieldName]: editValue });
+      if (result.success) setEditingId(null);
+    }
     setIsActionLoading(false);
   };
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
     setIsActionLoading(true);
-    await deleteItem(confirmDelete.table, confirmDelete.id);
+    if (confirmDelete.table === 'menu_categories') {
+      await deleteMenuCategory(confirmDelete.id);
+    } else {
+      await deleteItem(confirmDelete.table, confirmDelete.id);
+    }
     setConfirmDelete(null);
     setIsActionLoading(false);
   };
@@ -139,7 +166,7 @@ export default function CatalogSettings() {
           ) : (
             <div className="settings-list">
               {getItems().map(item => (
-                <div key={item.id} className="settings-item">
+                <div key={item.id} className="settings-item flex justify-between">
                   {editingId === item.id ? (
                     <div className="flex flex-1 gap-2 items-center">
                       <input 
@@ -149,27 +176,32 @@ export default function CatalogSettings() {
                         onChange={e => setEditValue(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleUpdate(item.id)}
                       />
-                      <button onClick={() => handleUpdate(item.id)} className="text-emerald-500 p-2"><Check size={18} /></button>
-                      <button onClick={() => setEditingId(null)} className="text-slate-300 p-2"><X size={18} /></button>
+                      <button type="button" onClick={() => handleUpdate(item.id)} className="text-emerald-500 p-2"><Check size={18} /></button>
+                      <button type="button" onClick={() => setEditingId(null)} className="text-slate-300 p-2"><X size={18} /></button>
                     </div>
                   ) : (
                     <>
-                      <div className="flex-1">
+                      <div className="flex-1 flex items-center">
                         <span className="settings-item-name">{item.name || item.Name}</span>
                         {activeTab === 'subs' && !selectedParentId && (
                           <span className="settings-item-parent">
                             · {categories.find(c => c.id === item.category_id)?.name || '...'}
                           </span>
                         )}
+                        {activeTab === 'menu' && (
+                          <span className="text-[10px] font-black uppercase bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full ml-3 tracking-widest leading-none flex items-center h-5">Orden: {item.sort_order}</span>
+                        )}
                       </div>
                       <div className="flex gap-1">
                         <button 
+                          type="button"
                           onClick={() => { setEditingId(item.id); setEditValue(item.name || item.Name); }}
                           className="settings-action-btn edit"
                         >
                           <Edit2 size={16} />
                         </button>
                         <button 
+                          type="button"
                           onClick={() => setConfirmDelete({ id: item.id, table: currentTab.table, name: item.name || item.Name })}
                           className="settings-action-btn delete"
                         >

@@ -444,6 +444,30 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       barcode: form.barcode || null,
     };
 
+    console.log('Formulario enviado', payload);
+
+    // Validaciones manuales con alertas específicas
+    if (!form.name || form.name.trim() === '') {
+      alert('Por favor, indica el nombre del ingrediente.');
+      return;
+    }
+    if (form.purchase_price === '' || form.purchase_price === null) {
+      alert('Falta el precio de compra.');
+      return;
+    }
+    if (!form.category_id) {
+      alert('Selecciona una categoría.');
+      return;
+    }
+    if (!form.subcategory_id) {
+      alert('Selecciona una subcategoría.');
+      return;
+    }
+    if (!form.unit_id) {
+      alert('Selecciona una unidad.');
+      return;
+    }
+
     console.log('📝 [Form] Intentando guardar componente:', payload);
     await onSave(payload);
   };
@@ -774,7 +798,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
           <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn-primary" disabled={loading || !canSave}>
+            <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               {isNew ? 'Añadir' : 'Guardar'}
             </button>
@@ -874,7 +898,7 @@ export default function Ingredients() {
       
       if (!result.success) {
         console.error('❌ [Supabase] Error en la respuesta:', result.error);
-        alert('Error al guardar: ' + result.error);
+        alert(result.error); // Mensaje exacto de Supabase
       } else {
         console.log('✅ [Supabase] Guardado con éxito');
         closeModal();
@@ -882,7 +906,7 @@ export default function Ingredients() {
     } catch (err) {
       setSaving(false);
       console.error('🔥 [Critical] Error inesperado en handleSave:', err);
-      alert('Error inesperado al intentar guardar: ' + err.message);
+      alert(err.message); // Mensaje exacto de error
     }
   };
 

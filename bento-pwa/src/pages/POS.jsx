@@ -26,6 +26,7 @@ import {
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useMenuCategories } from '../hooks/useMenuCategories';
 
 class SmartTouchSensor extends TouchSensor {
   static activators = [
@@ -79,7 +80,14 @@ function SortableProduct({ id, isEmpty, children, onClick }) {
 export default function POS() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('bentos');
+  const { categories } = useMenuCategories();
+  const [activeCategory, setActiveCategory] = useState(null);
+
+  useEffect(() => {
+    if (categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0].id);
+    }
+  }, [categories, activeCategory]);
   const [cart, setCart] = useState(() => {
     const saved = localStorage.getItem('bachan_tpv_cart');
     return saved ? JSON.parse(saved) : [];
@@ -165,13 +173,7 @@ export default function POS() {
 
   // 2. PRODUCT REORDERING (Modo Edición)
   const moveProduct = async (id, direction) => {
-    const visibleProducts = products.filter(p => {
-       const type = p.recipe_type?.toLowerCase() || p.category?.toLowerCase();
-       if (activeCategory === 'bentos') return type === 'bento';
-       if (activeCategory === 'bebidas') return type === 'bebida';
-       if (activeCategory === 'extras') return type === 'extra';
-       return true;
-    });
+    const visibleProducts = products.filter(p => p.menu_category_id === activeCategory);
 
     const index = visibleProducts.findIndex(p => p.id === id);
     if (index === -1) return;
@@ -211,13 +213,7 @@ export default function POS() {
     if (!over || active.id === over.id) return;
     
     // 1. Get visible products for the category
-    const visibleProducts = products.filter(p => {
-       const type = p.recipe_type?.toLowerCase() || p.category?.toLowerCase();
-       if (activeCategory === 'bentos') return type === 'bento';
-       if (activeCategory === 'bebidas') return type === 'bebida';
-       if (activeCategory === 'extras') return type === 'extra';
-       return true;
-    });
+    const visibleProducts = products.filter(p => p.menu_category_id === activeCategory);
 
     // 2. Build the 16-slot grid
     const gridItems = Array(16).fill(null);
@@ -363,19 +359,7 @@ export default function POS() {
   };
 
   // 4. FILTERS & GRID
-  const categories = [
-    { id: 'bentos', label: 'Bentos', icon: <Utensils size={18} /> },
-    { id: 'bebidas', label: 'Bebidas', icon: <Coffee size={18} /> },
-    { id: 'extras', label: 'Extras', icon: <Sparkles size={18} /> }
-  ];
-
-  const filteredProducts = products.filter(p => {
-    const type = p.recipe_type?.toLowerCase() || p.category?.toLowerCase();
-    if (activeCategory === 'bentos') return type === 'bento';
-    if (activeCategory === 'bebidas') return type === 'bebida';
-    if (activeCategory === 'extras') return type === 'extra';
-    return true;
-  });
+  const filteredProducts = products.filter(p => p.menu_category_id === activeCategory);
 
   const gridItems = Array(16).fill(null);
   const unplaced = [];
@@ -415,13 +399,13 @@ export default function POS() {
              </div>
           </div>
           <nav className="h-12 flex px-4 gap-1 bg-slate-50 border-t border-slate-100">
-             {categories.map(cat => (
+             {categories.filter(c => c.is_active).map(cat => (
                <button
                  key={cat.id}
                  onClick={() => setActiveCategory(cat.id)}
                  className={`px-6 h-full font-black text-[10px] uppercase tracking-widest transition-all border-b-4 ${activeCategory === cat.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                >
-                  {cat.label}
+                  {cat.name}
                </button>
              ))}
           </nav>

@@ -18,6 +18,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   const [portions, setPortions] = useState(initialRecipe?.portions || 1)
   const [unitId, setUnitId] = useState(initialRecipe?.Unid_Id || '')
   const [prepCategoryId, setPrepCategoryId] = useState(initialRecipe?.preparation_category_Id || '')
+  const [menuCategoryId, setMenuCategoryId] = useState(initialRecipe?.menu_category_id || '')
   const [yieldScenario, setYieldScenario] = useState(initialRecipe?.yield_scenario || 'units')
   const [adjustmentPercent, setAdjustmentPercent] = useState(initialRecipe?.adjustment_percent || 0)
   const [netYield, setNetYield] = useState(initialRecipe?.net_yield || null)
@@ -67,7 +68,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   }
 
   const updateItemQuantity = (key, qty) => {
-    setItems(prev => prev.map(i => i._key === key ? { ...i, quantity: Number(qty) } : i))
+    setItems(prev => prev.map(i => i._key === key ? { ...i, quantity: qty } : i))
   }
 
   const removeItem = (key) => {
@@ -85,6 +86,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
         recipe_type: recipeType,
         sale_price: recipeType === 'elaboracion' ? 0 : salePrice,
         preparation_category_Id: prepCategoryId || null,
+        menu_category_id: menuCategoryId || null,
         portions: portions,
         Unid_Id: unitId || null,
         yield_scenario: yieldScenario,
@@ -107,7 +109,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
       recipe_id: recipeId,
       ingredient_id: item.type === 'ingredient' ? item.id : null,
       child_recipe_id: item.type === 'recipe' ? item.id : null,
-      quantity: item.quantity
+      quantity: Number(item.quantity) || 0
     }))
 
     // 3. Clear old items and insert new ones
@@ -189,6 +191,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
     portions, setPortions,
     unitId, setUnitId,
     prepCategoryId, setPrepCategoryId,
+    menuCategoryId, setMenuCategoryId,
     items, addItem, updateItemQuantity, removeItem,
     totals,
     yieldScenario, setYieldScenario,
