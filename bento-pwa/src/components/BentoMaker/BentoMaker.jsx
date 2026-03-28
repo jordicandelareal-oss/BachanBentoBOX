@@ -106,7 +106,8 @@ export default function BentoMaker({ recipe = null, onClose }) {
   };
 
   const handleSave = async () => {
-    if (!bentoName) return alert("Indica un nombre para el Bento");
+    if (!bentoName) return alert("Indica un nombre para el Producto");
+    if (!menuCategoryId) return alert("Selecciona una Categoría de Menú obligatoria.");
     setIsSaving(true);
     try {
       await saveBento();
@@ -134,16 +135,16 @@ export default function BentoMaker({ recipe = null, onClose }) {
       )}
       <div className="page-header">
         <div>
-          <h1 className="page-title">{recipe ? 'Editar Bento' : 'Bento Maker'}</h1>
-          <p className="page-subtitle">Diseña productos finales y analiza rentabilidad</p>
+          <h1 className="page-title">{recipe ? 'Editar Producto' : 'Editor de Producto'}</h1>
+          <p className="page-subtitle">Diseña productos finales y asígnales una categoría</p>
         </div>
         <button 
           className={`btn-primary ${isSaved ? 'bg-emerald-500' : ''}`} 
           onClick={handleSave}
-          disabled={isSaving || isSaved || !bentoName || items.length === 0}
+          disabled={isSaving || isSaved || !bentoName || !menuCategoryId || items.length === 0}
         >
           {isSaving ? '...' : isSaved ? '¡Guardado! ✓' : <Save size={20} />}
-          <span>{isSaving ? 'Guardando' : isSaved ? '' : 'Guardar Bento'}</span>
+          <span>{isSaving ? 'Guardando' : isSaved ? '' : 'Guardar Producto'}</span>
         </button>
       </div>
 
@@ -168,7 +169,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
                   value={bentoName} 
                   onChange={e => setBentoName(e.target.value)}
                   className="form-input-premium"
-                  placeholder="Ej: Bento Teriyaki Premium..."
+                  placeholder="Ej: Bandeja Premium..."
                 />
               </div>
               <div className="md:col-span-6 lg:col-span-3">

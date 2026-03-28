@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChefHat, Plus, TrendingUp, TrendingDown, Target, LayoutGrid, Trash2, Camera, CheckCircle2 } from 'lucide-react';
 
 import { useRecipes } from '../hooks/useRecipes';
+import { useMenuCategories } from '../hooks/useMenuCategories';
 
 import BentoMaker from '../components/BentoMaker/BentoMaker';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
@@ -10,6 +11,7 @@ import '../styles/Common.css';
 
 export default function BentoPage() {
   const { recipes: bentos, loading, deleteRecipe, fetchRecipes, togglePublish } = useRecipes('bento');
+  const { categories: menuCategories } = useMenuCategories();
   const [editingBento, setEditingBento] = useState(false); // false (list), true (new), or object (edit)
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [lightbox, setLightbox] = useState({ isOpen: false, imageUrl: '', title: '' });
@@ -53,9 +55,9 @@ export default function BentoPage() {
             <span className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg">
               <ChefHat size={24} />
             </span>
-            Bento Box
+            Gestor de Menú
           </h1>
-          <p className="page-subtitle">Gestiona tus productos finales y analiza márgenes</p>
+          <p className="page-subtitle">Organiza tu carta y gestiona productos finales</p>
         </div>
         <button className="btn-icon-main" onClick={handleCreateNew}>
           <Plus size={24} />
@@ -69,80 +71,147 @@ export default function BentoPage() {
           ))}
         </div>
       ) : (
-        <div className="card-grid">
-          {bentos.map(bento => {
-            const cost = typeof bento.cost_per_portion === 'number' ? bento.cost_per_portion : 0;
-            const salePrice = bento.sale_price || 0;
-            const margin = salePrice > 0 ? ((salePrice - cost) / salePrice) * 100 : 0;
-            const isGoodMargin = margin >= 70;
-
+        <div className="menu-sections space-y-12">
+          {menuCategories.map(category => {
+            const categoryItems = bentos.filter(b => b.menu_category_id === category.id);
+            if (categoryItems.length === 0) return null;
+            
             return (
-              <div key={bento.id} className="premium-card" onClick={() => handleEdit(bento)}>
-                <div className="ingredient-info">
-                  <div className="card-icon-wrapper" style={{ width: '56px', height: '56px' }}>
-                    <Target size={24} className="text-sky-500" />
-                  </div>
-                  <div>
-                    <h3 className="card-title text-lg">{bento.name}</h3>
-                    <div className="flex gap-4 mt-1">
-                      <p className="card-meta">PVP: {salePrice.toFixed(2)}€</p>
-                      <p className="card-meta">Coste: {cost.toFixed(2)}€</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="text-right flex flex-col items-end">
-                    <div className="card-meta mb-1 uppercase tracking-widest text-[9px]">Margen</div>
-                    <div className="flex items-center gap-2">
-                       {isGoodMargin ? (
-                         <TrendingUp size={16} className="text-emerald-500" />
-                       ) : (
-                         <TrendingDown size={16} className="text-amber-500" />
-                       )}
-                       <div className={`price-display text-xl ${isGoodMargin ? 'text-emerald-600' : 'text-amber-600'}`}>
-                         {margin.toFixed(1)}%
-                       </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <button 
-                      className={`p-2 rounded-full transition-all ${bento.is_published ? 'bg-emerald-50 text-emerald-500' : 'text-slate-200 hover:bg-slate-50'}`}
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const result = await togglePublish(bento.id, bento.is_published);
-                        if (!result.success) alert(result.error);
-                      }}
-                      title={bento.is_published ? "Publicado en Tienda" : "Publicar en Tienda"}
-                    >
-                      <CheckCircle2 size={20} />
-                    </button>
-                    <button 
-                      className="delete-btn-subtle"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setConfirmDelete(bento.id);
-                      }}
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                    {bento.image_url && (
-                      <button 
-                        className="p-2 text-sky-500 hover:bg-sky-50 rounded-full transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setLightbox({ isOpen: true, imageUrl: bento.image_url, title: bento.name });
-                        }}
-                      >
-                        <Camera size={20} />
-                      </button>
-                    )}
-                  </div>
+              <div key={category.id} className="menu-category-section">
+                <h2 className="text-xl font-bold text-slate-800 mb-6 border-b border-slate-200 pb-2">{category.name}</h2>
+                <div className="card-grid">
+                  {categoryItems.map(bento => {
+                    const cost = typeof bento.cost_per_portion === 'number' ? bento.cost_per_portion : 0;
+                    const salePrice = bento.sale_price || 0;
+                    const margin = salePrice > 0 ? ((salePrice - cost) / salePrice) * 100 : 0;
+                    const isGoodMargin = margin >= 70;
 
+                    return (
+                      <div key={bento.id} className="premium-card" onClick={() => handleEdit(bento)}>
+                        <div className="ingredient-info">
+                          <div className="card-icon-wrapper" style={{ width: '56px', height: '56px' }}>
+                            <Target size={24} className="text-sky-500" />
+                          </div>
+                          <div>
+                            <h3 className="card-title text-lg">{bento.name}</h3>
+                            <div className="flex gap-4 mt-1">
+                              <p className="card-meta">PVP: {salePrice.toFixed(2)}€</p>
+                              <p className="card-meta">Coste: {cost.toFixed(2)}€</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                          <div className="text-right flex flex-col items-end">
+                            <div className="card-meta mb-1 uppercase tracking-widest text-[9px]">Margen</div>
+                            <div className="flex items-center gap-2">
+                               {isGoodMargin ? (
+                                 <TrendingUp size={16} className="text-emerald-500" />
+                               ) : (
+                                 <TrendingDown size={16} className="text-amber-500" />
+                               )}
+                               <div className={`price-display text-xl ${isGoodMargin ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                 {margin.toFixed(1)}%
+                               </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <button 
+                              className={`p-2 rounded-full transition-all ${bento.is_published ? 'bg-emerald-50 text-emerald-500' : 'text-slate-200 hover:bg-slate-50'}`}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const result = await togglePublish(bento.id, bento.is_published);
+                                if (!result.success) alert(result.error);
+                              }}
+                              title={bento.is_published ? "Publicado en Tienda" : "Publicar en Tienda"}
+                            >
+                              <CheckCircle2 size={20} />
+                            </button>
+                            <button 
+                              className="delete-btn-subtle"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDelete(bento.id);
+                              }}
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                            {bento.image_url && (
+                              <button 
+                                className="p-2 text-sky-500 hover:bg-sky-50 rounded-full transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLightbox({ isOpen: true, imageUrl: bento.image_url, title: bento.name });
+                                }}
+                              >
+                                <Camera size={20} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
           })}
+          
+          {bentos.filter(b => !b.menu_category_id).length > 0 && (
+              <div className="menu-category-section">
+                <h2 className="text-xl font-bold text-slate-800 mb-6 border-b border-slate-200 pb-2">Sin Categorizar</h2>
+                <div className="card-grid">
+                  {bentos.filter(b => !b.menu_category_id).map(bento => {
+                    const cost = typeof bento.cost_per_portion === 'number' ? bento.cost_per_portion : 0;
+                    const salePrice = bento.sale_price || 0;
+                    const margin = salePrice > 0 ? ((salePrice - cost) / salePrice) * 100 : 0;
+                    const isGoodMargin = margin >= 70;
+
+                    return (
+                      <div key={bento.id} className="premium-card" onClick={() => handleEdit(bento)}>
+                        <div className="ingredient-info">
+                          <div className="card-icon-wrapper" style={{ width: '56px', height: '56px' }}>
+                            <Target size={24} className="text-sky-500" />
+                          </div>
+                          <div>
+                            <h3 className="card-title text-lg">{bento.name}</h3>
+                            <div className="flex gap-4 mt-1">
+                              <p className="card-meta">PVP: {salePrice.toFixed(2)}€</p>
+                              <p className="card-meta">Coste: {cost.toFixed(2)}€</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                          <div className="flex flex-col gap-2">
+                            <button 
+                              className={`p-2 rounded-full transition-all ${bento.is_published ? 'bg-emerald-50 text-emerald-500' : 'text-slate-200 hover:bg-slate-50'}`}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const result = await togglePublish(bento.id, bento.is_published);
+                                if (!result.success) alert(result.error);
+                              }}
+                              title={bento.is_published ? "Publicado en Tienda" : "Publicar en Tienda"}
+                            >
+                              <CheckCircle2 size={20} />
+                            </button>
+                            <button 
+                              className="delete-btn-subtle"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDelete(bento.id);
+                              }}
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+          )}
 
           {bentos.length === 0 && (
             <div className="text-center py-12" style={{ textAlign: 'center', padding: '48px 0' }}>

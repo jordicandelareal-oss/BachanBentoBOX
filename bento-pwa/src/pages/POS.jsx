@@ -157,9 +157,18 @@ export default function POS() {
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+
+    // Watch recipes for any changes (e.g. changing category)
+    const channel = supabase.channel('pos-recipes-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recipes' }, () => {
+        fetchProducts(true); // Force re-fetch from network
+      })
+      .subscribe();
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      supabase.removeChannel(channel);
     };
   }, []);
 
