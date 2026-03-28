@@ -218,9 +218,9 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
   const handleNumPadChange = (val) => {
     if (!numPad) return;
     if (numPad.field === 'portions') {
-      setPortions(val === '' ? '' : Number(val));
+      setPortions(val === '' ? '' : val);
     } else if (numPad.field === 'platos') {
-      setPlatosEstimados(val === '' ? 0 : Number(val));
+      setPlatosEstimados(val === '' ? 0 : val);
     } else {
       // ingredient quantity
       updateItemQuantity(numPad.field, val);
@@ -419,9 +419,10 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
                     <input 
                       type="number" 
                       value={portions || ''} 
-                      onChange={e => setPortions(e.target.value === '' ? '' : Number(e.target.value))}
+                      onChange={e => setPortions(e.target.value === '' ? '' : e.target.value)}
                       className="form-input-premium"
                       placeholder="Cant. piezas"
+                      step="any"
                     />
                   </div>
                   <div className="form-group">
@@ -563,7 +564,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
                             openNumPad(item._key, `${item.name} (${item.unit})`);
                           }}
                         >
-                          <span className="w-16 text-right text-sm font-black text-navy">{item.quantity}</span>
+                          <span className="w-16 text-right text-sm font-black text-navy">{item.quantity !== undefined && item.quantity !== '' ? Number(item.quantity).toLocaleString('es-ES', { maximumFractionDigits: 3 }) : '0'}</span>
                           <span className="text-[10px] font-black text-slate-400 px-2 uppercase">{item.unit}</span>
                         </div>
                         

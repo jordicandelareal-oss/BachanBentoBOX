@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useIngredients } from '../hooks/useIngredients'
 import { useRecipes } from '../hooks/useRecipes'
 import { processCommand } from '../lib/geminiClient'
-import { Box, CookingPot, Carrot, Sparkles, Settings } from 'lucide-react'
+import { BookOpen, CookingPot, Carrot, Sparkles, Settings } from 'lucide-react'
 import pkg from '../../package.json'
 import NanaOverlay from './Nana/NanaOverlay'
 import AIActionSheet from './Nana/AIActionSheet'
@@ -129,7 +129,7 @@ export default function Layout() {
           <div className="nav-top-row">
             <NavLink to="/" className="nav-brand">🍱 BaChan</NavLink>
             <div className="desktop-nav">
-              <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Bentos</NavLink>
+              <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Menú</NavLink>
               <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
               <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
               <NavLink to="/settings" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Categorías</NavLink>
@@ -138,8 +138,8 @@ export default function Layout() {
           
           <nav className="mobile-icon-nav">
             <NavLink to="/bento-maker" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
-              <Box size={22} />
-              <span>Bentos</span>
+              <BookOpen size={22} />
+              <span>Menú</span>
             </NavLink>
             <NavLink to="/preparations" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
               <CookingPot size={22} />

@@ -2,20 +2,11 @@ import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import AIActionSheet from '../components/Nana/AIActionSheet';
 import './Home.css';
-import { SquareMenu, CookingPot, Carrot, Sparkles, ShoppingBag, TrendingUp } from 'lucide-react';
+import { SquareMenu, CookingPot, Carrot, Sparkles, ShoppingBag, TrendingUp, BookOpen } from 'lucide-react';
 
 
 
-const BentoIcon = () => (
-  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-    <path d="M3 12h18M12 3v18M12 12l9 9M12 12L3 21" opacity="0.2" />
-    <rect x="5" y="5" width="6" height="6" rx="1" />
-    <rect x="13" y="5" width="6" height="6" rx="1" />
-    <rect x="5" y="13" width="6" height="6" rx="1" />
-    <rect x="13" y="13" width="6" height="6" rx="1" />
-  </svg>
-);
+const BentoIcon = () => <BookOpen size={42} strokeWidth={1.2} />
 const ChefIcon = () => <CookingPot size={42} strokeWidth={1.2} />;
 const IngredientsIcon = () => <Carrot size={42} strokeWidth={1.2} />;
 
@@ -50,9 +41,8 @@ export default function Home() {
 
     {
       id: 'bentos',
-
-      title: 'Bentos',
-      desc: 'Catálogo de productos finales y rentabilidad',
+      title: 'Menú',
+      desc: 'Catálogo de productos finales y categorías',
       icon: <BentoIcon />,
       path: '/bento-maker'
     },
