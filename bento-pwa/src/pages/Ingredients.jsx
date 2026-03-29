@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { supabase } from '../lib/supabaseClient';
-import { Carrot, Search, Plus, AlertCircle, Loader2, ChevronRight, X, Save, Trash2, Camera, Scan, Image as ImageIcon, RotateCcw, Sparkles } from 'lucide-react';
+import { Carrot, Search, Plus, AlertCircle, Loader2, ChevronRight, X, Save, Trash2, Camera, Scan, Image as ImageIcon, RotateCcw, Sparkles, Scale, Package } from 'lucide-react';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import NumPad from '../components/Common/NumPad';
 import { compressImage, uploadImage, blobToBase64 } from '../lib/imageUtils';
@@ -33,6 +33,8 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     image_url: ingredient.image_url || '',
     brand: ingredient.brand || '',
     barcode: ingredient.barcode || '',
+    calculation_type: ingredient.calculation_type || 'peso',
+    waste_percentage: ingredient.waste_percentage || 0,
   });
 
   const [scanning, setScanning] = useState(false);
@@ -431,10 +433,23 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     e.preventDefault();
     e.stopPropagation(); // Evita que se propague a los padres (ej. el overlay del modal)
     
+    const format = form.purchase_format ? parseFloat(form.purchase_format) : 0;
+    const price = form.purchase_price !== '' ? parseFloat(form.purchase_price) : 0;
+    let finalCost = 0;
+    
+    if (format > 0) {
+      if (form.calculation_type === 'unidad') {
+        finalCost = price / format;
+      } else {
+        const merma = form.waste_percentage ? parseFloat(form.waste_percentage) : 0;
+        finalCost = price / (format * (1 - merma / 100));
+      }
+    }
+
     const payload = {
       name: form.name,
-      purchase_format: form.purchase_format ? parseFloat(form.purchase_format) : null,
-      purchase_price: form.purchase_price !== '' ? parseFloat(form.purchase_price) : null,
+      purchase_format: format || null,
+      purchase_price: price || null,
       provider: form.provider || null,
       unit_id: form.unit_id || null,
       category_id: form.category_id || null,
@@ -442,6 +457,9 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       image_url: form.image_url || null,
       brand: form.brand || null,
       barcode: form.barcode || null,
+      calculation_type: form.calculation_type,
+      waste_percentage: form.waste_percentage || 0,
+      cost_per_unit: finalCost,
     };
 
     console.log('Formulario enviado', payload);
@@ -463,14 +481,23 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       alert('Selecciona una subcategoría.');
       return;
     }
-    if (!form.unit_id) {
-      alert('Selecciona una unidad.');
-      return;
-    }
+    // Eliminamos validación de unit_id ya que usamos calculation_type
 
     console.log('📝 [Form] Intentando guardar componente:', payload);
     await onSave(payload);
   };
+
+  const formatVal = parseFloat(form.purchase_format) || 0;
+  const priceVal = parseFloat(form.purchase_price) || 0;
+  let dynamicCost = 0;
+  if (formatVal > 0) {
+    if (form.calculation_type === 'unidad') {
+      dynamicCost = priceVal / formatVal;
+    } else {
+      const mermaVal = parseFloat(form.waste_percentage) || 0;
+      dynamicCost = priceVal / (formatVal * (1 - mermaVal / 100));
+    }
+  }
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -728,7 +755,12 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
           {/* Fila 2: Datos de Factura */}
           <div className="form-row mb-4">
             <div className="form-group">
-              <label className="form-label text-slate-500">Formato de Compra</label>
+              <label className="form-label text-slate-500">
+                Formato de Compra{' '}
+                <span className="text-slate-400 font-normal text-[10px]">
+                  {form.calculation_type === 'unidad' ? '(unidades/piezas)' : '(en gramos)'}
+                </span>
+              </label>
               <div 
                 className="numpad-control bg-slate-50"
                 onClick={() => setNumPad({ field: 'purchase_format', label: 'Formato de Compra', value: form.purchase_format })}
@@ -749,16 +781,30 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
           {/* Fila 3: Logística */}
           <div className="form-row mb-6">
-            <div className="form-group">
-              <label className="form-label text-slate-500">Unidad Base</label>
-              <select
-                className="form-input form-select bg-slate-50"
-                value={form.unit_id}
-                onChange={e => set('unit_id', e.target.value)}
-              >
-                <option value="">— Sin unidad —</option>
-                {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
+            <div className="form-group mb-6">
+              <label className="form-label text-slate-500">Escenario de Salida</label>
+              <div className="segmented-control">
+                <button 
+                  type="button"
+                  className={`segment-btn ${form.calculation_type === 'peso' ? 'active' : ''}`}
+                  onClick={() => set('calculation_type', 'peso')}
+                >
+                  <div className="icon-bg">
+                    <Scale size={18} />
+                  </div>
+                  <span className="segment-label">Peso (Kg/L)</span>
+                </button>
+                <button 
+                  type="button"
+                  className={`segment-btn ${form.calculation_type === 'unidad' ? 'active' : ''}`}
+                  onClick={() => set('calculation_type', 'unidad')}
+                >
+                  <div className="icon-bg">
+                    <Package size={18} />
+                  </div>
+                  <span className="segment-label">Unidades (Pzs)</span>
+                </button>
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label text-slate-500">Proveedor</label>
@@ -771,6 +817,33 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
               />
             </div>
           </div>
+          
+          {form.calculation_type === 'peso' && (
+            <div className="space-y-4 mb-6 p-4 bg-sky-50/50 rounded-2xl border border-sky-100/50 scale-in">
+              <div className="form-group">
+                <label className="form-label flex justify-between">
+                  <span className="text-slate-500">% Merma / Cocción</span>
+                  <span className={form.waste_percentage < 0 ? 'text-rose-500' : 'text-emerald-500'} style={{ fontWeight: 900 }}>
+                    {form.waste_percentage > 0 ? '+' : ''}{form.waste_percentage}%
+                  </span>
+                </label>
+                <input 
+                  type="range"
+                  min="-50"
+                  max="100"
+                  step="5"
+                  value={form.waste_percentage}
+                  onChange={e => set('waste_percentage', Number(e.target.value))}
+                  className="w-full accent-navy"
+                  style={{ height: '4px' }}
+                />
+                <div className="flex justify-between text-[8px] font-bold text-slate-400 mt-1 uppercase">
+                  <span>Merma (-50%)</span>
+                  <span>Hidratación (+100%)</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div style={{
             backgroundColor: '#f0f7ff',
@@ -786,13 +859,13 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                fontWeight: 700,
                color: '#64748b',
                textTransform: 'uppercase'
-            }}>COSTE NETO CALCULADO</span>
+            }}>COSTE NETO CALCULADO {form.calculation_type === 'peso' ? '(€/KG)' : '(€/UD)'}</span>
             <div style={{
                fontSize: '24px',
                fontWeight: 800,
                color: '#0c4a6e'
             }}>
-              {(parseFloat(ingredient.cost_per_unit || 0) * 1000).toFixed(2)}€ / KG
+              {form.calculation_type === 'peso' && dynamicCost !== 0 ? (dynamicCost * 1000).toFixed(2) : dynamicCost.toFixed(2)}€ {form.calculation_type === 'peso' ? '/ KG' : '/ UD'}
             </div>
           </div>
 
@@ -1036,10 +1109,20 @@ export default function Ingredients() {
                 
                 <div className="card-price-right">
                   <div className="price-main">
-                    {(parseFloat(ingredient.cost_per_unit || 0) * 1000).toFixed(2)}€
+                    {(() => {
+                      const fmt = parseFloat(ingredient.purchase_format) || 0;
+                      const prc = parseFloat(ingredient.purchase_price) || 0;
+                      const waste = parseFloat(ingredient.waste_percentage) || 0;
+                      if (fmt <= 0) return (parseFloat(ingredient.cost_per_unit || 0)).toFixed(2);
+                      if (ingredient.calculation_type === 'unidad') {
+                        return (prc / fmt).toFixed(4).replace(/\.?0+$/, '') || '0.00';
+                      }
+                      const netPerG = prc / (fmt * (1 - waste / 100));
+                      return (netPerG * 1000).toFixed(2);
+                    })()} €
                   </div>
                   <div className="price-unit-label">
-                    / KG
+                    {ingredient.calculation_type === 'unidad' ? '/ UD' : '/ KG'}
                   </div>
                 </div>
 
