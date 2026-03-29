@@ -116,10 +116,13 @@ export function Preparations() {
               <div className="flex items-center gap-4">
                 <div className="text-right">
                   <div className="card-meta" style={{ fontSize: '10px' }}>
-                    {recipe?.yield_scenario === 'weight' ? 'Coste/Kg' : 'Coste/Uni.'}
+                    Coste Neto
                   </div>
                   <div className="price-display">
                     {recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}
+                    <span style={{ fontSize: '0.6em', opacity: 0.7, marginLeft: '2px' }}>
+                      {recipe?.yield_scenario === 'weight' ? '/ kg' : '/ ud'}
+                    </span>
                   </div>
                 </div>
                   <div className="flex flex-col gap-2">
