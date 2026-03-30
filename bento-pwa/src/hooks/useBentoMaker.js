@@ -120,16 +120,17 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
 
     // 4. Sync with menu_items if it is already published
     if (recipeData.is_published) {
-      await supabase.from('menu_items').upsert([{
-        id: recipeId,
+      const menuItem = {
+        id: recipeId, 
         name: recipeData.name,
         description: recipeData.description || '',
-        price: Number(recipeData.sale_price || recipeData.cost_per_portion || 0),
+        price: Number(recipeData.sale_price || 0), // Mapping explicitly to 'price'
         image_url: recipeData.image_url || '',
         recipe_id: recipeId,
         menu_category_id: recipeData.menu_category_id || null,
-        is_active: true
-      }])
+        active: true
+      };
+      await supabase.from('menu_items').upsert([menuItem]);
     }
 
     return recipeData

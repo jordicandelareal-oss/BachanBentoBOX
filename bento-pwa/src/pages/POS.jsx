@@ -85,7 +85,15 @@ export default function POS() {
 
   useEffect(() => {
     if (categories.length > 0 && !activeCategory) {
-      setActiveCategory(categories[0].id);
+      // Prioritize explicit active categories
+      const firstActive = categories.find(c => c.is_active);
+      if (firstActive) {
+        console.log('📦 TPV: Setting initial category (ID):', firstActive.id, `(${firstActive.name})`);
+        setActiveCategory(String(firstActive.id));
+      } else {
+        console.log('📦 TPV: No active categories found, using first available ID:', categories[0].id);
+        setActiveCategory(String(categories[0].id));
+      }
     }
   }, [categories, activeCategory]);
   const [cart, setCart] = useState(() => {
@@ -114,38 +122,32 @@ export default function POS() {
   const [entryQuantity, setEntryQuantity] = useState('');
 
   // 1. DATA FETCHING & SYNC
-  const fetchProducts = async (force = false) => {
+  const fetchProducts = async () => {
     setLoading(true);
+    console.log('🔄 TPV: Fetching fresh menu_items from Supabase...');
     try {
-      if (force) localStorage.removeItem('bachan_recipes');
-
-      const cached = localStorage.getItem('bachan_recipes');
-      if (cached && !force) {
-        setProducts(JSON.parse(cached));
-        setLoading(false);
-        return;
-      }
-
       const { data, error } = await supabase
-        .from('recipes')
+        .from('menu_items')
         .select('*')
-        .eq('is_published', true)
-        .order('sort_order', { ascending: true });
+        .eq('active', true)
+        .order('name', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ TPV Fetch error:', error);
+        throw error;
+      }
       
       const mapped = (data || []).map(r => ({
         ...r,
-        price: r.sale_price || 0,
-        image_url: r.image_url // Removed transformations to restore visibility
+        price: r.price || 0,
+        image_url: r.image_url
       }));
 
+      console.log(`✅ TPV: Fetched ${mapped.length} active menu_items.`);
+      console.log('📦 TPV: Productos cargados:', mapped);
       setProducts(mapped);
-      localStorage.setItem('bachan_recipes', JSON.stringify(mapped));
     } catch (err) {
-      console.error('Fetch error:', err);
-      const cached = localStorage.getItem('bachan_recipes');
-      if (cached) setProducts(JSON.parse(cached));
+      console.error('❌ TPV Fetch error (Check RLS Policies):', err);
     } finally {
       setLoading(false);
     }
@@ -158,10 +160,10 @@ export default function POS() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Watch recipes for any changes (e.g. changing category)
-    const channel = supabase.channel('pos-recipes-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'recipes' }, () => {
-        fetchProducts(true); // Force re-fetch from network
+    // Watch menu_items for any changes (e.g. changing category or price)
+    const channel = supabase.channel('pos-menu-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, () => {
+        fetchProducts(); // Re-fetch from network
       })
       .subscribe();
 
@@ -182,7 +184,7 @@ export default function POS() {
 
   // 2. PRODUCT REORDERING (Modo Edición)
   const moveProduct = async (id, direction) => {
-    const visibleProducts = products.filter(p => p.menu_category_id === activeCategory);
+    const visibleProducts = products.filter(p => String(p.menu_category_id) === String(activeCategory));
 
     const index = visibleProducts.findIndex(p => p.id === id);
     if (index === -1) return;
@@ -210,11 +212,10 @@ export default function POS() {
 
     const sorted = newProducts.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
     setProducts(sorted);
-    localStorage.setItem('bachan_recipes', JSON.stringify(sorted));
     
-    // Background sync to Supabase
-    await supabase.from('recipes').update({ sort_order: finalSortA }).eq('id', itemA.id);
-    await supabase.from('recipes').update({ sort_order: finalSortB }).eq('id', itemB.id);
+    // Background sync to Supabase (ONLY menu_items now)
+    await supabase.from('menu_items').update({ sort_order: finalSortA }).eq('id', itemA.id);
+    await supabase.from('menu_items').update({ sort_order: finalSortB }).eq('id', itemB.id);
   };
 
   const handleDragEnd = async (event) => {
@@ -222,7 +223,7 @@ export default function POS() {
     if (!over || active.id === over.id) return;
     
     // 1. Get visible products for the category
-    const visibleProducts = products.filter(p => p.menu_category_id === activeCategory);
+    const visibleProducts = products.filter(p => String(p.menu_category_id) === String(activeCategory));
 
     // 2. Build the 16-slot grid
     const gridItems = Array(16).fill(null);
@@ -268,10 +269,9 @@ export default function POS() {
     if (updates.length > 0) {
       const sorted = newProducts.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
       setProducts(sorted);
-      localStorage.setItem('bachan_recipes', JSON.stringify(sorted));
 
       for (const u of updates) {
-         supabase.from('recipes').update({ sort_order: u.sort_order }).eq('id', u.id).then();
+         supabase.from('menu_items').update({ sort_order: u.sort_order }).eq('id', u.id).then();
       }
     }
   };
@@ -368,7 +368,12 @@ export default function POS() {
   };
 
   // 4. FILTERS & GRID
-  const filteredProducts = products.filter(p => p.menu_category_id === activeCategory);
+  useEffect(() => {
+    console.log('🎯 TPV: Categoría activa seleccionada:', activeCategory);
+    console.log('📊 TPV: Total productos en memoria:', products.length);
+  }, [activeCategory, products]);
+
+  const filteredProducts = products.filter(p => String(p.menu_category_id) === String(activeCategory));
 
   const gridItems = Array(16).fill(null);
   const unplaced = [];
@@ -402,7 +407,7 @@ export default function POS() {
                 <h1 className="font-black text-xl tracking-tighter uppercase italic">BaChan <span className="text-blue-600">POS</span></h1>
              </div>
              <div className="flex items-center gap-2">
-                <button onClick={() => fetchProducts(true)} className="p-2 text-slate-300 hover:text-slate-900 transition-colors"><RefreshCw size={20} className={loading ? 'animate-spin' : ''}/></button>
+                <button onClick={() => fetchProducts()} className="p-2 text-slate-300 hover:text-slate-900 transition-colors"><RefreshCw size={20} className={loading ? 'animate-spin' : ''}/></button>
                 <button onClick={() => setShowSettings(true)} className="p-2 text-slate-300 hover:text-slate-900 transition-colors"><Settings size={20}/></button>
                 <button onClick={() => window.location.href='/dashboard'} className="p-2 text-slate-300 hover:text-slate-900 transition-colors"><LayoutGrid size={20}/></button>
              </div>

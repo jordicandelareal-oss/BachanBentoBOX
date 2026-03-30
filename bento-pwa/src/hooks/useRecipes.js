@@ -94,27 +94,37 @@ export function useRecipes(type = null) {
 
       // 2. Sync with menu_items
       if (newStatus) {
-        const { data: recipe } = await supabase
+        // Fetch fresh copy to ensure all fields are current
+        const { data: recipe, error: fetchErr } = await supabase
           .from('recipes')
           .select('*')
           .eq('id', recipeId)
           .single();
 
+        if (fetchErr) throw fetchErr;
+
         if (recipe) {
           const menuItem = {
-            id: recipeId,
+            id: recipeId, // Explicitly use recipe ID as PK for menu_items
             name: recipe.name,
             description: recipe.description || '',
-            price: Number(recipe.sale_price || recipe.cost_per_portion || 0),
+            price: Number(recipe.sale_price || 0), // Mapping sale_price to price
             image_url: recipe.image_url || '',
             recipe_id: recipeId,
             menu_category_id: recipe.menu_category_id || null,
-            is_active: true
+            active: true
           };
-          await supabase.from('menu_items').upsert([menuItem]);
+          
+          const { error: upsertErr } = await supabase.from('menu_items').upsert([menuItem]);
+          if (upsertErr) {
+            console.error("❌ [menu_items Upsert Error]", upsertErr);
+            throw upsertErr;
+          }
         }
       } else {
-        await supabase.from('menu_items').delete().eq('recipe_id', recipeId);
+        // Remove from menu_items if unpublished
+        const { error: deleteErr } = await supabase.from('menu_items').delete().eq('id', recipeId);
+        if (deleteErr) throw deleteErr;
       }
 
       return { success: true };
