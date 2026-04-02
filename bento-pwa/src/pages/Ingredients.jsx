@@ -1132,7 +1132,7 @@ export default function Ingredients() {
                       {ingredient.category_name || 'General'} · {ingredient.brand || 'S/M'}
                     </p>
                     {ingredient.is_published && (
-                       <span className="bg-sky-100 text-sky-600 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">En Tienda</span>
+                       <span className="badge-published-emerald">EN MENÚ</span>
                     )}
                   </div>
                 </div>
@@ -1154,7 +1154,7 @@ export default function Ingredients() {
 
                 <div className="card-actions-subtle flex items-center gap-2">
                   <button 
-                    className={`p-2 rounded-lg transition-all ${ingredient.is_published ? 'bg-sky-500 text-white shadow-lg shadow-sky-100' : 'text-slate-300 hover:bg-slate-100'}`}
+                    className={`p-2 rounded-lg transition-all ${ingredient.is_published ? 'btn-published-emerald' : 'text-slate-300 hover:bg-slate-100'}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggleStore(ingredient.id, ingredient.is_published, ingredient.sale_price);

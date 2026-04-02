@@ -1,0 +1,335 @@
+.preparations-editor-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: calc(100vh - 120px);
+}
+
+@media (min-width: 1024px) {
+  .preparations-editor-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .editor-left-panel {
+    width: 38%; /* Proportional width */
+    position: sticky;
+    top: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex-shrink: 0;
+  }
+
+  .editor-right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    padding-left: 24px; /* Space between panels */
+  }
+  
+  .ingredients-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 8px;
+  }
+}
+
+/* Mobile specific */
+@media (max-width: 1023px) {
+  .preparations-editor-layout {
+    height: auto;
+    padding-bottom: 120px; /* Space for floating button */
+  }
+  
+  .editor-left-panel {
+    margin-bottom: 24px;
+  }
+
+  /* ===================================
+     ANTI-ZOOM: Minimum 16px on all inputs
+     Prevents iOS/Android automatic zoom
+     =================================== */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Padding lateral para ingredientes en móvil */
+  .mini-card.compact {
+    padding: 10px 16px;
+    margin-bottom: 8px;
+  }
+
+  /* Padding inferior de la zona de scroll para que el último item no quede tapado */
+  .ingredients-scroll-area {
+    padding-bottom: 16px;
+  }
+
+  /* Floating save button - safe area support */
+  .floating-save-container {
+    bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Mini-cards for ingredients */
+.mini-card {
+  background: var(--color-white);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.mini-card:hover {
+  border-color: var(--color-navy);
+}
+
+.mini-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.mini-card-title {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.mini-card-details {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Quick Search */
+.internal-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 1px solid var(--color-beige);
+  padding: 12px 20px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  color: var(--color-navy);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+
+.internal-search input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  outline: none;
+}
+
+/* Premium Ghost Button */
+.premium-ghost-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid var(--color-beige);
+  color: var(--color-navy);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.premium-ghost-btn:hover {
+  background: var(--color-beige);
+  transform: translateX(-4px);
+}
+
+/* Enhanced Cost Summary */
+.cost-summary-card {
+  background: var(--color-paper);
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid var(--color-beige);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cost-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.cost-item .label {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--color-navy);
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+
+.cost-item .value {
+  font-weight: 900;
+  color: var(--color-navy);
+}
+
+.cost-item.primary .value {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.cost-item.secondary .value {
+  font-size: 1.25rem;
+  opacity: 0.8;
+}
+
+.internal-search svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-light);
+}
+
+
+/* Segmented Control for Scenarios */
+.segmented-control {
+  display: flex;
+  background: var(--color-crema, #fdfaf3);
+  padding: 4px;
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,0.05);
+  gap: 4px;
+}
+
+.segment-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--color-navy, #0c1c2e);
+}
+
+.segment-btn.active {
+  background: var(--color-navy, #0c1c2e);
+  color: white;
+  box-shadow: 0 4px 12px rgba(12, 28, 46, 0.2);
+}
+
+.segment-btn .icon-bg {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 28, 46, 0.05);
+  transition: all 0.3s;
+}
+
+.segment-btn.active .icon-bg {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.segment-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #b91c1c;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 16px;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.read-only-value {
+  background: #f1f5f9;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+/* Compact Ingredient Cards - EXTREME COMPACT */
+.mini-card.compact {
+  padding: 6px 12px; /* Reduced vertical padding */
+  background: white;
+  margin-bottom: 6px;
+  border-radius: 12px;
+}
+
+.mini-icon-box {
+  width: 32px; /* Smaller */
+  height: 32px;
+  border-radius: 8px;
+  background: var(--color-crema, #fdfaf3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-navy, #0c1c2e);
+  flex-shrink: 0;
+}
+
+.icon-bg-amber {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #fef3c7; /* amber-100 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mini-card.compact .mini-card-title {
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.mini-card.compact .mini-card-header {
+  gap: 12px;
+}

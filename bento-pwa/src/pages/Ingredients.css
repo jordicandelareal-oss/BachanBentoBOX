@@ -77,11 +77,33 @@
 @media (max-width: 768px) {
   .card-grid {
     padding-left: 12px;
-    padding-right: 12px; /* Reset padding, we fix collision via max-width */
+    padding-right: 42px !important; /* Aumentado de 12px a 42px para esquivar el abecedario */
     box-sizing: border-box;
-    max-width: 600px; /* Duplicate bentos constraint */
+    max-width: 600px;
     margin: 0 auto;
   }
+}
+
+/* ─── State: Published (Emerald) ───────────────────────────── */
+.btn-published-emerald {
+  background-color: #10b981 !important; /* Emerald 500 */
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.badge-published-emerald {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #d1fae5;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ─── Modern Ingredient Row ─────────────────────────────────── */
@@ -177,6 +199,18 @@
   align-items: center;
   gap: 8px;
   margin-left: 8px;
+}
+
+@media (max-width: 480px) {
+  .card-actions-subtle {
+    margin-right: 8px; /* Internal safety in row */
+    gap: 4px;
+  }
+  
+  /* Reducir ligeramente el impacto de los iconos en móvil */
+  .card-actions-subtle button {
+    padding: 6px !important;
+  }
 }
 /* ─── Alphabet Sidebar ───────────────────────────────────────── */
 .alphabet-sidebar {

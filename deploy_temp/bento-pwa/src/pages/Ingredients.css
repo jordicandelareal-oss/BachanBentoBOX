@@ -1,0 +1,426 @@
+.ingredients-container {
+  padding: 24px 16px; /* 16px lateral as requested */
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.search-wrapper {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: white;
+  font-size: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.card-grid {
+  display: grid;
+  gap: 16px;
+}
+
+/* Category Tabs (Local to Ingredients) */
+.category-tabs-wrapper {
+  margin-bottom: 24px;
+  /* Removal of overflow-x: auto to prevent horizontal scroll */
+}
+
+.category-tabs {
+  display: flex;
+  flex-wrap: wrap; /* NEW: Double row */
+  gap: 10px;
+}
+
+.category-tab {
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+
+.category-tab:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.category-tab.active {
+  background: #0f172a;
+  color: white;
+  border-color: #0f172a;
+}
+
+.category-tab.sub {
+  font-size: 11px;
+  padding: 6px 14px;
+}
+
+@media (max-width: 768px) {
+  .card-grid {
+    padding-left: 12px;
+    padding-right: 12px; /* Reset padding, we fix collision via max-width */
+    box-sizing: border-box;
+    max-width: 600px; /* Duplicate bentos constraint */
+    margin: 0 auto;
+  }
+}
+
+/* ─── Modern Ingredient Row ─────────────────────────────────── */
+.premium-card {
+  padding: 12px 14px !important;
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+  background: white !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  border-radius: 12px !important;
+  width: auto !important; /* Respect parent padding */
+  flex: 1 !important;
+  box-sizing: border-box !important;
+}
+
+.card-avatar {
+  width: 45px;
+  height: 45px;
+  min-width: 45px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-initials {
+  font-size: 14px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.card-info-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.card-name-bold {
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 15px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-subtext {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.card-price-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 0 0 85px; 
+  min-width: 85px;
+  margin-right: 8px; /* Internal safety buffer before edge */
+}
+
+.price-main {
+  font-size: 16px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.price-unit-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.card-actions-subtle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+/* ─── Alphabet Sidebar ───────────────────────────────────────── */
+.alphabet-sidebar {
+  position: fixed;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  padding: 8px 4px;
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.alphabet-letter {
+  background: none;
+  border: none;
+  font-size: 10px;
+  font-weight: 800;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.alphabet-letter.absent {
+  color: #e2e8f0;
+  cursor: default;
+}
+
+.alphabet-letter.present {
+  color: #64748b;
+}
+
+.alphabet-letter.present:hover {
+  background: var(--color-accent);
+  color: white;
+}
+
+/* ─── Modal ─────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center; /* Desktop: center */
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 0.15s ease;
+  overflow-y: auto; /* Allow backdrop to scroll if modal is tall */
+}
+
+@media (max-width: 480px) {
+  .modal-backdrop {
+    align-items: flex-start; /* Mobile: start from top to avoid cutoff */
+    padding-top: 40px; /* Safe area for iPhone status bar */
+  }
+}
+
+.modal-card {
+  background: white;
+  border-radius: 28px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 40px 100px -20px rgba(15, 23, 42, 0.3);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  padding-top: 40px !important; /* iPhone Notch Fix (User Requested 911) */
+  border-bottom: 1px solid #f1f5f9;
+}
+
+@media (max-width: 480px) {
+  .modal-header {
+    padding-top: 40px !important; 
+  }
+}
+
+.modal-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.modal-title-input {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #0f172a;
+  background: transparent;
+  border: 1px solid transparent;
+  width: 100%;
+  padding: 4px 8px;
+  margin-left: -8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  outline: none;
+  font-family: inherit;
+}
+
+.modal-title-input:focus {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.modal-title-input:hover {
+  border-color: #f1f5f9;
+}
+
+.modal-close-btn {
+  background: #f8fafc;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  transform: rotate(90deg);
+}
+
+.modal-form {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Modal specific form overrides to keep it compact */
+.modal-form .form-group {
+  margin-bottom: 0;
+}
+
+.form-calculated {
+  padding: 14px 18px;
+  background: #f8fafc;
+  border: 2px solid #f1f5f9;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--color-accent);
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+}
+
+.form-hint {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid #f1f5f9;
+  position: sticky;
+  bottom: 0;
+  z-index: 50;
+  margin: 0 -24px -24px -24px; /* Offset modal-form padding */
+  border-radius: 0 0 28px 28px;
+}
+
+/* Animations Utility */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+/* Deletion */
+.delete-btn-subtle {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  color: var(--color-text-light); /* Subtle as requested */
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  opacity: 0.5;
+}
+
+.delete-btn-subtle:hover {
+  background-color: #f1f5f9;
+  color: var(--color-navy);
+  opacity: 1;
+}
+
+.delete-btn-subtle:active {
+  transform: scale(0.9);
+}

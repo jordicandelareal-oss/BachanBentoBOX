@@ -158,7 +158,12 @@ export function Preparations() {
                   {isBentosTab ? <ChefHat size={20} /> : <CookingPot size={20} />}
                 </div>
                 <div>
-                  <h3 className="card-title">{recipe?.name || 'Receta sin nombre'}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="card-title">{recipe?.name || 'Receta sin nombre'}</h3>
+                    {recipe?.is_published && (
+                      <span className="badge-published-emerald">EN MENÚ</span>
+                    )}
+                  </div>
                   <p className="card-meta">
                     RINDE: {recipe?.yield_scenario === 'weight' 
                       ? (recipe.net_yield >= 1000 ? `${(recipe.net_yield / 1000).toFixed(2)} Kg` : `${recipe.net_yield || 0} g`)
@@ -181,9 +186,9 @@ export function Preparations() {
                     </span>
                   </div>
                 </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="card-actions-subtle">
                     <button 
-                      className={`p-2 rounded-full transition-all ${recipe.is_published ? 'bg-sky-500 text-white shadow-lg shadow-sky-100' : 'text-slate-300 bg-slate-100 hover:bg-slate-200'}`}
+                      className={`p-2 rounded-full transition-all ${recipe.is_published ? 'btn-published-emerald' : 'text-slate-300 bg-slate-100 hover:bg-slate-200'}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleToggleStore(recipe.id, recipe.is_published, recipe.sale_price);
@@ -191,15 +196,6 @@ export function Preparations() {
                       title={recipe.is_published ? "Quitar de la tienda" : "Enviar a la tienda"}
                     >
                       {saving && publishAction?.id === recipe.id ? <Loader2 size={18} className="animate-spin" /> : <Store size={18} />}
-                    </button>
-                    <button 
-                      className="delete-btn-subtle"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setConfirmDelete(recipe?.id);
-                      }}
-                    >
-                      <Trash2 size={18} />
                     </button>
                     {recipe?.image_url && (
                       <button 
@@ -212,6 +208,15 @@ export function Preparations() {
                         <Camera size={20} />
                       </button>
                     )}
+                    <button 
+                      className="delete-btn-subtle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDelete(recipe?.id);
+                      }}
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 <ChevronRight size={18} className="text-slate-300" />
               </div>
