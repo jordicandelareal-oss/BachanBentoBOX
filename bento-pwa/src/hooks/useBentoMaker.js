@@ -1,14 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 export const normalizeUnit = (unit) => {
   if (!unit) return 'g';
   const u = unit.toLowerCase().trim();
-  if (['g', 'gr', 'gramo', 'gramos', 'grs'].includes(u)) return 'g';
+  if (['g', 'gr', 'gramo', 'gramos', 'grs', 'peso/volumen (kg/l)', 'peso (kg/l)'].includes(u)) return 'g';
   if (['kg', 'kilo', 'kilos'].includes(u)) return 'g';
   if (['l', 'litro', 'litros'].includes(u)) return 'ml';
   if (['ml', 'mls', 'ml.'].includes(u)) return 'ml';
-  if (['ud', 'unid', 'unidad', 'unidades', 'rac', 'racion', 'uni', 'pz', 'pieza', 'piezas'].includes(u)) return 'ud';
+  if (['ud', 'unid', 'unidad', 'unidades', 'rac', 'racion', 'uni', 'pz', 'pieza', 'piezas', 'unidades (ud)'].includes(u)) return 'ud';
   return u;
 }
 
@@ -28,10 +28,26 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   // Items can be ingredients or sub-recipes
   // { id, type: 'ingredient'|'recipe', name, costPerUnit, quantity, unit }
   const [items, setItems] = useState(initialRecipe?.items || [])
+  const [initialCost, setInitialCost] = useState(initialRecipe?.cost_per_portion || 0)
 
   // Calculate totals
   const totals = useMemo(() => {
-    const totalCost = items.reduce((sum, item) => sum + (item.costPerUnit * (Number(item.quantity) || 0)), 0)
+    const totalCost = items.reduce((sum, item) => {
+      const qty = Number(item.quantity) || 0;
+      const cost = Number(item.costPerUnit) || 0;
+      
+      // MASTER RULE: If unit is weight (g/ml) → divide by 1000. Works for BOTH ingredients AND weight-based sub-recipes.
+      const normalized = normalizeUnit(item.unit);
+      const isWeight = normalized === 'g' || normalized === 'ml';
+
+      if (isWeight) {
+        // Weight item (ingredient OR sub-recipe): (qty / 1000) * Price_Per_KG
+        return sum + ((cost / 1000) * qty);
+      }
+      
+      // Unit-based (ingredient or sub-recipe): qty * Price_Per_Unit
+      return sum + (cost * qty);
+    }, 0)
     
     // Calculate Gross Weight (only for items with weight units 'g' or 'ml')
     const totalGrossWeight = items.reduce((sum, item) => {
@@ -46,10 +62,12 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
       // Scenario A: Weight
       // WeightNeto = WeightBruto * (1 + adj/100)
       finalNetYield = totalGrossWeight * (1 + (adjustmentPercent / 100))
-      costPerPortion = finalNetYield > 0 ? totalCost / (finalNetYield / 1000) : 0 // Cost per Kg/L
+      // Cost per Kg/L: (Total Cost / Grams) * 1000
+      costPerPortion = finalNetYield > 0 ? (totalCost / finalNetYield) * 1000 : 0 
     } else {
       // Scenario B: Units
-      costPerPortion = portions > 0 ? totalCost / portions : 0
+      // Cost per Unit: Total Cost / Portions
+      costPerPortion = (Number(portions) > 0) ? (totalCost / Number(portions)) : totalCost
     }
 
     const margin = salePrice > 0 ? ((salePrice - totalCost) / salePrice) * 100 : 0
@@ -118,6 +136,9 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
 
     if (riErr) throw riErr
 
+    // Update initial cost after save for UI consistency
+    setInitialCost(totals.costPerPortion)
+
     // 4. Sync with menu_items if it is already published
     if (recipeData.is_published) {
       const menuItem = {
@@ -136,13 +157,14 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
     return recipeData
   }
 
-  const loadRecipeItems = async (recipeId) => {
+  const loadRecipeItems = useCallback(async (recipeId) => {
     const { data, error } = await supabase
       .from('recipe_ingredients')
       .select(`
         quantity,
         ingredient:ingredients(
           id, name, purchase_price, net_cost_per_unit, cost_per_unit, unit_id, purchase_format,
+          waste_percentage,
           units:unit_id(name)
         ),
         child_recipe:recipes!recipe_ingredients_child_recipe_id_fkey(
@@ -165,17 +187,18 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
       if (isIngredient) {
         unitName = item.units?.name || 'g'
         normalizedUnit = normalizeUnit(unitName)
-        baseCost = parseFloat(item.net_cost_per_unit || item.cost_per_unit || 0);
+        // SOURCE OF TRUTH: cost_per_unit
+        baseCost = parseFloat(item.cost_per_unit || 0);
       } else {
-        // LÓGICA DUAL PARA ELABORACIONES (HIJAS)
-        // Si el escenario es peso, forzamos 'g' y dividimos el coste (que es por Kg) entre 1000
+        // Sub-recipe: Respect the recipe's own yield_scenario
+        // If weight-based: cost_per_portion is stored as €/kg → treat like weight ingredient (triggers /1000)
+        // If unit-based: cost_per_portion is €/ud → direct multiplication
         if (item.yield_scenario === 'weight') {
-          normalizedUnit = 'g'
-          baseCost = (item.cost_per_portion || 0) / 1000
+          normalizedUnit = 'g';
         } else {
-          normalizedUnit = 'ud'
-          baseCost = item.cost_per_portion || 0
+          normalizedUnit = 'ud';
         }
+        baseCost = parseFloat(item.cost_per_portion || 0)
       }
 
       return {
@@ -197,8 +220,11 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
       setNetYield(initialRecipe.net_yield || null);
       setPlatosEstimados(initialRecipe.platos_estimados || 0);
       setImageUrl(initialRecipe.image_url || '');
+      // Ensure we store the cost from the database for comparison
+      setInitialCost(initialRecipe.cost_per_portion || 0)
     }
-  }
+  }, [initialRecipe, setYieldScenario, setAdjustmentPercent, setNetYield, setPlatosEstimados, setImageUrl, setInitialCost]);
+
 
   return {
     bentoName, setBentoName,
@@ -209,6 +235,7 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
     menuCategoryId, setMenuCategoryId,
     items, addItem, updateItemQuantity, removeItem,
     totals,
+    initialCost,
     yieldScenario, setYieldScenario,
     adjustmentPercent, setAdjustmentPercent,
     netYield, setNetYield,
@@ -219,3 +246,4 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
     setItems
   }
 }
+

@@ -1,65 +1,114 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRecipes } from '../hooks/useRecipes';
 import { useBentoMaker, normalizeUnit } from '../hooks/useBentoMaker';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { usePrepCategories } from '../hooks/usePrepCategories';
-import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search, AlertCircle, ChefHat, CheckCircle2, Camera, CookingPot } from 'lucide-react';
+import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search, AlertCircle, ChefHat, CheckCircle2, Camera, CookingPot, Loader2, Store } from 'lucide-react';
 import SequentialSelector from '../components/Common/SequentialSelector';
 import PhotoSelector from '../components/Common/PhotoSelector';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import Lightbox from '../components/Common/Lightbox';
 import NumPad from '../components/Common/NumPad';
+import BentoMaker from '../components/BentoMaker/BentoMaker';
 import { compressImage, uploadImage } from '../lib/imageUtils';
 import '../styles/Common.css';
 import './Ingredients.css'; 
 import './Preparations.css';
 
 export function Preparations() {
-  const { recipes, loading, error, deleteRecipe, fetchRecipes } = useRecipes('elaboracion');
+  const { recipes, loading, deleteRecipe, fetchRecipes, togglePublish } = useRecipes(['elaboracion', 'bento']);
   const { categories: prepCats } = usePrepCategories();
   const [editingRecipe, setEditingRecipe] = useState(null);
   const [activeTabId, setActiveTabId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [lightbox, setLightbox] = useState({ isOpen: false, imageUrl: '', title: '' });
+  const [publishAction, setPublishAction] = useState(null); // { id, price }
+  const [saving, setSaving] = useState(false);
+  
+  const activeTabName = useMemo(() => 
+    prepCats.find(c => c.id === activeTabId)?.Name || '',
+    [prepCats, activeTabId]
+  );
+  
+  const isBentosTab = useMemo(() => 
+    activeTabName.toLowerCase() === 'bentos',
+    [activeTabName]
+  );
 
   useEffect(() => {
-    if (prepCats.length > 0 && !activeTabId) {
-      setActiveTabId(prepCats[0].id);
+    if (prepCats && prepCats.length > 0 && !activeTabId) {
+      setTimeout(() => setActiveTabId(prepCats[0].id), 0);
     }
-  }, [prepCats]);
+  }, [prepCats, activeTabId]);
 
-  if (editingRecipe) {
-    return <PreparationEditor 
-      recipe={editingRecipe} 
-      onClose={() => {
-        setEditingRecipe(null);
-        fetchRecipes();
-      }} 
-      prepCats={prepCats}
-    />;
-  }
+  const handleEditClose = useCallback(() => {
+    setEditingRecipe(null);
+    fetchRecipes();
+  }, [fetchRecipes]);
 
-  // SECURTY CHECK (Prioridad 911): Prevent white screen if recipes is null/undefined
-  if (!recipes || !Array.isArray(recipes)) {
-    return (
-      <div className="page-container flex justify-center items-center h-64 text-slate-400">
-        <p>Cargando datos o sin conexión...</p>
-      </div>
+  const handleOpenEditor = useCallback((recipe = null) => {
+    if (!recipe) {
+      setEditingRecipe({ name: '', portions: 1, items: [], preparation_category_Id: activeTabId });
+    } else {
+      setEditingRecipe(recipe);
+    }
+  }, [activeTabId]);
+
+  const filteredRecipes = useMemo(() => {
+    if (!recipes || !Array.isArray(recipes)) return [];
+    return recipes.filter(r => 
+      r.preparation_category_Id === activeTabId && 
+      (isBentosTab ? r.recipe_type === 'bento' : r.recipe_type === 'elaboracion')
     );
-  }
+  }, [recipes, activeTabId, isBentosTab]);
 
-  const filteredRecipes = recipes.filter(r => r.preparation_category_Id === activeTabId);
-  const activeTabName = prepCats.find(c => c.id === activeTabId)?.Name || '...';
-
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!confirmDelete) return;
     const result = await deleteRecipe(confirmDelete);
     if (!result.success) {
       alert('Error al eliminar: ' + result.error);
     }
     setConfirmDelete(null);
+  }, [confirmDelete, deleteRecipe]);
+
+  const handleToggleStore = async (id, currentStatus, currentPrice) => {
+    if (!currentStatus) {
+      setPublishAction({ id, price: currentPrice?.toString() || '0' });
+    } else {
+      setSaving(true);
+      const res = await togglePublish(id, true, currentPrice);
+      setSaving(false);
+      if (!res.success) alert(res.error);
+    }
   };
+
+  if (editingRecipe) {
+    if (editingRecipe.recipe_type === 'bento' || (isBentosTab && !editingRecipe.id)) {
+      return <BentoMaker 
+        recipe={editingRecipe.id ? editingRecipe : null} 
+        onClose={handleEditClose} 
+      />;
+    }
+
+    return <PreparationEditor 
+      recipe={editingRecipe} 
+      onClose={handleEditClose} 
+      prepCats={prepCats}
+    />;
+  }
+
+  // SECURITY CHECK (Prioridad 911): Prevent white screen if recipes or prepCats are null/undefined
+  if (!recipes || !Array.isArray(recipes) || !prepCats) {
+    return (
+      <div className="page-container flex justify-center items-center h-64 text-slate-400">
+        <div className="text-center">
+          <Loader2 className="animate-spin mx-auto mb-4 text-slate-300" size={32} />
+          <p>Cargando datos o sincronizando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container fade-in">
@@ -68,16 +117,16 @@ export function Preparations() {
           <h1 className="page-title">Elaboraciones</h1>
           <p className="page-subtitle">Gestiona la mise en place y recetas base</p>
         </div>
-        <button className="btn-icon-main" onClick={() => setEditingRecipe({ name: '', portions: 1, items: [], preparation_category_Id: activeTabId })}>
+        <button className="btn-icon-main" onClick={() => handleOpenEditor()}>
           <Plus size={24} />
         </button>
       </div>
 
       <div className="category-tabs-wrapper">
         <div className="category-tabs">
-          {(prepCats || []).map(cat => (
+          {(prepCats || []).map((cat, index) => (
             <button 
-              key={cat?.id || Math.random()} 
+              key={cat?.id || index} 
               className={`category-tab ${activeTabId === cat?.id ? 'active' : ''}`}
               onClick={() => setActiveTabId(cat?.id)}
             >
@@ -89,17 +138,24 @@ export function Preparations() {
 
       {loading ? (
         <div className="card-grid">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="premium-card animate-pulse" style={{ height: '80px', opacity: 0.5 }}></div>
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="skeleton-card">
+              <div className="skeleton-icon shimmer"></div>
+              <div>
+                <div className="skeleton-text-main shimmer"></div>
+                <div className="skeleton-text-sub shimmer"></div>
+              </div>
+              <div className="skeleton-price shimmer"></div>
+            </div>
           ))}
         </div>
       ) : (
         <div className="card-grid">
-          {(filteredRecipes || []).map(recipe => (
-            <div key={recipe?.id || Math.random()} className="premium-card" onClick={() => setEditingRecipe(recipe)}>
+          {(filteredRecipes || []).map((recipe, index) => (
+            <div key={recipe?.id || index} className="premium-card" onClick={() => handleOpenEditor(recipe)}>
               <div className="ingredient-info">
                 <div className="card-icon-wrapper">
-                  <CookingPot size={20} />
+                  {isBentosTab ? <ChefHat size={20} /> : <CookingPot size={20} />}
                 </div>
                 <div>
                   <h3 className="card-title">{recipe?.name || 'Receta sin nombre'}</h3>
@@ -116,16 +172,26 @@ export function Preparations() {
               <div className="flex items-center gap-4">
                 <div className="text-right">
                   <div className="card-meta" style={{ fontSize: '10px' }}>
-                    Coste Neto
+                    {isBentosTab ? 'Coste Sugerido' : 'Coste Neto'}
                   </div>
                   <div className="price-display">
                     {recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}
-                    <span style={{ fontSize: '0.6em', opacity: 0.7, marginLeft: '2px' }}>
+                    <span className="text-[10px] opacity-60 ml-1 font-bold lowercase">
                       {recipe?.yield_scenario === 'weight' ? '/ kg' : '/ ud'}
                     </span>
                   </div>
                 </div>
                   <div className="flex flex-col gap-2">
+                    <button 
+                      className={`p-2 rounded-full transition-all ${recipe.is_published ? 'bg-sky-500 text-white shadow-lg shadow-sky-100' : 'text-slate-300 bg-slate-100 hover:bg-slate-200'}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleStore(recipe.id, recipe.is_published, recipe.sale_price);
+                      }}
+                      title={recipe.is_published ? "Quitar de la tienda" : "Enviar a la tienda"}
+                    >
+                      {saving && publishAction?.id === recipe.id ? <Loader2 size={18} className="animate-spin" /> : <Store size={18} />}
+                    </button>
                     <button 
                       className="delete-btn-subtle"
                       onClick={(e) => {
@@ -153,9 +219,14 @@ export function Preparations() {
           ))}
 
           {(!filteredRecipes || filteredRecipes.length === 0) && (
-            <div className="text-center py-12" style={{ textAlign: 'center', padding: '48px 0' }}>
-              <CookingPot className="mx-auto text-slate-200 mb-4" size={48} style={{ margin: '0 auto 16px', color: '#e2e8f0' }} />
-              <p style={{ color: '#94a3b8' }}>No hay elaboraciones en {activeTabName}</p>
+            <div className="col-span-full py-16 bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200 fade-in" style={{ textAlign: 'center' }}>
+              <div className="w-16 h-16 bg-white text-slate-200 rounded-full flex items-center justify-center mb-4 mx-auto shadow-sm">
+                <CookingPot size={32} />
+              </div>
+              <h3 className="text-slate-400 font-bold text-sm mb-1">No hay elaboraciones</h3>
+              <p className="text-slate-300 text-xs max-w-[240px] mx-auto">
+                No se encontraron recetas para la categoría {activeTabName || 'seleccionada'}.
+              </p>
             </div>
           )}
         </div>
@@ -173,6 +244,20 @@ export function Preparations() {
         title={lightbox.title}
         onClose={() => setLightbox({ ...lightbox, isOpen: false })}
       />
+      {publishAction && (
+        <NumPad
+          label="Precio de Venta (PVP)"
+          value={publishAction.price}
+          onChange={(val) => setPublishAction(prev => ({ ...prev, price: val }))}
+          onClose={async () => {
+            setSaving(true);
+            const res = await togglePublish(publishAction.id, false, publishAction.price);
+            setSaving(false);
+            setPublishAction(null);
+            if (!res.success) alert(res.error);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -184,22 +269,22 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
     unitId, setUnitId,
     prepCategoryId, setPrepCategoryId,
     platosEstimados, setPlatosEstimados,
-    items, setItems,
+    items,
     yieldScenario, setYieldScenario,
     adjustmentPercent, setAdjustmentPercent,
-    netYield, setNetYield,
     addItem, updateItemQuantity, removeItem,
     totals, saveBento, loadRecipeItems,
     imageUrl, setImageUrl
   } = useBentoMaker(recipe, 'elaboracion');
   
+  const initialCost = recipe?.cost_per_portion || 0;
+
   const { units } = useUnits();
   const { ingredients } = useIngredients();
   const { recipes } = useRecipes('elaboracion');
   const [isSaving, setIsSaving] = useState(false);
   const [showSelector, setShowSelector] = useState(false);
   const [internalSearch, setInternalSearch] = useState('');
-  const [expandedItem, setExpandedItem] = useState(null);
   // NumPad state: { field: 'portions'|'platos'|key_of_item, label: string }
   const [numPad, setNumPad] = useState(null);
 
@@ -240,7 +325,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
 
   useEffect(() => {
     if (recipe.id) loadRecipeItems(recipe.id);
-  }, [recipe.id]);
+  }, [recipe.id, loadRecipeItems]);
 
   const filteredItems = items.filter(item => 
     item.name.toLowerCase().includes(internalSearch.toLowerCase())
@@ -253,20 +338,19 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
     let baseCost = 0;
 
     if (item.type === 'ingredient') {
-      // Inherit unit from the ingredient's own unit_name field
+      // MASTER RULE: Use cost_per_unit from DB (already price per KG)
       normalized = normalizeUnit(item.unit_name || 'g');
-      // Prioritize net_cost_per_unit (which includes waste) over cost_per_unit
-      baseCost = parseFloat(item.net_cost_per_unit || item.cost_per_unit || 0);
+      baseCost = parseFloat(item.cost_per_unit || 0);
     } else {
-      // Sub-elaboration: if it yields by weight, cost is already €/Kg → convert to €/g
-      const recipeCost = parseFloat(item.cost_per_portion || 0);
+      // Sub-recipe: Respect the recipe's own yield_scenario
+      // If weight-based: cost_per_portion is already stored as €/kg → treat like a weight ingredient
+      // If unit-based: cost_per_portion is €/ud → treat as direct multiplication
       if (item.yield_scenario === 'weight') {
-        normalized = 'g';
-        baseCost = recipeCost / 1000; // €/Kg → €/g
+        normalized = 'g'; // Will trigger the /1000 rule in the totalizer
       } else {
-        normalized = 'ud';
-        baseCost = recipeCost;
+        normalized = 'ud'; // Direct multiplication: qty * cost_per_portion
       }
+      baseCost = parseFloat(item.cost_per_portion || 0);
     }
 
     addItem({
@@ -347,7 +431,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
                   className="form-input-premium form-select-premium"
                 >
                   <option value="">Selecciona categoría...</option>
-                  {prepCats.map(cat => <option key={cat.id} value={cat.id}>{cat.Name}</option>)}
+                  {(prepCats || []).map(cat => <option key={cat.id} value={cat.id}>{cat.Name}</option>)}
                 </select>
               </div>
 
@@ -436,7 +520,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
                       className="form-input-premium form-select-premium"
                     >
                       <option value="">Unidad...</option>
-                      {units.map(u => (
+                      {(units || []).map(u => (
                         <option key={u.id} value={u.id}>{u.name}</option>
                       ))}
                     </select>
@@ -453,6 +537,16 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
                       {totals.costPerPortion.toFixed(2)} €
                     </span>
                   </div>
+                  
+                  {Math.abs(totals.costPerPortion - initialCost) > 0.01 && initialCost > 0 && (
+                    <div className="warning-banner mb-4 animate-in fade-in slide-in-from-top-2" style={{ backgroundColor: '#fff1f2', color: '#be123c', padding: '12px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #ffe4e6' }}>
+                      <AlertCircle size={16} />
+                      <div className="flex-1 text-[10px] font-bold uppercase">
+                        ¡Precios actualizados! 
+                        <span className="opacity-60 ml-1">Antes: {initialCost.toFixed(2)}€</span>
+                      </div>
+                    </div>
+                  )}
                   {totals.costPerPortion > 500 && (
                     <div className="warning-banner">
                       <AlertCircle size={18} />
@@ -474,7 +568,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
                   className={`btn-primary w-full py-4 text-lg ${isSaved ? 'bg-emerald-500' : ''}`}
                   style={{ borderRadius: '16px', fontFamily: 'var(--font-serif)', backgroundColor: totals.costPerPortion > 500 ? '#fca5a5' : undefined }}
                 >
-                  {isSaving ? 'Guardando...' : isSaved ? <><CheckCircle2 size={20} />  Guardado con éxito</> : <><Save size={20} /> Guardar Elaboración</>}
+                  {isSaving ? 'Guardando...' : isSaved ? <><CheckCircle2 size={20} /> Guardado con éxito</> : <><Save size={20} /> Guardar Elaboración</>}
                 </button>
               </div>
             </div>
@@ -533,60 +627,68 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredItems.map(item => (
-                  <div key={item._key} className="mini-card compact">
-                    <div 
-                      className="mini-card-header" 
-                      onClick={() => setExpandedItem(expandedItem === item._key ? null : item._key)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="mini-icon-box">
-                          {item.type === 'ingredient' ? <Package size={14} /> : <Utensils size={14} />}
+                {(filteredItems || []).map((item, index) => (
+                  <div key={item._key || index} className="mini-card compact overflow-hidden px-3 py-2.5">
+                    <div className="grid grid-cols-[1fr_70px_105px_40px] items-center gap-2">
+                      {/* COL 1: Name (Flexible + Truncated) */}
+                      <div 
+                        className="flex items-center gap-2 min-w-0 cursor-pointer group" 
+                        onClick={() => {
+                          const targetKey = item._key || item.id || `idx-${index}`;
+                          const label = (normalizeUnit(item.unit) === 'g' || normalizeUnit(item.unit) === 'ml')
+                            ? `${item.name} (g/ml)` 
+                            : `${item.name} (ud)`;
+                          openNumPad(targetKey, label);
+                        }}
+                      >
+                        <div className="mini-icon-box shrink-0 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
+                          {item.type === 'ingredient' ? <Package size={14} className="text-slate-400" /> : <Utensils size={14} className="text-slate-400" />}
                         </div>
-                        <div>
-                          <span className="mini-card-title">{item.name}</span>
-                          <div className="flex gap-2 items-center">
-                            <span className="text-[10px] text-slate-400 font-bold">{item.quantity} {item.unit}</span>
-                            <span className="text-[10px] text-slate-300">·</span>
-                            <span className="text-[10px] text-navy font-black">{(item.costPerUnit * item.quantity).toFixed(2)}€</span>
-                          </div>
+                        <span className="text-[13px] font-bold text-slate-700 truncate min-w-0">{item.name}</span>
+                      </div>
+
+                      {/* COL 2: Quantity (Blue, Fixed 70px) */}
+                      <div 
+                        className="text-right cursor-pointer"
+                        onClick={() => {
+                          const targetKey = item._key || item.id || `idx-${index}`;
+                          openNumPad(targetKey, `CANTIDAD: ${item.name}`);
+                        }}
+                      >
+                        <span className="text-[14px] font-black text-sky-600 block leading-tight">
+                          {Number(item.quantity || 0).toLocaleString('es-ES', { maximumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase italic">
+                          {item.unit === 'ud' ? 'pzs' : (item.unit || 'g')}
+                        </span>
+                      </div>
+
+                      {/* COL 3: Prices (Fixed 105px) */}
+                      <div className="text-right">
+                        <div className="text-[13px] font-black text-navy leading-none">
+                          {((normalizeUnit(item.unit) === 'g' || normalizeUnit(item.unit) === 'ml')
+                            ? (item.costPerUnit / 1000) * (item.quantity || 0)
+                            : (item.costPerUnit * (item.quantity || 0))
+                          ).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
+                        </div>
+                        <div className="text-[9px] font-bold text-slate-400 mt-1 whitespace-nowrap overflow-hidden">
+                          {item.costPerUnit.toFixed(3)}€/{(normalizeUnit(item.unit) === 'g' || normalizeUnit(item.unit) === 'ml') ? 'kg·l' : 'ud'}
                         </div>
                       </div>
-                      <ChevronRight 
-                        size={16} 
-                        className={`text-slate-300 transition-transform ${expandedItem === item._key ? 'rotate-90' : ''}`} 
-                      />
-                    </div>
-                    
-                    {expandedItem === item._key && (
-                      <div className="mini-card-details fade-in">
-                        {/* Tap-to-edit quantity -> opens NumPad */}
-                        <div 
-                          className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 cursor-pointer"
+
+                      {/* COL 4: Action (Fixed 40px) */}
+                      <div className="flex justify-end">
+                        <button 
                           onClick={() => {
-                            openNumPad(item._key, `${item.name} (${item.unit})`);
-                          }}
+                            const targetKey = item._key || item.id || `idx-${index}`;
+                            removeItem(targetKey);
+                          }} 
+                          className="text-slate-200 hover:text-rose-500 p-1.5 transition-colors"
                         >
-                          <span className="w-16 text-right text-sm font-black text-navy">{item.quantity !== undefined && item.quantity !== '' ? Number(item.quantity).toLocaleString('es-ES', { maximumFractionDigits: 3 }) : '0'}</span>
-                          <span className="text-[10px] font-black text-slate-400 px-2 uppercase">{item.unit}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <div className="text-[10px] text-slate-400 font-bold mr-2">
-                            {(item.unit === 'g' || item.unit === 'ml') 
-                              ? `${(item.costPerUnit * 1000).toFixed(2)}€/kg` 
-                              : `${item.costPerUnit.toFixed(2)}€/ud`}
-                          </div>
-                          <button 
-                            onClick={() => removeItem(item._key)} 
-                            className="delete-btn-subtle opacity-100"
-                            style={{ padding: '6px' }}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                          <Trash2 size={16} />
+                        </button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -603,7 +705,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
           className={`floating-save-btn ${isSaved ? 'saved' : ''}`}
           style={{ backgroundColor: isSaved ? '#10b981' : totals.costPerPortion > 500 ? '#fca5a5' : undefined }}
         >
-          {isSaving ? 'Guardando...' : isSaved ? <><CheckCircle2 size={20} />  Guardado</> : <><Save size={20} /> Guardar Elaboración</>}
+          {isSaving ? 'Guardando...' : isSaved ? <><CheckCircle2 size={20} /> Guardado</> : <><Save size={20} /> Guardar Elaboración</>}
         </button>
       </div>
 

@@ -229,11 +229,11 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
                                const cost = parseFloat(item.net_cost_per_unit || item.cost_per_unit || 0);
                                const unit = (item.unit_name || '').toLowerCase();
                                const isBaseUnit = ['g', 'ml', 'kg', 'l', 'kilo', 'litro'].some(u => unit.includes(u));
-                               if (isBaseUnit && cost > 0) return `${(cost * 1000).toFixed(2)}€/kg`;
-                               return `${cost.toFixed(2)}€`;
+                               if (isBaseUnit && cost > 0) return `${cost.toFixed(2)}€/kg·l`;
+                               return `${cost.toFixed(2)}€/ud`;
                              })()
                            ) : item.cost_per_portion ? (
-                             `${item.cost_per_portion.toFixed(2)}€`
+                             `${item.cost_per_portion.toFixed(2)}€/${item.yield_scenario === 'weight' ? 'kg·l' : 'ud'}`
                            ) : '0.00€'}
                         </div>
                       </button>
@@ -329,7 +329,7 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
                     <div className="item-main">
                        <span className="item-name">{item.name}</span>
                        <span className="item-meta">
-                         {type === 'ingredient' ? (item.unit_name || 'unid') : 'elaboración'}
+                         {type === 'ingredient' ? (item.unit_name || 'unid') : (item.yield_scenario === 'weight' ? 'peso (kg/l)' : (item.unit_name || 'unid'))}
                        </span>
                     </div>
                     <div className="item-value">
@@ -338,8 +338,8 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
                            const cost = parseFloat(item.net_cost_per_unit || item.cost_per_unit || 0);
                            const unit = (item.unit_name || '').toLowerCase();
                            const isBaseUnit = ['g', 'ml', 'kg', 'l', 'kilo', 'litro'].some(u => unit.includes(u));
-                           if (isBaseUnit && cost > 0) return `${(cost * 1000).toFixed(2)}€/kg·l`;
-                           return `${cost.toFixed(2)}€`;
+                           if (isBaseUnit && cost > 0) return `${cost.toFixed(2)}€/kg·l`;
+                           return `${cost.toFixed(2)}€/ud`;
                          })()
                        ) : item.cost_per_portion ? (
                          `${item.cost_per_portion.toFixed(2)}€`

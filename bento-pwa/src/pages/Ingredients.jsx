@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { supabase } from '../lib/supabaseClient';
-import { Carrot, Search, Plus, AlertCircle, Loader2, ChevronRight, X, Save, Trash2, Camera, Scan, Image as ImageIcon, RotateCcw, Sparkles, Scale, Package } from 'lucide-react';
+import { Carrot, Search, Plus, AlertCircle, Loader2, ChevronRight, X, Save, Trash2, Camera, Scan, Image as ImageIcon, RotateCcw, Sparkles, Scale, Package, Store } from 'lucide-react';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import NumPad from '../components/Common/NumPad';
 import { compressImage, uploadImage, blobToBase64 } from '../lib/imageUtils';
@@ -35,6 +35,8 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     barcode: ingredient.barcode || '',
     calculation_type: ingredient.calculation_type || 'peso',
     waste_percentage: ingredient.waste_percentage || 0,
+    is_published: ingredient.is_published || false,
+    sale_price: ingredient.sale_price || 0,
   });
 
   const [scanning, setScanning] = useState(false);
@@ -435,23 +437,14 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     
     const format = form.purchase_format ? parseFloat(form.purchase_format) : 0;
     const price = form.purchase_price !== '' ? parseFloat(form.purchase_price) : 0;
-    let finalCost = 0;
-    
-    if (format > 0) {
-      if (form.calculation_type === 'unidad') {
-        finalCost = price / format;
-      } else {
-        const merma = form.waste_percentage ? parseFloat(form.waste_percentage) : 0;
-        finalCost = price / (format * (1 - merma / 100));
-      }
-    }
+    // cost_per_unit is now calculated on the server by a Supabase Trigger
 
     const payload = {
       name: form.name,
       purchase_format: format || null,
       purchase_price: price || null,
       provider: form.provider || null,
-      unit_id: form.unit_id || null,
+      unit_id: form.calculation_type === 'peso' ? 'c39f0ea5-5325-4876-8395-940b4995ce4a' : '6b013d2c-2079-41fc-a210-2f8e1cb11e41',
       category_id: form.category_id || null,
       subcategory_id: form.subcategory_id || null,
       image_url: form.image_url || null,
@@ -459,7 +452,8 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       barcode: form.barcode || null,
       calculation_type: form.calculation_type,
       waste_percentage: form.waste_percentage || 0,
-      cost_per_unit: finalCost,
+      is_published: form.is_published || false,
+      sale_price: form.sale_price !== '' ? parseFloat(form.sale_price) : 0,
     };
 
     console.log('Formulario enviado', payload);
@@ -494,10 +488,18 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     if (form.calculation_type === 'unidad') {
       dynamicCost = priceVal / formatVal;
     } else {
-      const mermaVal = parseFloat(form.waste_percentage) || 0;
-      dynamicCost = priceVal / (formatVal * (1 - mermaVal / 100));
+      dynamicCost = (priceVal / formatVal) * 1000;
     }
   }
+
+  // --- PVP SECTION ---
+  const handlePvpClick = () => {
+    setNumPad({ 
+      field: 'sale_price', 
+      label: 'Precio de Venta (PVP)', 
+      value: form.sale_price 
+    });
+  };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -725,30 +727,32 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
             </div>
           </div>
 
-          {/* Fila 1: Clasificación */}
+          {/* Fila 1: Clasificación (Sin Selector de Unidad) */}
           <div className="form-row mb-4">
-            <div className="form-group">
-              <label className="form-label text-slate-500">Categoría <span className="text-red-500">*</span></label>
-              <select
-                className="form-input form-select bg-slate-50"
-                value={form.category_id}
-                onChange={e => { set('category_id', e.target.value); set('subcategory_id', ''); }}
-              >
-                <option value="">— Elegir —</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label text-slate-500">Subcategoría <span className="text-red-500">*</span></label>
-              <select
-                className="form-input form-select bg-slate-50"
-                value={form.subcategory_id}
-                onChange={e => set('subcategory_id', e.target.value)}
-                disabled={!form.category_id}
-              >
-                <option value="">— Elegir —</option>
-                {subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+            <div className="form-group w-full flex gap-2">
+              <div style={{ flex: 1 }}>
+                <label className="form-label text-slate-500">Categoría <span className="text-red-500">*</span></label>
+                <select
+                  className="form-input form-select bg-slate-50"
+                  value={form.category_id}
+                  onChange={e => { set('category_id', e.target.value); set('subcategory_id', ''); }}
+                >
+                  <option value="">— Elegir —</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label className="form-label text-slate-500">Subcategoría <span className="text-red-500">*</span></label>
+                <select
+                  className="form-input form-select bg-slate-50"
+                  value={form.subcategory_id}
+                  onChange={e => set('subcategory_id', e.target.value)}
+                  disabled={!form.category_id}
+                >
+                  <option value="">— Elegir —</option>
+                  {subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -865,7 +869,32 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                fontWeight: 800,
                color: '#0c4a6e'
             }}>
-              {form.calculation_type === 'peso' && dynamicCost !== 0 ? (dynamicCost * 1000).toFixed(2) : dynamicCost.toFixed(2)}€ {form.calculation_type === 'peso' ? '/ KG' : '/ UD'}
+              {dynamicCost.toFixed(2)}€ {form.calculation_type === 'peso' ? '/ KG' : '/ UD'}
+            </div>
+          </div>
+
+          {/* Fila 4: PVP y Estado Tienda (v2.0.0) */}
+          <div className="mt-6 p-4 bg-sky-50 rounded-2xl border border-sky-100">
+            <div className="flex justify-between items-center mb-3">
+              <label className="form-label text-sky-700 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 m-0">
+                <Store size={14} /> Precio de Venta (PVP)
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Visible TPV</span>
+                <button
+                  type="button"
+                  onClick={() => set('is_published', !form.is_published)}
+                  className={`w-10 h-5 rounded-full transition-all duration-300 relative ${form.is_published ? 'bg-sky-500' : 'bg-slate-200'}`}
+                >
+                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ${form.is_published ? 'left-5.5' : 'left-0.5'}`} />
+                </button>
+              </div>
+            </div>
+            <div 
+              className="numpad-control bg-white border-sky-100 text-sky-700 font-black text-xl text-center shadow-inner"
+              onClick={handlePvpClick}
+            >
+              {form.sale_price ? `${Number(form.sale_price).toFixed(2)}€` : <span className="text-sky-200">0.00€</span>}
             </div>
           </div>
 
@@ -896,7 +925,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Ingredients() {
-  const { ingredients, loading, error, updateIngredient, addIngredient, deleteIngredient } = useIngredients();
+  const { ingredients, loading, error, updateIngredient, addIngredient, deleteIngredient, togglePublish } = useIngredients();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [activeSubcategory, setActiveSubcategory] = useState('Todos');
@@ -905,6 +934,7 @@ export default function Ingredients() {
   const [modal, setModal] = useState(null); // null | { ingredient, isNew }
   const [confirmDelete, setConfirmDelete] = useState(null); // null | ingredientId
   const [saving, setSaving] = useState(false);
+  const [publishAction, setPublishAction] = useState(null);
 
   // Fetch all categories for filter
   useEffect(() => {
@@ -957,39 +987,36 @@ export default function Ingredients() {
 
   const handleSave = async (payload) => {
     setSaving(true);
-    console.log('🚀 [Supabase] Ejecutando guardado con payload:', payload);
-    
     try {
       let result;
-      if (modal.isNew) {
-        result = await addIngredient(payload);
-      } else {
-        result = await updateIngredient(modal.ingredient.id, payload);
-      }
+      if (modal.isNew) result = await addIngredient(payload);
+      else result = await updateIngredient(modal.ingredient.id, payload);
       
       setSaving(false);
-      
-      if (!result.success) {
-        console.error('❌ [Supabase] Error en la respuesta:', result.error);
-        alert(result.error); // Mensaje exacto de Supabase
-      } else {
-        console.log('✅ [Supabase] Guardado con éxito');
-        closeModal();
-      }
+      if (!result.success) alert(result.error);
+      else closeModal();
     } catch (err) {
       setSaving(false);
-      console.error('🔥 [Critical] Error inesperado en handleSave:', err);
-      alert(err.message); // Mensaje exacto de error
+      alert(err.message);
     }
   };
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
     const result = await deleteIngredient(confirmDelete);
-    if (!result.success) {
-      alert('Error al eliminar: ' + result.error);
-    }
+    if (!result.success) alert('Error: ' + result.error);
     setConfirmDelete(null);
+  };
+
+  const handleToggleStore = async (id, currentStatus, currentPrice) => {
+    if (!currentStatus) {
+      setPublishAction({ id, price: currentPrice?.toString() || '0' });
+    } else {
+      setSaving(true);
+      const res = await togglePublish(id, true, currentPrice);
+      setSaving(false);
+      if (!res.success) alert(res.error);
+    }
   };
 
   if (error) {
@@ -1088,7 +1115,6 @@ export default function Ingredients() {
                 className="premium-card" 
                 onClick={() => openEdit(ingredient)}
               >
-                {/* IZQUIERDA: AVATAR */}
                 <div className="card-avatar">
                   {ingredient.image_url ? (
                     <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" />
@@ -1099,12 +1125,16 @@ export default function Ingredients() {
                   )}
                 </div>
 
-                {/* CENTRO: INFO */}
                 <div className="card-info-center">
                   <h3 className="card-name-bold">{ingredient.name}</h3>
-                  <p className="card-subtext">
-                    {ingredient.category_name || 'General'} · {ingredient.brand || 'S/M'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="card-subtext">
+                      {ingredient.category_name || 'General'} · {ingredient.brand || 'S/M'}
+                    </p>
+                    {ingredient.is_published && (
+                       <span className="bg-sky-100 text-sky-600 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">En Tienda</span>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="card-price-right">
@@ -1112,13 +1142,9 @@ export default function Ingredients() {
                     {(() => {
                       const fmt = parseFloat(ingredient.purchase_format) || 0;
                       const prc = parseFloat(ingredient.purchase_price) || 0;
-                      const waste = parseFloat(ingredient.waste_percentage) || 0;
                       if (fmt <= 0) return (parseFloat(ingredient.cost_per_unit || 0)).toFixed(2);
-                      if (ingredient.calculation_type === 'unidad') {
-                        return (prc / fmt).toFixed(4).replace(/\.?0+$/, '') || '0.00';
-                      }
-                      const netPerG = prc / (fmt * (1 - waste / 100));
-                      return (netPerG * 1000).toFixed(2);
+                      if (ingredient.calculation_type === 'unidad') return (prc / fmt).toFixed(2);
+                      return ((prc / fmt) * 1000).toFixed(2);
                     })()} €
                   </div>
                   <div className="price-unit-label">
@@ -1126,8 +1152,17 @@ export default function Ingredients() {
                   </div>
                 </div>
 
-                {/* ACCIONES */}
-                <div className="card-actions-subtle">
+                <div className="card-actions-subtle flex items-center gap-2">
+                  <button 
+                    className={`p-2 rounded-lg transition-all ${ingredient.is_published ? 'bg-sky-500 text-white shadow-lg shadow-sky-100' : 'text-slate-300 hover:bg-slate-100'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleStore(ingredient.id, ingredient.is_published, ingredient.sale_price);
+                    }}
+                    title={ingredient.is_published ? "Quitar de la tienda" : "Enviar a la tienda"}
+                  >
+                    <Store size={18} />
+                  </button>
                   <button 
                     className="delete-btn-subtle"
                     style={{ opacity: 0.3 }}
@@ -1138,7 +1173,6 @@ export default function Ingredients() {
                   >
                     <Trash2 size={16} />
                   </button>
-                  <ChevronRight size={16} className="text-slate-200" />
                 </div>
               </div>
             );
@@ -1162,6 +1196,21 @@ export default function Ingredients() {
         />
       )}
 
+      {publishAction && (
+        <NumPad
+          label="Precio de Venta (PVP)"
+          value={publishAction.price}
+          onChange={(val) => setPublishAction(prev => ({ ...prev, price: val }))}
+          onClose={async () => {
+            setSaving(true);
+            const res = await togglePublish(publishAction.id, false, publishAction.price);
+            setSaving(false);
+            setPublishAction(null);
+            if (!res.success) alert(res.error);
+          }}
+        />
+      )}
+
       <ConfirmationModal
         isOpen={!!confirmDelete}
         onClose={() => setConfirmDelete(null)}
@@ -1170,7 +1219,6 @@ export default function Ingredients() {
         message="Esta acción no se puede deshacer y podría afectar a las recetas que usan este ingrediente."
       />
 
-      {/* A-Z Sidebar */}
       <div className="alphabet-sidebar">
         {alphabet.map(letter => {
           const isPresent = presentLetters.includes(letter);

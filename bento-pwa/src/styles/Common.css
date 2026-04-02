@@ -328,3 +328,121 @@
   from { transform: translateY(100px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+/* Category Tabs System (Unified) */
+.category-tabs-wrapper {
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 10px; /* 12px vertical gap, 10px horizontal gap */
+  justify-content: flex-start;
+  padding: 4px 0;
+}
+
+.category-tab {
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.category-tab:hover {
+  background: #f8fafc;
+  color: var(--color-brand);
+  transform: translateY(-1px);
+  border-color: #cbd5e1;
+}
+
+.category-tab.active {
+  background: var(--color-brand);
+  color: white;
+  border-color: var(--color-brand);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+}
+
+.category-tab.sub {
+  font-size: 11px;
+  padding: 6px 14px;
+}
+
+/* Skeleton / Shimmer Effect */
+.shimmer {
+  background: #f6f7f8;
+  background-image: linear-gradient(
+    to right,
+    #f6f7f8 0%,
+    #edeef1 20%,
+    #f6f7f8 40%,
+    #f6f7f8 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 800px 100%;
+  display: inline-block;
+  position: relative;
+  animation-duration: 1.5s;
+  animation-fill-mode: forwards;
+  animation-iteration-count: infinite;
+  animation-name: shimmer;
+  animation-timing-function: linear;
+}
+
+@keyframes shimmer {
+  0% { background-position: -800px 0; }
+  100% { background-position: 800px 0; }
+}
+
+.skeleton-card {
+  height: 80px;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+  background: white;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.skeleton-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #f1f5f9;
+}
+
+.skeleton-text-main {
+  height: 18px;
+  width: 140px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  margin-bottom: 8px;
+}
+
+.skeleton-text-sub {
+  height: 12px;
+  width: 80px;
+  border-radius: 4px;
+  background: #f8fafc;
+}
+
+.skeleton-price {
+  height: 24px;
+  width: 60px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  margin-left: auto;
+}

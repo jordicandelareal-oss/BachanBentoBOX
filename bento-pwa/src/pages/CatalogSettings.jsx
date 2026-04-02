@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { useCatalogSettings } from '../hooks/useCatalogSettings';
+import { useNavigate } from 'react-router-dom';
 import { 
   Settings, Folder, Tag, ChefHat, Plus, 
   Trash2, Edit2, Check, X, Loader2, ArrowLeft,
   ChevronRight, BookOpen
 } from 'lucide-react';
+
+import { useCatalogSettings } from '../hooks/useCatalogSettings';
+import { useMenuCategories } from '../hooks/useMenuCategories';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
-import { useNavigate } from 'react-router-dom';
+
 import '../styles/Common.css';
 import './CatalogSettings.css';
 
@@ -16,8 +19,6 @@ const TABS = [
   { id: 'subs', label: 'Insumos: Subcategorías', icon: Tag, table: 'subcategories' },
   { id: 'preps', label: 'Elaboraciones: Categorías', icon: ChefHat, table: 'preparation_categories' }
 ];
-
-import { useMenuCategories } from '../hooks/useMenuCategories';
 
 export default function CatalogSettings() {
   const { 
@@ -45,12 +46,18 @@ export default function CatalogSettings() {
   const currentTab = TABS.find(t => t.id === activeTab);
 
   const getItems = () => {
-    if (activeTab === 'menu') return menuCategories;
-    if (activeTab === 'cats') return categories;
-    if (activeTab === 'subs') {
-      return subcategories.filter(s => !selectedParentId || s.category_id === selectedParentId);
+    try {
+      if (activeTab === 'menu') return menuCategories || [];
+      if (activeTab === 'cats') return categories || [];
+      if (activeTab === 'subs') {
+        const subs = subcategories || [];
+        return subs.filter(s => !selectedParentId || s.category_id === selectedParentId);
+      }
+      return prepCategories || [];
+    } catch (e) {
+      console.error('Error in getItems:', e);
+      return [];
     }
-    return prepCategories;
   };
 
   const handleAdd = async (e) => {

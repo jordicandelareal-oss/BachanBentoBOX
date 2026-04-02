@@ -119,5 +119,61 @@ export function useIngredients() {
     }
   }
 
-  return { ingredients, loading, error, updateIngredient, addIngredient, deleteIngredient, fetchIngredients }
+  // Toggle public visibility for Ingredients
+  async function togglePublish(ingredientId, currentStatus, salePrice = null) {
+    try {
+      const newStatus = !currentStatus;
+      
+      // 1. Update ingredients table
+      const updateData = { is_published: newStatus };
+      if (salePrice !== null) updateData.sale_price = Number(salePrice);
+      
+      const { error: ingError } = await supabase
+        .from('ingredients')
+        .update(updateData)
+        .eq('id', ingredientId);
+      
+      if (ingError) throw ingError;
+
+      // 2. Sync with menu_items
+      if (newStatus) {
+        // Fetch fresh copy to ensure all fields are current
+        const { data: ingredient, error: fetchErr } = await supabase
+          .from('ingredients')
+          .select('*, units:unit_id(name)')
+          .eq('id', ingredientId)
+          .single();
+
+        if (fetchErr) throw fetchErr;
+
+        if (ingredient) {
+          const menuItem = {
+            id: ingredientId, // Use ingredient ID as PK for menu_items
+            name: ingredient.name,
+            description: `Insumo: ${ingredient.brand || ''} ${ingredient.provider || ''}`.trim(),
+            price: Number(salePrice || ingredient.sale_price || 0),
+            image_url: ingredient.image_url || '',
+            recipe_id: null, // Ingredients don't have a recipe_id
+            menu_category_id: null, // Default uncategorized for now
+            active: true
+          };
+          
+          const { error: upsertErr } = await supabase.from('menu_items').upsert([menuItem]);
+          if (upsertErr) throw upsertErr;
+        }
+      } else {
+        // Remove from menu_items if unpublished
+        const { error: deleteErr } = await supabase.from('menu_items').delete().eq('id', ingredientId);
+        if (deleteErr) throw deleteErr;
+      }
+
+      await fetchIngredients();
+      return { success: true };
+    } catch (err) {
+      console.error("❌ [Supabase Ingredient Toggle Error]", err);
+      return { success: false, error: err.message };
+    }
+  }
+
+  return { ingredients, loading, error, updateIngredient, addIngredient, deleteIngredient, fetchIngredients, togglePublish }
 }

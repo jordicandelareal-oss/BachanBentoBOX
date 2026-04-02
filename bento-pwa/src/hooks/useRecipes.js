@@ -1,10 +1,55 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 export function useRecipes(type = null) {
   const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const typeDep = JSON.stringify(type);
+
+  const fetchRecipes = useCallback(async () => {
+    try {
+      setLoading(true)
+      
+      const parsedType = JSON.parse(typeDep);
+      
+      let recipesQuery = supabase
+        .from('recipes')
+        .select(`
+          id, name, recipe_type, cost_per_portion, portions, net_yield, yield_scenario, 
+          "Unid_Id", preparation_category_Id, menu_category_id, is_published, 
+          image_url, platos_estimados, sale_price,
+          unit:units!Unid_Id(name)
+        `)
+        .order('name')
+        
+      if (parsedType) {
+        if (Array.isArray(parsedType)) {
+          recipesQuery = recipesQuery.in('recipe_type', parsedType)
+        } else {
+          recipesQuery = recipesQuery.eq('recipe_type', parsedType)
+        }
+      }
+
+      const { data: recipesData, error: recipesError } = await recipesQuery
+      if (recipesError) throw recipesError
+
+      const merged = (recipesData || []).map(recipe => ({
+        ...recipe,
+        unit_name: recipe.unit?.name || 'ud',
+        cost_per_portion: parseFloat(recipe.cost_per_portion || 0)
+      }))
+
+      setRecipes(merged)
+      setError(null)
+    } catch (err) {
+      setError(err.message)
+      console.error('Error fetching recipes:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [typeDep]);
 
   useEffect(() => {
     fetchRecipes()
@@ -32,62 +77,22 @@ export function useRecipes(type = null) {
       supabase.removeChannel(ingredientsChannel)
       supabase.removeChannel(riChannel)
     }
-  }, [type])
-
-  async function fetchRecipes() {
-    try {
-      setLoading(true)
-      
-      let recipesQuery = supabase
-        .from('recipes')
-        .select(`
-          *,
-          unit:units!Unid_Id(name)
-        `)
-        .order('name')
-        
-      if (type) {
-        recipesQuery = recipesQuery.eq('recipe_type', type)
-      }
-
-      const { data: recipesData, error: recipesError } = await recipesQuery
-      if (recipesError) throw recipesError
-
-      // Merge data (using cost_per_portion from recipes table)
-      const merged = (recipesData || []).map(recipe => ({
-        ...recipe,
-        unit_name: recipe.unit?.name || 'ud',
-        preparation_category: null, 
-        cost_per_portion: recipe.cost_per_portion || 0
-      }))
-      
-      setRecipes(merged)
-      setError(null)
-    } catch (err) {
-      setError(err.message)
-      console.error('Error fetching recipes:', err)
-      // Fallback
-      try {
-        const { data: fallback } = await supabase.from('recipes').select('*').order('name')
-        if (fallback) {
-          setRecipes(fallback.map(r => ({ ...r, unit_name: 'ud', cost_per_portion: r.cost_per_portion || 0 })))
-          setError(null)
-        }
-      } catch (_) { }
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [fetchRecipes])
 
   // Toggle public visibility
-  async function togglePublish(recipeId, currentStatus) {
+  async function togglePublish(recipeId, currentStatus, salePrice = null) {
     try {
       const newStatus = !currentStatus;
       
       // 1. Update recipe table
+      const updateData = { is_published: newStatus };
+      if (salePrice !== null) {
+        updateData.sale_price = Number(salePrice);
+      }
+      
       const { error: recipeError } = await supabase
         .from('recipes')
-        .update({ is_published: newStatus })
+        .update(updateData)
         .eq('id', recipeId);
       
       if (recipeError) throw recipeError;

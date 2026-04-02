@@ -21,7 +21,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
     portions, setPortions,
     unitId, setUnitId,
     items, addItem, updateItemQuantity, removeItem,
-    totals, saveBento, loadRecipeItems,
+    totals, saveBento, loadRecipeItems, initialCost,
     imageUrl, setImageUrl,
     menuCategoryId, setMenuCategoryId
   } = useBentoMaker(recipe, 'bento');
@@ -73,7 +73,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
     if (recipe?.id) {
       loadRecipeItems(recipe.id);
     }
-  }, [recipe?.id]);
+  }, [recipe?.id, loadRecipeItems]);
 
   const handleSelectComponent = (item) => {
     let normalized = 'ud';
@@ -84,13 +84,8 @@ export default function BentoMaker({ recipe = null, onClose }) {
       baseCost = parseFloat(item.cost_per_unit || 0);
     } else {
       // LÓGICA DUAL PARA ELABORACIONES
-      if (item.yield_scenario === 'weight') {
-        normalized = 'g';
-        baseCost = (item.cost_per_portion || 0) / 1000;
-      } else {
-        normalized = 'ud';
-        baseCost = item.cost_per_portion || 0;
-      }
+      normalized = item.yield_scenario === 'weight' ? 'g' : 'ud'
+      baseCost = parseFloat(item.cost_per_portion || 0);
     }
 
     addItem({
@@ -240,43 +235,54 @@ export default function BentoMaker({ recipe = null, onClose }) {
               ) : (
                 <div className="space-y-4">
                   {items.map(item => (
-                    <div key={item._key} className="premium-card" style={{ padding: '16px', border: '1px solid #f1f5f9', background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                      <div className="flex-1">
-                        <div className="font-bold text-[#0f172a] text-sm flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                            {item.type === 'ingredient' ? <Carrot size={14} /> : <CookingPot size={14} />}
+                    <div key={item._key} className="bg-white border border-slate-100 rounded-2xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow overflow-hidden mb-3">
+                      <div className="grid grid-cols-[1fr_70px_105px_40px] items-center gap-2">
+                        {/* COL 1: Icon + Name */}
+                        <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 shrink-0">
+                            {item.type === 'ingredient' ? <Carrot size={16} /> : <CookingPot size={16} />}
                           </div>
-                          <div>
-                            {item.name}
+                          <div className="min-w-0">
+                            <div className="text-[13px] md:text-sm font-bold text-slate-800 truncate">{item.name}</div>
                             {item.category_name && (
-                              <span className="text-[10px] font-bold text-slate-400 ml-2 bg-slate-50 px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                              <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5 truncate overflow-hidden">
                                 {item.category_name}
-                              </span>
+                              </div>
                             )}
                           </div>
                         </div>
-                        <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-2 ml-11">
-                          {(item.unit === 'g' || item.unit === 'ml') 
-                            ? `${(item.costPerUnit * 1000).toFixed(2)}€/kg · l`
-                            : `${item.costPerUnit.toFixed(2)}€/pzs`}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-6">
+
+                        {/* COL 2: Quantity (Blue, Fixed 70px) */}
                         <div 
-                          className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1 shadow-inner cursor-pointer"
-                          onClick={() => openNumPad(item._key, `${item.name} (${item.unit})`)}
+                          className="text-right cursor-pointer"
+                          onClick={() => openNumPad(item._key, `${item.name} (${item.unit || 'g/ml'})`)}
                         >
-                          <span className="w-16 text-right py-2 text-sm font-black text-[#0f172a]">
-                            {item.quantity !== undefined && item.quantity !== '' ? Number(item.quantity).toLocaleString('es-ES', { maximumFractionDigits: 3 }) : '0'}
+                          <span className="text-[14px] font-black text-sky-600 block leading-none">
+                            {item.quantity !== undefined && item.quantity !== '' ? Number(item.quantity).toLocaleString('es-ES', { maximumFractionDigits: 2 }) : '0'}
                           </span>
-                          <span className="text-[10px] font-black text-slate-400 px-2 uppercase">{item.unit === 'ud' ? 'pzs' : item.unit}</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase italic">{item.unit === 'ud' ? 'pzs' : (item.unit || 'g')}</span>
                         </div>
-                        <div className="w-20 text-right font-black text-[#0f172a] text-sm">
-                          {(item.costPerUnit * item.quantity).toFixed(2)}€
+
+                        {/* COL 3: Prices (Fixed 105px) */}
+                        <div className="text-right">
+                          <div className="text-[12px] md:text-[13px] font-black text-slate-900 leading-none">
+                            {((item.unit === 'g' || item.unit === 'ml' ? item.costPerUnit / 1000 : item.costPerUnit) * (item.quantity || 0)).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
+                          </div>
+                          <div className="text-[9px] font-bold text-slate-400 mt-1 whitespace-nowrap overflow-hidden">
+                            {item.costPerUnit.toFixed(3)}€/{(item.unit === 'g' || item.unit === 'ml') ? 'kg·l' : 'ud'}
+                          </div>
                         </div>
-                        <button onClick={() => removeItem(item._key)} className="text-slate-300 hover:text-[#f43f5e] transition-colors p-2 rounded-full hover:bg-rose-50" title="Eliminar componente">
-                          <Trash2 size={20} />
-                        </button>
+
+                        {/* COL 4: Action (Fixed 40px) */}
+                        <div className="flex justify-end">
+                          <button 
+                            onClick={() => removeItem(item._key)} 
+                            className="text-slate-200 hover:text-rose-500 p-1.5 transition-colors" 
+                            title="Eliminar componente"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -290,6 +296,20 @@ export default function BentoMaker({ recipe = null, onClose }) {
           {/* Rentability Card */}
           <div className="rentability-card shadow-2xl">
             <h3 className="text-white font-black uppercase tracking-widest text-[10px] mb-8 opacity-40">Análisis de Costes</h3>
+            
+            {Math.abs(totals.costPerPortion - initialCost) > 0.01 && initialCost > 0 && (
+              <div className="mb-8 p-4 rounded-2xl animate-in fade-in slide-in-from-top-2" style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
+                    <TrendingUp size={14} className="text-amber-400" />
+                  </div>
+                  <span className="text-white font-black uppercase tracking-widest text-[9px]">Actualización de Precios</span>
+                </div>
+                <p className="text-white/40 text-[10px] leading-relaxed font-bold">
+                  Los insumos han cambiado de precio. <br/> El coste anterior era de <span className="text-white/60">{initialCost.toFixed(2)}€</span>.
+                </p>
+              </div>
+            )}
             
             <div className="space-y-8">
               <div className="group">
