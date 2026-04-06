@@ -12,12 +12,15 @@ export const normalizeUnit = (unit) => {
   return u;
 }
 
+const BENTO_CATEGORY_ID = '0c43bac9-471b-4834-952c-81a822965df3';
+
 export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   const [bentoName, setBentoName] = useState(initialRecipe?.name || '')
   const [salePrice, setSalePrice] = useState(initialRecipe?.sale_price || 0)
   const [portions, setPortions] = useState(initialRecipe?.portions || 1)
   const [unitId, setUnitId] = useState(initialRecipe?.Unid_Id || '')
-  const [prepCategoryId, setPrepCategoryId] = useState(initialRecipe?.preparation_category_Id || '')
+  // Casing fix: using lowercase 'id' for the state as well for consistency
+  const [prepCategoryId, setPrepCategoryId] = useState(initialRecipe?.preparation_category_Id || initialRecipe?.preparation_category_id || '')
   const [menuCategoryId, setMenuCategoryId] = useState(initialRecipe?.menu_category_id || '')
   const [yieldScenario, setYieldScenario] = useState(initialRecipe?.yield_scenario || 'units')
   const [adjustmentPercent, setAdjustmentPercent] = useState(initialRecipe?.adjustment_percent || 0)
@@ -51,8 +54,9 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
     
     // Calculate Gross Weight (only for items with weight units 'g' or 'ml')
     const totalGrossWeight = items.reduce((sum, item) => {
-      if (item.unit === 'g' || item.unit === 'ml') return sum + (Number(item.quantity) || 0)
-      return sum
+      const norm = normalizeUnit(item.unit);
+      if (norm === 'g' || norm === 'ml') return sum + (Number(item.quantity) || 0);
+      return sum;
     }, 0)
 
     let costPerPortion = 0
@@ -96,25 +100,34 @@ export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   const saveBento = async (extraData = {}) => {
     if (!bentoName) throw new Error("Debes darle un nombre")
     
-    // 1. Upsert Recipe
+    // 1. Prepare data and force Bento Category ID
+    const dataToSave = { 
+      name: bentoName, 
+      recipe_type: recipeType,
+      sale_price: recipeType === 'elaboracion' ? 0 : salePrice,
+      // FIX DEFINITIVO (I MAYÚSCULA): Sincronización obligatoria con la DB (Línea 106)
+      "preparation_category_Id": recipeType === 'bento' ? BENTO_CATEGORY_ID : (prepCategoryId || null),
+      portions: portions,
+      "Unid_Id": unitId || null,
+      yield_scenario: yieldScenario,
+      adjustment_percent: adjustmentPercent,
+      net_yield: yieldScenario === 'weight' ? totals.finalNetYield : null,
+      cost_per_portion: totals.costPerPortion,
+      platos_estimados: platosEstimados,
+      image_url: imageUrl || null
+    };
+
+    // Merge extraData while explicitly protecting the case-sensitive category ID
+    const finalData = { ...dataToSave, ...extraData };
+    
+    // Safety check: ensure no lowercase version is present
+    delete finalData.preparation_category_id;
+
+    console.log('DATOS A GUARDAR (CASE SENSITIVE):', finalData);
+
     const { data: recipeData, error: recipeErr } = await supabase
       .from('recipes')
-      .upsert({ 
-        name: bentoName, 
-        recipe_type: recipeType,
-        sale_price: recipeType === 'elaboracion' ? 0 : salePrice,
-        preparation_category_Id: prepCategoryId || null,
-        menu_category_id: menuCategoryId || null,
-        portions: portions,
-        Unid_Id: unitId || null,
-        yield_scenario: yieldScenario,
-        adjustment_percent: adjustmentPercent,
-        net_yield: yieldScenario === 'weight' ? totals.finalNetYield : null,
-        cost_per_portion: totals.costPerPortion,
-        platos_estimados: platosEstimados,
-        image_url: imageUrl || null,
-        ...extraData 
-      }, { onConflict: 'name' })
+      .upsert(finalData, { onConflict: 'name' })
       .select()
       .single()
 
