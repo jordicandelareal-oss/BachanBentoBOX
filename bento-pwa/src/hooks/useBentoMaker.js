@@ -14,7 +14,7 @@ export const normalizeUnit = (unit) => {
 
 const BENTO_CATEGORY_ID = '0c43bac9-471b-4834-952c-81a822965df3';
 
-export function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
+export const useBentoMaker = (initialRecipe = null, recipeType = 'bento') => {
   const [bentoName, setBentoName] = useState(initialRecipe?.name || '')
   const [salePrice, setSalePrice] = useState(initialRecipe?.sale_price || 0)
   const [portions, setPortions] = useState(initialRecipe?.portions || 1)

@@ -1,17 +1,9 @@
-import React, { useState } from 'react';
-import { useBentoMaker, normalizeUnit } from '../../hooks/useBentoMaker';
-import { useIngredients } from '../../hooks/useIngredients';
-import { useRecipes } from '../../hooks/useRecipes';
-import { useUnits } from '../../hooks/useUnits';
-import { useMenuCategories } from '../../hooks/useMenuCategories';
-import { 
-  Carrot, CookingPot, Plus, X, Save, ChevronRight, 
-  TrendingUp, TrendingDown, DollarSign, Target, 
-  Trash2, Info, LayoutGrid, Scale, CheckCircle2, Camera
-} from 'lucide-react';
 import PhotoSelector from '../Common/PhotoSelector';
 import SequentialSelector from '../Common/SequentialSelector';
 import NumPad from '../Common/NumPad';
+import { useBentoMaker } from '../../hooks/useBentoMaker';
+import { usePrepCategories } from '../../hooks/usePrepCategories';
+import { useMenuCategories } from '../../hooks/useMenuCategories';
 import { compressImage, uploadImage } from '../../lib/imageUtils';
 
 export default function BentoMaker({ recipe = null, onClose }) {
@@ -20,12 +12,14 @@ export default function BentoMaker({ recipe = null, onClose }) {
     salePrice, setSalePrice, 
     portions, setPortions,
     unitId, setUnitId,
+    prepCategoryId, setPrepCategoryId,
     items, addItem, updateItemQuantity, removeItem,
     totals, saveBento, loadRecipeItems, initialCost,
     imageUrl, setImageUrl,
     menuCategoryId, setMenuCategoryId
   } = useBentoMaker(recipe, 'bento');
   
+  const { categories: prepCats } = usePrepCategories();
   const { categories: menuCategories } = useMenuCategories();
   const { units } = useUnits();
   const [isSaving, setIsSaving] = useState(false);
@@ -103,6 +97,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
   const handleSave = async () => {
     if (!bentoName) return alert("Indica un nombre para el Producto");
     if (!menuCategoryId) return alert("Selecciona una Categoría de Menú obligatoria.");
+    
     setIsSaving(true);
     try {
       await saveBento();

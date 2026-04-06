@@ -161,7 +161,7 @@ export function Preparations() {
                   <div className="flex items-center gap-2">
                     <h3 className="card-title">{recipe?.name || 'Receta sin nombre'}</h3>
                     {recipe?.is_published && (
-                      <span className="badge-published-emerald">EN MENÚ</span>
+                      <span className="badge-published-blue">EN MENÚ</span>
                     )}
                   </div>
                   <p className="card-meta">
@@ -188,7 +188,7 @@ export function Preparations() {
                 </div>
                   <div className="card-actions-subtle">
                     <button 
-                      className={`p-2 rounded-full transition-all ${recipe.is_published ? 'btn-published-emerald' : 'text-slate-300 bg-slate-100 hover:bg-slate-200'}`}
+                      className={`p-2 rounded-full transition-all ${recipe.is_published ? 'btn-published-blue' : 'text-slate-300 bg-slate-100 hover:bg-slate-200'}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleToggleStore(recipe.id, recipe.is_published, recipe.sale_price);

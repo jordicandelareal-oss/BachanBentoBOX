@@ -37,6 +37,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     waste_percentage: ingredient.waste_percentage || 0,
     is_published: ingredient.is_published || false,
     sale_price: ingredient.sale_price || 0,
+    provider_product_code: ingredient.provider_product_code || '',
   });
 
   const [scanning, setScanning] = useState(false);
@@ -454,6 +455,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       waste_percentage: form.waste_percentage || 0,
       is_published: form.is_published || false,
       sale_price: form.sale_price !== '' ? parseFloat(form.sale_price) : 0,
+      provider_product_code: form.provider_product_code || null,
     };
 
     console.log('Formulario enviado', payload);
@@ -704,14 +706,14 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
               />
             </div>
             <div className="form-group" style={{ flex: 1.2, minWidth: 0 }}>
-              <label className="form-label text-slate-500">Proveedor</label>
+              <label className="form-label text-slate-500">Ref. Proveedor</label>
               <input
                 className="form-input bg-slate-50"
                 style={{ width: '100%', minWidth: 0 }}
                 type="text"
-                placeholder="Ej: Mercadona"
-                value={form.provider}
-                onChange={e => set('provider', e.target.value)}
+                placeholder="Cód. Producto"
+                value={form.provider_product_code}
+                onChange={e => set('provider_product_code', e.target.value)}
               />
             </div>
             <div className="form-group" style={{ flex: 1.8, minWidth: 0 }}>
@@ -1132,7 +1134,7 @@ export default function Ingredients() {
                       {ingredient.category_name || 'General'} · {ingredient.brand || 'S/M'}
                     </p>
                     {ingredient.is_published && (
-                       <span className="badge-published-emerald">EN MENÚ</span>
+                       <span className="badge-published-blue">EN MENÚ</span>
                     )}
                   </div>
                 </div>
@@ -1154,7 +1156,7 @@ export default function Ingredients() {
 
                 <div className="card-actions-subtle flex items-center gap-2">
                   <button 
-                    className={`p-2 rounded-lg transition-all ${ingredient.is_published ? 'btn-published-emerald' : 'text-slate-300 hover:bg-slate-100'}`}
+                    className={`p-2 rounded-lg transition-all ${ingredient.is_published ? 'btn-published-blue' : 'text-slate-300 hover:bg-slate-100'}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggleStore(ingredient.id, ingredient.is_published, ingredient.sale_price);
