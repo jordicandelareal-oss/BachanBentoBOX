@@ -14,7 +14,7 @@ export const normalizeUnit = (unit) => {
 
 const BENTO_CATEGORY_ID = '0c43bac9-471b-4834-952c-81a822965df3';
 
-export const useBentoMaker = (initialRecipe = null, recipeType = 'bento') => {
+export default function useBentoMaker(initialRecipe = null, recipeType = 'bento') {
   const [bentoName, setBentoName] = useState(initialRecipe?.name || '')
   const [salePrice, setSalePrice] = useState(initialRecipe?.sale_price || 0)
   const [portions, setPortions] = useState(initialRecipe?.portions || 1)
@@ -105,7 +105,7 @@ export const useBentoMaker = (initialRecipe = null, recipeType = 'bento') => {
       name: bentoName, 
       recipe_type: recipeType,
       sale_price: recipeType === 'elaboracion' ? 0 : salePrice,
-      // FIX DEFINITIVO (I MAYÚSCULA): Sincronización obligatoria con la DB (Línea 106)
+      // FIX DEFINITIVO (I MAYÚSCULA): Sincronización obligatoria con la DB (Línea 109)
       "preparation_category_Id": recipeType === 'bento' ? BENTO_CATEGORY_ID : (prepCategoryId || null),
       portions: portions,
       "Unid_Id": unitId || null,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRecipes } from '../hooks/useRecipes';
-import { useBentoMaker, normalizeUnit } from '../hooks/useBentoMaker';
+import useBentoMaker, { normalizeUnit } from '../hooks/useBentoMaker';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { usePrepCategories } from '../hooks/usePrepCategories';

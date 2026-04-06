@@ -1,9 +1,14 @@
+import React, { useState } from 'react';
+import { Package, Plus, Save, ChevronRight, LayoutGrid, Trash2, TrendingUp, TrendingDown, DollarSign, Target, Info, Carrot, CookingPot, CheckCircle2 } from 'lucide-react';
 import PhotoSelector from '../Common/PhotoSelector';
 import SequentialSelector from '../Common/SequentialSelector';
 import NumPad from '../Common/NumPad';
-import { useBentoMaker } from '../../hooks/useBentoMaker';
+import useBentoMaker, { normalizeUnit } from '../../hooks/useBentoMaker';
 import { usePrepCategories } from '../../hooks/usePrepCategories';
 import { useMenuCategories } from '../../hooks/useMenuCategories';
+import { useIngredients } from '../../hooks/useIngredients';
+import { useRecipes } from '../../hooks/useRecipes';
+import { useUnits } from '../../hooks/useUnits';
 import { compressImage, uploadImage } from '../../lib/imageUtils';
 
 export default function BentoMaker({ recipe = null, onClose }) {
