@@ -109,26 +109,37 @@ export function useRecipes(type = null) {
         if (fetchErr) throw fetchErr;
 
         if (recipe) {
+          // Check if a base item (multiplier 1) already exists for this recipe
+          const { data: existing } = await supabase
+            .from('menu_items')
+            .select('id')
+            .eq('recipe_id', recipeId)
+            .eq('quantity_multiplier', 1)
+            .maybeSingle();
+
           const menuItem = {
-            id: recipeId, // Explicitly use recipe ID as PK for menu_items
             name: recipe.name,
             description: recipe.description || '',
-            price: Number(recipe.sale_price || 0), // Mapping sale_price to price
+            price: Number(recipe.sale_price || 0),
+            cost: Number(recipe.cost_per_portion || 0),
             image_url: recipe.image_url || '',
             recipe_id: recipeId,
             menu_category_id: recipe.menu_category_id || null,
+            quantity_multiplier: 1, // Default base item
             active: true
           };
-          
-          const { error: upsertErr } = await supabase.from('menu_items').upsert([menuItem]);
-          if (upsertErr) {
-            console.error("❌ [menu_items Upsert Error]", upsertErr);
-            throw upsertErr;
+
+          if (existing) {
+            // Update existing base item
+            await supabase.from('menu_items').update(menuItem).eq('id', existing.id);
+          } else {
+            // Create new base item
+            await supabase.from('menu_items').insert([menuItem]);
           }
         }
       } else {
-        // Remove from menu_items if unpublished
-        const { error: deleteErr } = await supabase.from('menu_items').delete().eq('id', recipeId);
+        // Remove ALL variants of this recipe from menu_items if unpublished
+        const { error: deleteErr } = await supabase.from('menu_items').delete().eq('recipe_id', recipeId);
         if (deleteErr) throw deleteErr;
       }
 

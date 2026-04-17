@@ -147,13 +147,27 @@ export function useIngredients() {
         if (fetchErr) throw fetchErr;
 
         if (ingredient) {
+          // Calculate the real cost per unit for the ingredient
+          const fmt = parseFloat(ingredient.purchase_format) || 0;
+          const prc = parseFloat(ingredient.purchase_price) || 0;
+          let ingredientCost = 0;
+          if (fmt > 0) {
+            ingredientCost = ingredient.calculation_type === 'unidad' 
+              ? (prc / fmt) 
+              : ((prc / fmt) * 1000);
+          } else {
+            ingredientCost = parseFloat(ingredient.cost_per_unit || 0);
+          }
+
           const menuItem = {
             id: ingredientId, // Use ingredient ID as PK for menu_items
             name: ingredient.name,
             description: `Insumo: ${ingredient.brand || ''} ${ingredient.provider || ''}`.trim(),
             price: Number(salePrice || ingredient.sale_price || 0),
+            cost: ingredientCost,
             image_url: ingredient.image_url || '',
             recipe_id: null, // Ingredients don't have a recipe_id
+            ingredient_id: ingredientId,
             menu_category_id: null, // Default uncategorized for now
             active: true
           };

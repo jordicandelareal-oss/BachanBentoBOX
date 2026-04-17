@@ -42,51 +42,6 @@ const TOOLS = [{
           category_name: { type: "string", description: "Sugerencia de categoría (ej: PROTEINA, VERDURA, etc.)" }
         }
       }
-    },
-    {
-      name: "suggestProductImage",
-      description: "Busca y sugiere una URL de imagen de catálogo para un producto específico (Mercadona/Retail).",
-      parameters: {
-        type: "OBJECT",
-        properties: {
-          image_url: { type: "string", description: "URL directa de la imagen del producto" },
-          source: { type: "string", description: "Fuente de la imagen (ej: Mercadona, OpenFoodFacts, etc.)" }
-        },
-        required: ["image_url"]
-      }
-    },
-    {
-      name: "suggestProductGallery",
-      description: "Sugiere una galería de múltiples imágenes profesionales para un producto.",
-      parameters: {
-        type: "OBJECT",
-        properties: {
-          images: {
-            type: "ARRAY",
-            items: {
-              type: "OBJECT",
-              properties: {
-                url: { type: "string" },
-                source: { type: "string" }
-              },
-              required: ["url"]
-            }
-          }
-        },
-        required: ["images"]
-      }
-    },
-    {
-      name: "suggestSearchQuery",
-      description: "Sugiere una query de búsqueda optimizada para encontrar una imagen profesional del producto. ÚSALA cuando no sepas la URL exacta de la imagen.",
-      parameters: {
-        type: "OBJECT",
-        properties: {
-          query: { type: "string", description: "Término de búsqueda en inglés (ej: 'broccoli white background food photography')" },
-          query_es: { type: "string", description: "Término de búsqueda en español como alternativa" }
-        },
-        required: ["query"]
-      }
     }
   ]
 }]
@@ -96,11 +51,6 @@ Eres NANA, el cerebro inteligente de BaChan Bento Box.
 Tu objetivo es gestionar la cocina, inventarios y rentabilidad con precisión.
 
 PERSONALIDAD: Profesional, experta y directa. Tono cálido pero eficiente.
-
-SOBRE BÚSQUEDA DE IMÁGENES:
-- NUNCA inventes ni supongas URLs de imágenes. Las URLs inventadas no funcionan.
-- Para buscar una imagen de producto, usa SIEMPRE la herramienta 'suggestSearchQuery' con términos en inglés optimizados (ej: 'broccoli isolated white background', 'canned tuna product photo').
-- Puedes también intentar 'suggestProductImage' si conoces la URL exacta y real de un producto en Open Food Facts (openfoodfacts.org) o similar.
 `
 
 export async function processCommand(message, contextData = {}) {

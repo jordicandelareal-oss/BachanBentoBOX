@@ -56,7 +56,7 @@ export function useMenuItems() {
   }
 
   // Delete a menu item (we should also togglePublish in recipes/ingredients)
-  async function deleteMenuItem(id) {
+  async function deleteMenuItem(id, sourceId = null) {
     try {
       const { error: supError } = await supabase
         .from('menu_items')
@@ -64,10 +64,11 @@ export function useMenuItems() {
         .eq('id', id);
       if (supError) throw supError;
       
-      // We should technically set is_published to false in recipes/ingredients
-      // We'll do it safely ignoring errors if they don't exist
-      await supabase.from('recipes').update({ is_published: false }).eq('id', id);
-      await supabase.from('ingredients').update({ is_published: false }).eq('id', id);
+      // If we have a sourceId, we set is_published to false in the corresponding table
+      if (sourceId) {
+        await supabase.from('recipes').update({ is_published: false }).eq('id', sourceId);
+        await supabase.from('ingredients').update({ is_published: false }).eq('id', sourceId);
+      }
 
       return { success: true };
     } catch (err) {

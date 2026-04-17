@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useIngredients } from '../hooks/useIngredients'
 import { useRecipes } from '../hooks/useRecipes'
 import { processCommand } from '../lib/geminiClient'
-import { BookOpen, CookingPot, Carrot, Sparkles, Settings } from 'lucide-react'
+import { BookOpen, CookingPot, Carrot, Sparkles, Settings, BarChart3 } from 'lucide-react'
 import pkg from '../../package.json'
 import NanaOverlay from './Nana/NanaOverlay'
 import AIActionSheet from './Nana/AIActionSheet'
@@ -132,6 +132,7 @@ export default function Layout() {
               <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Menú</NavLink>
               <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
               <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
+              <NavLink to="/analytics" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Analítica</NavLink>
               <NavLink to="/settings" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Categorías</NavLink>
             </div>
           </div>
@@ -149,10 +150,10 @@ export default function Layout() {
               <Carrot size={22} />
               <span>Inventario</span>
             </NavLink>
-            <button onClick={openNana} className="mobile-nav-item nana-btn">
-              <Sparkles size={22} />
-              <span>Nana IA</span>
-            </button>
+            <NavLink to="/analytics" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+              <BarChart3 size={22} />
+              <span>Analítica</span>
+            </NavLink>
             <NavLink to="/settings" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
               <Settings size={22} />
               <span>Ajustes</span>

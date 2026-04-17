@@ -80,14 +80,14 @@ export default function Dashboard() {
   const today = new Date().toISOString().split('T')[0];
   const ordersToday = orders.filter(o => o.created_at.startsWith(today)).length;
   const totalSales = orders
-    .filter(o => o.status === 'delivered')
+    .filter(o => o.status === 'delivered' || o.status === 'paid')
     .reduce((sum, o) => sum + Number(o.total || 0), 0);
 
   // Filter Logic
   const filteredOrders = orders.filter(o => {
     if (filterStatus === 'active') return o.status === 'pending';
     if (filterStatus === 'preparing') return o.status === 'preparing';
-    if (filterStatus === 'delivered') return o.status === 'delivered';
+    if (filterStatus === 'delivered') return o.status === 'delivered' || o.status === 'paid';
     return true;
   });
 
@@ -225,7 +225,7 @@ export default function Dashboard() {
                     Marcar Entregado
                   </button>
                 )}
-                {order.status === 'delivered' && (
+                {(order.status === 'delivered' || order.status === 'paid') && (
                   <div className="w-full text-center py-2 text-emerald-500 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2">
                      <CheckCircle2 size={16} /> Entregado con éxito
                   </div>
@@ -243,7 +243,8 @@ function StatusBadge({ status }) {
   const configs = {
     pending: { label: 'Pendiente', bg: 'bg-amber-100', text: 'text-amber-600' },
     preparing: { label: 'En Cocina', bg: 'bg-blue-100', text: 'text-blue-600' },
-    delivered: { label: 'Entregado', bg: 'bg-emerald-100', text: 'text-emerald-600' }
+    delivered: { label: 'Entregado', bg: 'bg-emerald-100', text: 'text-emerald-600' },
+    paid: { label: 'Pagado', bg: 'bg-emerald-100', text: 'text-emerald-600' }
   };
   
   const config = configs[status] || configs.pending;

@@ -30,30 +30,47 @@ export default function BentoPage() {
   // Combine data
   const publishedItems = useMemo(() => {
     return (menuItems || []).map(item => {
-      // Find cost
       let cost = 0;
       let itemType = 'unknown';
-      const recipe = recipes?.find(r => r.id === item.id);
-      const ingredient = ingredients?.find(i => i.id === item.id);
+      let baseCost = 0;
+
+      // FIX: Use recipe_id (FK) not item.id (PK) for the recipe lookup
+      const recipe = item.recipe_id 
+        ? recipes?.find(r => r.id === item.recipe_id) 
+        : null;
+      // For ingredients, check both ingredient_id field and fallback to item.id
+      const ingredient = !recipe 
+        ? ingredients?.find(i => i.id === (item.ingredient_id || item.id)) 
+        : null;
       
       if (recipe) {
-        cost = recipe.cost_per_portion || 0;
+        baseCost = recipe.cost_per_portion || 0;
+        cost = baseCost * (item.quantity_multiplier || 1);
         itemType = recipe.recipe_type || 'recipe';
       } else if (ingredient) {
         const fmt = parseFloat(ingredient.purchase_format) || 0;
         const prc = parseFloat(ingredient.purchase_price) || 0;
         if (fmt > 0) {
-          if (ingredient.calculation_type === 'unidad') cost = prc / fmt;
-          else cost = (prc / fmt) * 1000;
+          if (ingredient.calculation_type === 'unidad') baseCost = prc / fmt;
+          else baseCost = (prc / fmt) * 1000;
         } else {
-          cost = ingredient.cost_per_unit || 0;
+          baseCost = ingredient.cost_per_unit || 0;
         }
+        cost = baseCost * (item.quantity_multiplier || 1);
         itemType = 'ingredient';
+      } else {
+        // Fallback: use persisted cost from menu_items table
+        baseCost = Number(item.cost || 0) / (item.quantity_multiplier || 1);
+        cost = Number(item.cost || 0);
+        itemType = item.recipe_id ? 'recipe' : 'ingredient';
       }
+
       return {
         ...item,
         cost,
-        itemType
+        baseCost,
+        itemType,
+        sourceId: item.recipe_id || item.ingredient_id
       };
     });
   }, [menuItems, recipes, ingredients]);
@@ -71,8 +88,8 @@ export default function BentoPage() {
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
-    setDeletingId(confirmDelete);
-    const result = await deleteMenuItem(confirmDelete);
+    setDeletingId(confirmDelete.id);
+    const result = await deleteMenuItem(confirmDelete.id, confirmDelete.sourceId);
     if (!result.success) {
       alert('Error al quitar del menú: ' + result.error);
     }
@@ -175,7 +192,12 @@ export default function BentoPage() {
                       id: item.id,
                       name: item.name,
                       price: item.price,
-                      menu_category_id: item.menu_category_id || ''
+                      menu_category_id: item.menu_category_id || '',
+                      quantity_multiplier: item.quantity_multiplier || 1,
+                      baseCost: item.baseCost,
+                      recipe_id: item.recipe_id,
+                      ingredient_id: item.ingredient_id,
+                      image_url: item.image_url
                     })}
                     style={{ 
                       backgroundColor: 'rgba(0, 160, 223, 0.08)',
@@ -195,7 +217,12 @@ export default function BentoPage() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="card-title text-lg" style={{ color: '#003a55' }}>{item.name}</h3>
+                          <h3 className="card-title text-lg" style={{ color: '#003a55' }}>
+                            {item.name}
+                            {item.quantity_multiplier > 1 && (
+                               <span className="ml-2 bg-sky-100 text-[#00a0df] text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-tight">Pack x{item.quantity_multiplier}</span>
+                            )}
+                          </h3>
                           <Edit2 size={12} className="text-[#00a0df] opacity-40 ml-auto" />
                         </div>
                         <div className="flex gap-4 mt-1">
@@ -228,7 +255,7 @@ export default function BentoPage() {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (deletingId) return;
-                            setConfirmDelete(item.id);
+                            setConfirmDelete({ id: item.id, sourceId: item.sourceId });
                           }}
                           title="Quitar de la tienda"
                         >
@@ -287,6 +314,12 @@ export default function BentoPage() {
           categories={menuCategories} 
           onClose={() => setEditingItem(null)}
           onSave={handleUpdateItem}
+          onDuplicate={async (fields) => {
+            const { supabase } = await import('../lib/supabaseClient');
+            const { error } = await supabase.from('menu_items').insert([fields]);
+            if (error) alert('Error al duplicar pack: ' + error.message);
+            setEditingItem(null);
+          }}
         />
       )}
 
@@ -309,24 +342,47 @@ export default function BentoPage() {
 }
 
 // ─── Sale Item Edit Modal Component ───────────────────────────────────────────
-function SaleItemModal({ item, categories, onClose, onSave }) {
+function SaleItemModal({ item, categories, onClose, onSave, onDuplicate }) {
   const [categoryId, setCategoryId] = useState(item.menu_category_id || '');
-  const [price, setPrice] = useState(item.price || 0);
+  const [price, setPrice] = useState(String(item.price || 0));
+  const [multiplier, setMultiplier] = useState(String(item.quantity_multiplier || 1));
   const [numPad, setNumPad] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    if (e) e.stopPropagation();
     setLoading(true);
     await onSave(item.id, { 
       menu_category_id: categoryId === '' ? null : categoryId,
-      price: parseFloat(price) 
+      price: parseFloat(price) || 0,
+      quantity_multiplier: Math.max(1, Math.floor(parseFloat(multiplier) || 1))
     });
     setLoading(false);
   };
 
+  const [duplicating, setDuplicating] = useState(false);
+  const handleDuplicate = async (e) => {
+    if (e) e.stopPropagation();
+    setDuplicating(true);
+    const m = Math.max(1, Math.floor(parseFloat(multiplier) || 1));
+    await onDuplicate({
+      name: `${item.name} (${m} uds)`,
+      price: parseFloat(price) || 0,
+      menu_category_id: categoryId === '' ? null : categoryId,
+      recipe_id: item.recipe_id || null,
+      ingredient_id: item.ingredient_id || null,
+      quantity_multiplier: m,
+      active: true,
+      image_url: item.image_url || null
+    });
+    setDuplicating(false);
+  };
+
+
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()} style={{ paddingTop: '2rem' }}>
+    <>
+      <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal-card" onClick={e => e.stopPropagation()} style={{ paddingTop: '2rem' }}>
         <div className="modal-header border-b-0 pb-2">
           <div className="flex flex-col w-full pr-8">
             <h3 className="modal-title flex items-center gap-2">
@@ -374,37 +430,63 @@ function SaleItemModal({ item, categories, onClose, onSave }) {
             <label className="form-label text-slate-500 font-bold mb-2 block">Precio de Venta (PVP)</label>
             <div 
               className="numpad-control bg-slate-50 text-2xl font-black text-[#00a0df] py-4"
-              onClick={() => setNumPad(true)}
+              onClick={() => setNumPad({ field: 'price', label: 'Ajustar PVP' })}
             >
-              {parseFloat(price).toFixed(2)}€
+              {parseFloat(price || 0).toFixed(2)}€
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label text-slate-500 font-bold mb-2 block">Unidades del Pack (Multiplicador)</label>
+            <div 
+              className="numpad-control bg-slate-50 text-2xl font-black text-slate-600 py-4"
+              onClick={() => setNumPad({ field: 'multiplier', label: 'Unidades en el Pack' })}
+            >
+              x {Math.floor(parseFloat(multiplier) || 1)}
+            </div>
+            
+            <div className="mt-4 p-4 bg-sky-50 rounded-2xl border border-sky-100 flex justify-between items-center">
+              <div>
+                <span className="text-[10px] font-black text-sky-600 uppercase block">Coste Total Estimado</span>
+                <span className="text-xs text-slate-400 font-bold">Base: {item.baseCost?.toFixed(2)}€ x {Math.floor(parseFloat(multiplier) || 1)}</span>
+              </div>
+              <div className="text-xl font-black text-sky-800">
+                {(item.baseCost * (parseFloat(multiplier) || 1)).toFixed(2)}€
+              </div>
             </div>
           </div>
 
           <div className="flex gap-2 pt-4">
             <button 
+              className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black shadow-sm active:scale-95 transition-all disabled:opacity-50"
+              onClick={handleDuplicate}
+              disabled={loading || duplicating}
+            >
+              {duplicating ? <Loader2 size={24} className="animate-spin mx-auto" /> : "DUPLICAR COMO PACK"}
+            </button>
+            <button 
               className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg active:scale-95 transition-all disabled:opacity-50"
               onClick={handleSave}
-              disabled={loading}
+              disabled={loading || duplicating}
             >
               {loading ? <Loader2 size={24} className="animate-spin mx-auto" /> : "GUARDAR CAMBIOS"}
             </button>
           </div>
         </div>
       </div>
-
+    </div>
       {numPad && (
         <NumPad 
-          isOpen={true}
-          onClose={() => setNumPad(false)}
-          onConfirm={(val) => {
-            setPrice(val);
-            setNumPad(false);
+          onClose={() => setNumPad(null)}
+          onChange={(val) => {
+            if (numPad.field === 'price') setPrice(val);
+            else setMultiplier(val);
           }}
-          label="Ajustar PVP"
-          initialValue={price.toString()}
+          label={numPad.label}
+          value={numPad.field === 'price' ? price : multiplier}
         />
       )}
-    </div>
+    </>
   );
 }
 

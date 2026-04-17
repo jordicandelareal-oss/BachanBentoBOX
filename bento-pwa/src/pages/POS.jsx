@@ -120,6 +120,12 @@ export default function POS() {
   const [saleSuccess, setSaleSuccess] = useState(false);
   const [pendingModifierProduct, setPendingModifierProduct] = useState(null);
   const [entryQuantity, setEntryQuantity] = useState('');
+  
+  // New Workflow States
+  const [customerName, setCustomerName] = useState('');
+  const [activeOrderId, setActiveOrderId] = useState(null);
+  const [showOpenOrders, setShowOpenOrders] = useState(false);
+  const [openOrdersList, setOpenOrdersList] = useState([]);
 
   // 1. DATA FETCHING & SYNC
   const fetchProducts = async () => {
@@ -140,7 +146,8 @@ export default function POS() {
       const mapped = (data || []).map(r => ({
         ...r,
         price: r.price || 0,
-        image_url: r.image_url
+        image_url: r.image_url,
+        quantity_multiplier: r.quantity_multiplier || 1
       }));
 
       console.log(`✅ TPV: Fetched ${mapped.length} active menu_items.`);
@@ -301,7 +308,9 @@ export default function POS() {
         name: itemName,
         modifier,
         quantity: qtyToAdd, 
-        price: product.price || product.sale_price || 0 
+        quantity_multiplier: product.quantity_multiplier || 1,
+        price: product.price || product.sale_price || 0,
+        cost: Number(product.cost || 0)
       }];
     });
     setEntryQuantity('');
@@ -318,50 +327,106 @@ export default function POS() {
     }).filter(i => i.quantity > 0));
   };
 
+  const handleOpenOrdersClick = async () => {
+    setIsProcessing(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('status', 'pending_payment')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setOpenOrdersList(data || []);
+      setShowOpenOrders(true);
+    } catch (err) {
+      alert("Error cargando cuentas abiertas: " + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const loadOpenOrder = (order) => {
+    setCart(order.items || []);
+    setCustomerName(order.customer_name || '');
+    setActiveOrderId(order.id);
+    setShowOpenOrders(false);
+  };
+
   const cartTotal = cart.reduce((sum, item) => sum + ((Number(item.price) || 0) * item.quantity), 0);
 
-  const handleCheckout = async (method) => {
+  const handleSaveOrder = async (action, method = null) => {
+    const finalCustomerName = customerName.trim() || 'Barra';
     if (cartTotal <= 0) return;
     setIsProcessing(true);
     
+    let ticketNumber = '';
     const year = new Date().getFullYear();
-    let lastNum = Number(localStorage.getItem('bachan_pos_ticket_seq') || 0);
-    // User requested absolute reset to 1
-    if (lastNum >= 1000) lastNum = 0; 
-    const nextNum = lastNum + 1;
-    const ticketNumber = `T-${year}-${String(nextNum).padStart(4, '0')}`;
     
+    if (activeOrderId) {
+      // Retain existing ticket number if available, else fallback
+      const existing = openOrdersList.find(o => o.id === activeOrderId);
+      ticketNumber = existing?.ticket_number || `T-${year}-OPEN`;
+    } else {
+      let lastNum = Number(localStorage.getItem('bachan_pos_ticket_seq') || 0);
+      if (lastNum >= 1000) lastNum = 0; 
+      const nextNum = lastNum + 1;
+      ticketNumber = `T-${year}-${String(nextNum).padStart(4, '0')}`;
+      localStorage.setItem('bachan_pos_ticket_seq', nextNum);
+    }
+    
+    const isCharge = action === 'charge';
     const orderData = {
-      customer_name: 'Venta TPV',
+      customer_name: finalCustomerName,
+      table_id: 'General',
       ticket_number: ticketNumber,
       total: cartTotal,
       tax_amount: cartTotal * 0.10,
+      sold_at: isCharge ? new Date().toISOString() : null,
       items: cart.map(i => ({ 
         id: i.id, 
         name: i.name, 
         quantity: i.quantity, 
         price: i.price,
-        modifier: i.modifier 
+        cost: Number(i.cost || 0),
+        modifier: i.modifier,
+        recipe_id: i.recipe_id,
+        ingredient_id: i.ingredient_id,
+        quantity_multiplier: i.quantity_multiplier || 1
       })),
-      status: 'delivered', 
-      payment_method: method
+      status: isCharge ? 'paid' : 'pending_payment', 
+      payment_method: isCharge ? method : null
     };
 
     try {
-      const { error } = await supabase.from('orders').insert([orderData]);
+      let error;
+      if (activeOrderId) {
+        const res = await supabase.from('orders').update(orderData).eq('id', activeOrderId);
+        error = res.error;
+      } else {
+        const res = await supabase.from('orders').insert([orderData]);
+        error = res.error;
+      }
+      
       if (error) throw error;
       
-      localStorage.setItem('bachan_pos_ticket_seq', nextNum);
-      await deductStockForOrder(orderData);
-
-      setSaleSuccess(true);
-      setCart([]);
-      setTimeout(() => {
-        setSaleSuccess(false);
-        setShowCheckout(false);
-      }, 1500);
+      if (isCharge) {
+        await deductStockForOrder(orderData);
+        setSaleSuccess(true);
+        setTimeout(() => {
+          setSaleSuccess(false);
+          setShowCheckout(false);
+          setCart([]);
+          setCustomerName('');
+          setActiveOrderId(null);
+        }, 1500);
+      } else {
+        // Just marched
+        setCart([]);
+        setCustomerName('');
+        setActiveOrderId(null);
+      }
     } catch (err) {
-      alert("Error: " + err.message);
+      alert("Error guardando comanda: " + err.message);
     } finally {
       setIsProcessing(false);
     }
@@ -412,16 +477,22 @@ export default function POS() {
                 <button onClick={() => window.location.href='/dashboard'} className="p-2 text-slate-300 hover:text-slate-900 transition-colors"><LayoutGrid size={20}/></button>
              </div>
           </div>
-          <nav className="h-12 flex px-4 gap-1 bg-slate-50 border-t border-slate-100">
-             {categories.filter(c => c.is_active).map(cat => (
-               <button
-                 key={cat.id}
-                 onClick={() => setActiveCategory(cat.id)}
-                 className={`px-6 h-full font-black text-[10px] uppercase tracking-widest transition-all border-b-4 ${activeCategory === cat.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-               >
-                  {cat.name}
-               </button>
-             ))}
+          <nav className="h-12 flex items-center px-4 justify-between bg-slate-50 border-t border-slate-100">
+             <div className="flex gap-1 h-full">
+               {categories.filter(c => c.is_active).map(cat => (
+                 <button
+                   key={cat.id}
+                   onClick={() => setActiveCategory(cat.id)}
+                   className={`px-6 h-full font-black text-[10px] uppercase tracking-widest transition-all border-b-4 ${activeCategory === cat.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                 >
+                    {cat.name}
+                 </button>
+               ))}
+             </div>
+             <button onClick={handleOpenOrdersClick} className="flex items-center gap-2 px-4 py-1.5 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-lg transition-colors ml-4 shadow-sm border border-amber-200">
+                <LayoutGrid size={16}/>
+                <span className="font-black text-[10px] uppercase tracking-widest">Cuentas Abiertas</span>
+             </button>
           </nav>
         </header>
 
@@ -473,7 +544,12 @@ export default function POS() {
                                   <div style={{ color: 'white', fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', lineHeight: '1.2', pointerEvents: 'none' }} className="pointer-events-none">
                                      {p.name}
                                   </div>
-                                  <div style={{ color: '#60a5fa', fontWeight: '900', fontSize: '12px', marginTop: '2px', pointerEvents: 'none' }} className="pointer-events-none">{(Number(p.price) || 0).toFixed(2)}€</div>
+                                  <div className="flex justify-between items-center mt-1">
+                                    <div style={{ color: '#60a5fa', fontWeight: '900', fontSize: '12px', pointerEvents: 'none' }} className="pointer-events-none">{(Number(p.price) || 0).toFixed(2)}€</div>
+                                    {p.quantity_multiplier > 1 && (
+                                       <div className="bg-blue-600/30 text-blue-300 text-[9px] px-1.5 py-0.5 rounded font-black italic">PACK x{p.quantity_multiplier}</div>
+                                    )}
+                                  </div>
                                </div>
 
                                {/* ADD BUTTON */}
@@ -556,7 +632,7 @@ export default function POS() {
             
             <button 
               disabled={cartTotal <= 0 || isProcessing}
-              onClick={() => handleCheckout('Efectivo')}
+              onClick={() => setShowCheckout(true)}
               style={{
                  width: '100%', padding: '24px 0', borderRadius: '12px', fontWeight: '900', fontSize: '20px',
                  textTransform: 'uppercase', letterSpacing: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
@@ -626,11 +702,12 @@ export default function POS() {
                ) : (
                  <>
                    <button onClick={() => setShowCheckout(false)} className="absolute top-10 right-10 text-slate-200 hover:text-slate-900"><X size={32}/></button>
-                   <h2 className="text-4xl font-black mb-10 tracking-tight">Cierre de Ticket</h2>
+                   <h2 className="text-4xl font-black mb-2 tracking-tight">Cierre de Ticket</h2>
+                   <p className="text-xl text-slate-500 font-bold mb-10 tracking-tight uppercase">{customerName}</p>
                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-                      <button onClick={() => handleCheckout('cash')} disabled={isProcessing} className="p-8 bg-slate-50 rounded-3xl flex flex-col items-center gap-4 hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-200 transition-all font-black text-slate-400 hover:text-emerald-500 uppercase text-xs tracking-widest"><Banknote size={40}/> Efectivo</button>
-                      <button onClick={() => handleCheckout('card')} disabled={isProcessing} className="p-8 bg-slate-50 rounded-3xl flex flex-col items-center gap-4 hover:bg-sky-50 border-2 border-transparent hover:border-sky-200 transition-all font-black text-slate-400 hover:text-sky-500 uppercase text-xs tracking-widest"><CreditCard size={40}/> Tarjeta</button>
-                      <button onClick={() => handleCheckout('bizum')} disabled={isProcessing} className="p-8 bg-slate-50 rounded-3xl flex flex-col items-center gap-4 hover:bg-pink-50 border-2 border-transparent hover:border-pink-200 transition-all font-black text-slate-400 hover:text-pink-500 uppercase text-xs tracking-widest"><div className="w-10 h-10 bg-current rounded-full flex items-center justify-center text-white italic text-xl">B</div> Bizum</button>
+                      <button onClick={() => handleSaveOrder('charge', 'cash')} disabled={isProcessing} className="p-8 bg-slate-50 rounded-3xl flex flex-col items-center gap-4 hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-200 transition-all font-black text-slate-400 hover:text-emerald-500 uppercase text-xs tracking-widest"><Banknote size={40}/> Efectivo</button>
+                      <button onClick={() => handleSaveOrder('charge', 'card')} disabled={isProcessing} className="p-8 bg-slate-50 rounded-3xl flex flex-col items-center gap-4 hover:bg-sky-50 border-2 border-transparent hover:border-sky-200 transition-all font-black text-slate-400 hover:text-sky-500 uppercase text-xs tracking-widest"><CreditCard size={40}/> Tarjeta</button>
+                      <button onClick={() => handleSaveOrder('charge', 'bizum')} disabled={isProcessing} className="p-8 bg-slate-50 rounded-3xl flex flex-col items-center gap-4 hover:bg-pink-50 border-2 border-transparent hover:border-pink-200 transition-all font-black text-slate-400 hover:text-pink-500 uppercase text-xs tracking-widest"><div className="w-10 h-10 bg-current rounded-full flex items-center justify-center text-white italic text-xl">B</div> Bizum</button>
                    </div>
                    <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] flex flex-col sm:flex-row justify-between items-center gap-4 shadow-2xl shadow-slate-200">
                       <span className="font-black uppercase tracking-widest text-xs opacity-50">Total Final</span>
@@ -657,6 +734,53 @@ export default function POS() {
                   ))}
                </div>
                <button onClick={() => setPendingModifierProduct(null)} className="w-full mt-8 py-4 text-slate-300 font-bold uppercase tracking-widest text-[10px] hover:text-rose-500">Cancelar</button>
+            </div>
+         </div>
+      )}
+
+      {/* OPEN ORDERS MODAL */}
+      {showOpenOrders && (
+         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6">
+            <div className="bg-white w-full max-w-4xl rounded-[3rem] p-10 overflow-hidden shadow-2xl animate-in zoom-in duration-300" style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+               <div className="flex justify-between items-center mb-6">
+                 <div>
+                   <h2 className="text-3xl font-black tracking-tight">Cuentas Abiertas</h2>
+                   <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1">Comandas en cocina pendientes de cobro</p>
+                 </div>
+                 <button onClick={() => setShowOpenOrders(false)} className="p-2 text-slate-300 hover:text-slate-900"><X size={32}/></button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto pr-2">
+                 {isProcessing && openOrdersList.length === 0 ? (
+                    <div className="py-20 flex justify-center text-slate-300"><RefreshCw className="animate-spin" size={32}/></div>
+                 ) : openOrdersList.length === 0 ? (
+                    <div className="py-20 text-center text-slate-400 font-bold uppercase tracking-widest">No hay cuentas abiertas</div>
+                 ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {openOrdersList.map(order => (
+                         <div key={order.id} onClick={() => loadOpenOrder(order)} className="bg-slate-50 hover:bg-amber-50 border-2 border-transparent hover:border-amber-200 rounded-2xl p-6 cursor-pointer transition-all flex flex-col group">
+                            <div className="flex justify-between items-start mb-4">
+                               <div className="font-black text-lg uppercase text-slate-800 break-words line-clamp-2 pr-4">{order.customer_name}</div>
+                               <div className="bg-white px-3 py-1 rounded-lg text-[10px] font-black text-amber-500 shadow-sm whitespace-nowrap">{(Number(order.total) || 0).toFixed(2)}€</div>
+                            </div>
+                            <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
+                               {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </div>
+                            <div className="flex-1 space-y-1 mb-4 opacity-70 group-hover:opacity-100 transition-opacity">
+                               {order.items?.slice(0,3).map((item, idx) => (
+                                  <div key={idx} className="text-xs font-bold text-slate-500 truncate">• {item.quantity}x {item.name}</div>
+                                ))}
+                                {order.items?.length > 3 && <div className="text-xs font-bold text-slate-400 italic">+{order.items.length - 3} más...</div>}
+                            </div>
+                            <div className="mt-auto flex items-center justify-between text-[10px] font-black text-amber-600 uppercase tracking-widest pt-4 border-t border-amber-100/50">
+                               <span>Retomar Pedido</span>
+                               <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform"/>
+                            </div>
+                         </div>
+                      ))}
+                    </div>
+                 )}
+               </div>
             </div>
          </div>
       )}

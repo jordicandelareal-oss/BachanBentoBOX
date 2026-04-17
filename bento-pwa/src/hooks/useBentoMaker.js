@@ -154,17 +154,41 @@ export default function useBentoMaker(initialRecipe = null, recipeType = 'bento'
 
     // 4. Sync with menu_items if it is already published
     if (recipeData.is_published) {
-      const menuItem = {
-        id: recipeId, 
-        name: recipeData.name,
-        description: recipeData.description || '',
-        price: Number(recipeData.sale_price || 0), // Mapping explicitly to 'price'
-        image_url: recipeData.image_url || '',
-        recipe_id: recipeId,
-        menu_category_id: recipeData.menu_category_id || null,
-        active: true
-      };
-      await supabase.from('menu_items').upsert([menuItem]);
+      // Find all existing menu_items for this recipe (base + packs)
+      const { data: existingMenuItems } = await supabase
+        .from('menu_items')
+        .select('id, quantity_multiplier')
+        .eq('recipe_id', recipeId);
+
+      if (existingMenuItems && existingMenuItems.length > 0) {
+        // Update ALL variants (base + packs) with fresh data
+        for (const existing of existingMenuItems) {
+          const mult = existing.quantity_multiplier || 1;
+          await supabase.from('menu_items').update({
+            name: mult > 1 ? `${recipeData.name} (${mult} uds)` : recipeData.name,
+            description: recipeData.description || '',
+            price: Number(recipeData.sale_price || 0) * mult,
+            cost: totals.costPerPortion * mult,
+            image_url: recipeData.image_url || '',
+            menu_category_id: recipeData.menu_category_id || null,
+            active: true
+          }).eq('id', existing.id);
+        }
+      } else {
+        // No existing items, create base item
+        const menuItem = {
+          name: recipeData.name,
+          description: recipeData.description || '',
+          price: Number(recipeData.sale_price || 0),
+          cost: totals.costPerPortion,
+          image_url: recipeData.image_url || '',
+          recipe_id: recipeId,
+          menu_category_id: recipeData.menu_category_id || null,
+          quantity_multiplier: 1,
+          active: true
+        };
+        await supabase.from('menu_items').insert([menuItem]);
+      }
     }
 
     return recipeData

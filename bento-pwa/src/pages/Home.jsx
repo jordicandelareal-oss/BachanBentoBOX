@@ -33,10 +33,10 @@ export default function Home() {
     },
     {
       id: 'sales',
-      title: 'Ventas',
+      title: 'Analítica y Ventas',
       desc: 'Dashboard y análisis histórico',
       icon: <TrendingUp size={42} strokeWidth={1.2} />,
-      path: '/admin/ventas'
+      path: '/analytics'
     },
 
     {

@@ -11,6 +11,7 @@ import Preparations from './pages/Preparations'
 import CatalogSettings from './pages/CatalogSettings'
 import Dashboard from './pages/Dashboard'
 import POS from './pages/POS'
+import BusinessAnalytics from './pages/BusinessAnalytics'
 import SplashScreen from './components/SplashScreen'
 
 
@@ -39,7 +40,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="admin/ventas" element={<Dashboard />} />
             <Route path="ingredients" element={<Ingredients />} />
-
+            <Route path="analytics" element={<BusinessAnalytics />} />
 
             <Route path="preparations" element={<Preparations />} />
             <Route path="recipes" element={<Recipes />} />

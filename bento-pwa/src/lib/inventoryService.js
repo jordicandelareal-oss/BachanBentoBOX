@@ -15,15 +15,23 @@ export const deductStockForOrder = async (order) => {
 
   try {
     for (const item of order.items) {
-      if (!item.recipe_id) {
-        console.warn(`⚠️ Item sin recipe_id: ${item.name}. Saltando.`);
+      if (!item.recipe_id && !item.ingredient_id) {
+        console.warn(`⚠️ Item sin recipe_id o ingredient_id: ${item.name}. Saltando.`);
         continue;
       }
+
+      // Calculate final units to deduct: order_quantity * pack_multiplier
+      const baseMultiplier = Number(item.quantity || 1);
+      const packMultiplier = Number(item.quantity_multiplier || 1);
+      const finalMultiplier = baseMultiplier * packMultiplier;
+
+      console.log(`🔍 [Stock] ${item.name}: Descontando ${finalMultiplier} unidades (${baseMultiplier} x ${packMultiplier})`);
 
       // Call the recursive PostgreSQL function
       const { error: rpcError } = await supabase.rpc('reduce_stock_recursive', {
         target_recipe_id: item.recipe_id,
-        multiplier: Number(item.quantity || 1)
+        target_ingredient_id: item.ingredient_id,
+        multiplier: finalMultiplier
       });
 
       if (rpcError) {
