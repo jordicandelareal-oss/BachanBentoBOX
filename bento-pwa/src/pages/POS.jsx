@@ -57,6 +57,7 @@ class SmartMouseSensor extends MouseSensor {
 }
 
 import '../styles/Common.css';
+import './POS.css';
 
 function SortableProduct({ id, isEmpty, children, onClick }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({id});
@@ -123,11 +124,33 @@ export default function POS() {
   
   // New Workflow States
   const [customerName, setCustomerName] = useState('');
+  const [tableId, setTableId] = useState('Delivery');
   const [activeOrderId, setActiveOrderId] = useState(null);
   const [showOpenOrders, setShowOpenOrders] = useState(false);
   const [openOrdersList, setOpenOrdersList] = useState([]);
+  
+  // Discount States
+  const [discountValue, setDiscountValue] = useState(0); // El valor ingresado (ej: 10)
+  const [discountType, setDiscountType] = useState('percent'); // 'percent' o 'fixed'
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
 
   // 1. DATA FETCHING & SYNC
+  useEffect(() => {
+    // Reset sequence check for v2.0.9 cleanup
+    if (!localStorage.getItem('bachan_v209_reset')) {
+      localStorage.setItem('bachan_pos_ticket_seq', '0');
+      localStorage.setItem('bachan_v209_reset', 'true');
+      console.log('🔄 TPV: Ticket sequence reset to #0001 (Phase v2.0.9)');
+    }
+  }, []);
+
+  const resetTicketCounter = () => {
+    if (window.confirm("¿Seguro que quieres reiniciar la numeración de tickets al #0001?")) {
+      localStorage.setItem('bachan_pos_ticket_seq', '0');
+      alert("Numeración reiniciada. El próximo ticket será el #0001.");
+    }
+  };
+
   const fetchProducts = async () => {
     setLoading(true);
     console.log('🔄 TPV: Fetching fresh menu_items from Supabase...');
@@ -291,27 +314,34 @@ export default function POS() {
 
   // 3. CART LOGIC
   const addToCart = (product, modifier = null) => {
-    // The previous modifier logic intercepted bentos with modifiers but the modal was non-existent, 
-    // causing clicks to fail silently. Direct pass-through restored.
+    // Si el producto tiene modificadores y no se ha seleccionado uno todavía, abrimos el modal
+    if (product.modifiers && product.modifiers.length > 0 && !modifier) {
+      setPendingModifierProduct(product);
+      return;
+    }
+
     const qtyToAdd = entryQuantity === '' ? 1 : Number(entryQuantity);
     const itemId = modifier ? `${product.id}-${modifier}` : product.id;
     const itemName = modifier ? `${product.name} (${modifier})` : product.name;
 
     setCart(prev => {
       const existing = prev.find(i => i.cartId === itemId);
+      let nextCart;
       if (existing) {
-        return prev.map(i => i.cartId === itemId ? { ...i, quantity: i.quantity + qtyToAdd } : i);
+        nextCart = prev.map(i => i.cartId === itemId ? { ...i, quantity: i.quantity + qtyToAdd } : i);
+      } else {
+        nextCart = [...prev, { 
+          ...product, 
+          cartId: itemId,
+          name: itemName,
+          modifier,
+          quantity: qtyToAdd, 
+          quantity_multiplier: product.quantity_multiplier || 1,
+          price: product.price || product.sale_price || 0,
+          cost: Number(product.cost || 0)
+        }];
       }
-      return [...prev, { 
-        ...product, 
-        cartId: itemId,
-        name: itemName,
-        modifier,
-        quantity: qtyToAdd, 
-        quantity_multiplier: product.quantity_multiplier || 1,
-        price: product.price || product.sale_price || 0,
-        cost: Number(product.cost || 0)
-      }];
+      return nextCart;
     });
     setEntryQuantity('');
     setPendingModifierProduct(null);
@@ -327,77 +357,120 @@ export default function POS() {
     }).filter(i => i.quantity > 0));
   };
 
-  const handleOpenOrdersClick = async () => {
-    setIsProcessing(true);
+  const fetchOpenOrders = async (silent = false) => {
+    if (!silent) setIsProcessing(true);
     try {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .eq('status', 'pending_payment')
+        .eq('status', 'pending')
         .order('created_at', { ascending: false });
       if (error) throw error;
       setOpenOrdersList(data || []);
-      setShowOpenOrders(true);
+      return data;
     } catch (err) {
-      alert("Error cargando cuentas abiertas: " + err.message);
+      console.error("Error cargando cuentas abiertas:", err);
+      if (!silent) alert("Error cargando cuentas abiertas: " + err.message);
     } finally {
-      setIsProcessing(false);
+      if (!silent) setIsProcessing(false);
     }
+  };
+
+  const handleOpenOrdersClick = async () => {
+    await fetchOpenOrders();
+    setShowOpenOrders(true);
   };
 
   const loadOpenOrder = (order) => {
     setCart(order.items || []);
     setCustomerName(order.customer_name || '');
+    setTableId(order.table_id || 'Delivery');
+    setDiscountValue(Number(order.discount_amount_input || 0));
+    setDiscountType(order.discount_type || 'percent');
     setActiveOrderId(order.id);
     setShowOpenOrders(false);
   };
 
-  const cartTotal = cart.reduce((sum, item) => sum + ((Number(item.price) || 0) * item.quantity), 0);
+  const handleDeleteOrder = async (e, orderId) => {
+    e.stopPropagation();
+    if (!window.confirm("¿Seguro que quieres borrar este pedido pendiente?")) return;
+    
+    setIsProcessing(true);
+    try {
+      const { error } = await supabase.from('orders').delete().eq('id', orderId);
+      if (error) throw error;
+      await fetchOpenOrders(true);
+    } catch (err) {
+      alert("Error borrando pedido: " + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const subtotal = Number(cart.reduce((sum, item) => sum + ((Number(item.price) || 0) * item.quantity), 0));
+  const calculatedDiscount = discountType === 'percent' 
+    ? Number(subtotal * (Number(discountValue) / 100)) 
+    : Number(discountValue);
+  const cartTotal = Math.max(0, subtotal - calculatedDiscount);
 
   const handleSaveOrder = async (action, method = null) => {
-    const finalCustomerName = customerName.trim() || 'Barra';
-    if (cartTotal <= 0) return;
-    setIsProcessing(true);
-    
-    let ticketNumber = '';
-    const year = new Date().getFullYear();
-    
-    if (activeOrderId) {
-      // Retain existing ticket number if available, else fallback
-      const existing = openOrdersList.find(o => o.id === activeOrderId);
-      ticketNumber = existing?.ticket_number || `T-${year}-OPEN`;
-    } else {
-      let lastNum = Number(localStorage.getItem('bachan_pos_ticket_seq') || 0);
-      if (lastNum >= 1000) lastNum = 0; 
-      const nextNum = lastNum + 1;
-      ticketNumber = `T-${year}-${String(nextNum).padStart(4, '0')}`;
-      localStorage.setItem('bachan_pos_ticket_seq', nextNum);
-    }
-    
-    const isCharge = action === 'charge';
-    const orderData = {
-      customer_name: finalCustomerName,
-      table_id: 'General',
-      ticket_number: ticketNumber,
-      total: cartTotal,
-      tax_amount: cartTotal * 0.10,
-      sold_at: isCharge ? new Date().toISOString() : null,
-      items: cart.map(i => ({ 
-        id: i.id, 
-        name: i.name, 
-        quantity: i.quantity, 
-        price: i.price,
-        cost: Number(i.cost || 0),
-        modifier: i.modifier,
-        recipe_id: i.recipe_id,
-        ingredient_id: i.ingredient_id,
-        quantity_multiplier: i.quantity_multiplier || 1
-      })),
-      status: isCharge ? 'paid' : 'pending_payment', 
-      payment_method: isCharge ? method : null
-    };
-
     try {
+      // 1. Definición clara de la intención (Marchar vs Cobrar)
+      const isCharge = action === 'charge';
+      console.log(`--- Iniciando ${isCharge ? 'COBRO' : 'MARCHA'} ---`, { cartTotal, isCharge, method });
+      
+      const finalCustomerName = customerName.trim() || 'Cliente Delivery';
+      
+      if (cartTotal <= 0) {
+        console.warn('⚠️ Carrito vacío');
+        if (action === 'march') return; // En marcha bloqueamos si está vacío
+      }
+
+      setIsProcessing(true);
+    
+      let ticketNumber = '';
+      let originalCreatedAt = new Date().toISOString();
+      const year = new Date().getFullYear();
+      
+      if (activeOrderId) {
+        const existing = openOrdersList.find(o => o.id === activeOrderId);
+        ticketNumber = existing?.ticket_number || `T-${year}-OPEN`;
+        if (existing?.created_at) originalCreatedAt = existing.created_at;
+      } else {
+        let lastNum = Number(localStorage.getItem('bachan_pos_ticket_seq') || 0);
+        if (lastNum >= 1000) lastNum = 0; 
+        const nextNum = lastNum + 1;
+        ticketNumber = `T-${year}-${String(nextNum).padStart(4, '0')}`;
+        localStorage.setItem('bachan_pos_ticket_seq', nextNum);
+      }
+      
+      // 3. Preparación de datos para Supabase
+      const orderData = {
+        customer_name: finalCustomerName,
+        table_id: tableId,
+        ticket_number: ticketNumber,
+        total: cartTotal,
+        tax_amount: cartTotal - (cartTotal / 1.10), // IVA 10% incluido en el total
+        discount_amount: calculatedDiscount,
+        discount_amount_input: discountValue,
+        discount_type: discountType,
+        sold_at: isCharge ? new Date().toISOString() : null,
+        created_at: originalCreatedAt,
+        items: cart.map(i => ({ 
+          id: i.id, 
+          name: i.name, 
+          quantity: i.quantity, 
+          price: i.price,
+          cost: Number(i.cost || 0),
+          modifier: i.modifier,
+          recipe_id: i.recipe_id,
+          ingredient_id: i.ingredient_id,
+          quantity_multiplier: i.quantity_multiplier || 1
+        })),
+        status: action === 'charge' ? 'completed' : 'pending', 
+        payment_method: action === 'charge' ? method : null
+      };
+
       let error;
       if (activeOrderId) {
         const res = await supabase.from('orders').update(orderData).eq('id', activeOrderId);
@@ -409,7 +482,10 @@ export default function POS() {
       
       if (error) throw error;
       
-      if (isCharge) {
+      // Refresh list in background
+      fetchOpenOrders(true);
+
+      if (action === 'charge') {
         await deductStockForOrder(orderData);
         setSaleSuccess(true);
         setTimeout(() => {
@@ -420,15 +496,19 @@ export default function POS() {
           setActiveOrderId(null);
         }, 1500);
       } else {
-        // Just marched
         setCart([]);
         setCustomerName('');
+        setTableId('Delivery'); // Reset to Delivery
+        setDiscountValue(0);
+        setDiscountType('percent');
         setActiveOrderId(null);
       }
     } catch (err) {
-      alert("Error guardando comanda: " + err.message);
+      console.error('❌ ERROR CRÍTICO EN handleSaveOrder:', err);
+      alert(`ERROR CRÍTICO: ${err.message}\nRevisa la consola para más detalles.`);
     } finally {
       setIsProcessing(false);
+      console.log('--- Fin del proceso de guardado ---');
     }
   };
 
@@ -455,113 +535,94 @@ export default function POS() {
      if (firstEmpty !== -1) gridItems[firstEmpty] = p;
   });
   const finalGrid = gridItems.map((item, index) => {
-     return item || { id: `empty-${index}`, isEmpty: true, sort_order: index };
+    return item || { id: `empty-${index}`, isEmpty: true, sort_order: index };
   });
 
   return (
-    <div className="pos-app font-sans text-slate-900 bg-slate-50" style={{ display: 'flex', flexDirection: 'row', height: '100vh', overflow: 'hidden', width: '100%' }}>
+    <div className="pos-app">
       
-      {/* 1. LEFT SIDE: CATALOG (70%) */}
-      <div className="flex flex-col bg-white border-r border-slate-200" style={{ width: '70%', height: '100%', flex: '0 0 70%', overflow: 'hidden' }}>
+      {/* 1. SECCIÓN IZQUIERDA: CATÁLOGO */}
+      <div className="pos-catalog-container">
         
-        {/* TOP BAR / CATEGORIES */}
-        <header className="h-20 flex flex-col border-b border-slate-100 shadow-sm relative z-20 bg-white">
-          <div className="flex-1 flex items-center justify-between px-6">
-             <div className="flex items-center gap-3">
-                <ShoppingBag size={24} className="text-blue-600" />
-                <h1 className="font-black text-xl tracking-tighter uppercase italic">BaChan <span className="text-blue-600">POS</span></h1>
+        {/* HEADER / CATEGORÍAS */}
+        <header className="pos-header">
+          <div className="pos-header-top">
+             <div className="pos-logo-wrapper">
+                <ShoppingBag size={24} className="pos-logo-accent" />
+                <h1 className="pos-logo-text">BaChan <span className="pos-logo-accent">POS</span></h1>
              </div>
-             <div className="flex items-center gap-2">
-                <button onClick={() => fetchProducts()} className="p-2 text-slate-300 hover:text-slate-900 transition-colors"><RefreshCw size={20} className={loading ? 'animate-spin' : ''}/></button>
-                <button onClick={() => setShowSettings(true)} className="p-2 text-slate-300 hover:text-slate-900 transition-colors"><Settings size={20}/></button>
-                <button onClick={() => window.location.href='/dashboard'} className="p-2 text-slate-300 hover:text-slate-900 transition-colors"><LayoutGrid size={20}/></button>
+             <div className="pos-header-actions">
+                <button onClick={() => fetchProducts()} className="pos-icon-btn"><RefreshCw size={20} className={loading ? 'animate-spin' : ''}/></button>
+                <button onClick={() => setShowSettings(true)} className="pos-icon-btn"><Settings size={20}/></button>
+                <button onClick={() => window.location.href='/dashboard'} className="pos-icon-btn"><LayoutGrid size={20}/></button>
              </div>
           </div>
-          <nav className="h-12 flex items-center px-4 justify-between bg-slate-50 border-t border-slate-100">
-             <div className="flex gap-1 h-full">
+          <nav className="pos-category-nav">
+             <div className="pos-category-tabs">
                {categories.filter(c => c.is_active).map(cat => (
                  <button
                    key={cat.id}
                    onClick={() => setActiveCategory(cat.id)}
-                   className={`px-6 h-full font-black text-[10px] uppercase tracking-widest transition-all border-b-4 ${activeCategory === cat.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                   className={`pos-category-tab ${activeCategory === cat.id ? 'active' : ''}`}
                  >
                     {cat.name}
                  </button>
                ))}
              </div>
-             <button onClick={handleOpenOrdersClick} className="flex items-center gap-2 px-4 py-1.5 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-lg transition-colors ml-4 shadow-sm border border-amber-200">
+             <button 
+               onClick={handleOpenOrdersClick} 
+               className={`pos-open-orders-btn ${openOrdersList.length > 0 ? 'has-orders' : ''}`}
+             >
                 <LayoutGrid size={16}/>
-                <span className="font-black text-[10px] uppercase tracking-widest">Cuentas Abiertas</span>
+                <span className="pos-label" style={{ color: 'inherit', marginBottom: 0 }}>Cuentas Abiertas</span>
+                {openOrdersList.length > 0 && <div className="pos-order-count-badge">{openOrdersList.length}</div>}
              </button>
           </nav>
         </header>
 
-        {/* PRODUCT GRID SECTION */}
-        <main className="flex-1 overflow-y-auto bg-slate-50" style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
+        {/* GRID DE PRODUCTOS */}
+        <main className="pos-grid-main">
            {loading ? (
-             <div className="h-full flex flex-col items-center justify-center opacity-30 italic"><RefreshCw size={48} className="animate-spin mb-4"/><p className="font-black uppercase tracking-widest text-xs">Sincronizando...</p></div>
+             <div className="pos-cart-empty"><RefreshCw size={48} className="animate-spin mb-4"/><p className="pos-label">Sincronizando...</p></div>
            ) : filteredProducts.length === 0 ? (
-             <div className="h-full flex flex-col items-center justify-center opacity-10 italic"><Search size={80} className="mb-4"/><p className="text-xl">Selecciona otra categoría</p></div>
+             <div className="pos-cart-empty"><Search size={80} className="mb-4"/><p className="pos-modal-subtitle">Selecciona otra categoría</p></div>
            ) : (
              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={finalGrid.map(p => p.id)} strategy={rectSortingStrategy}>
-                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(4, 1fr)', gap: '10px', width: '100%', height: '100%', minHeight: '600px' }}>
+                   <div className="pos-grid">
                       {finalGrid.map(p => (
                         <SortableProduct key={p.id} id={p.id}>
                           {p.isEmpty ? (
-                            <div style={{ aspectRatio: '1/1', border: '2px dashed #cbd5e1', borderRadius: '12px', opacity: 0.5 }} />
+                            <div className="pos-card-empty" />
                           ) : (
-                            <div 
-                               className="group relative overflow-hidden rounded-lg shadow-sm border border-slate-200 cursor-pointer text-left bg-slate-100"
-                               style={{ aspectRatio: '1/1', width: '100%', height: '100%', position: 'relative', zIndex: 10 }}
-                            >
-                               {/* Product Photo */}
+                            <div className="pos-card">
+                               {/* Foto del Producto */}
                                {p.image_url ? (
                                   <img 
                                      src={p.image_url}
                                      alt={p.name}
-                                     className="pointer-events-none"
-                                     style={{ 
-                                       width: '100%', 
-                                       height: '100%', 
-                                       objectFit: 'cover', 
-                                       position: 'absolute', 
-                                       top: 0, 
-                                       left: 0,
-                                       zIndex: 0,
-                                       backgroundColor: '#f8fafc',
-                                       pointerEvents: 'none'
-                                     }}
+                                     className="pos-card-img"
                                   />
                                ) : (
-                                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontWeight: '900', fontSize: '12px', color: '#cbd5e1', padding: '8px', textTransform: 'uppercase', position: 'absolute', top: 0, left: 0, zIndex: 0 }} className="pointer-events-none">
+                                  <div className="pos-card-placeholder">
                                     {p.name.split(' ').slice(0,2).join('\n')}
                                   </div>
                                )}
 
-                               {/* Name Overlay */}
-                               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10, pointerEvents: 'none' }} className="pointer-events-none">
-                                  <div style={{ color: 'white', fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', lineHeight: '1.2', pointerEvents: 'none' }} className="pointer-events-none">
-                                     {p.name}
-                                  </div>
-                                  <div className="flex justify-between items-center mt-1">
-                                    <div style={{ color: '#60a5fa', fontWeight: '900', fontSize: '12px', pointerEvents: 'none' }} className="pointer-events-none">{(Number(p.price) || 0).toFixed(2)}€</div>
-                                    {p.quantity_multiplier > 1 && (
-                                       <div className="bg-blue-600/30 text-blue-300 text-[9px] px-1.5 py-0.5 rounded font-black italic">PACK x{p.quantity_multiplier}</div>
-                                    )}
-                                  </div>
+                               {/* Overlay de Info */}
+                               <div className="pos-card-overlay">
+                                  <div className="pos-card-name">{p.name}</div>
+                                  <div className="pos-card-price">{(Number(p.price) || 0).toFixed(2)}€</div>
                                </div>
 
-                               {/* ADD BUTTON */}
+                               {/* Botón Añadir */}
                                <button 
                                   onClick={(e) => { 
                                      e.stopPropagation(); 
                                      e.preventDefault(); 
-                                     console.log('Botón pulsado en: ' + p.name); 
                                      addToCart(p); 
                                   }}
-                                  className="absolute w-10 h-10 bg-blue-600 hover:bg-blue-700 active:scale-90 text-white rounded-full flex items-center justify-center shadow-lg transition-transform cursor-pointer"
-                                  style={{ zIndex: 9999, touchAction: 'manipulation', top: '4px', right: '4px', position: 'absolute', pointerEvents: 'auto' }}
+                                  className="pos-card-add-btn"
                                >
                                   <Plus size={20} strokeWidth={3} />
                                </button>
@@ -572,219 +633,334 @@ export default function POS() {
                    </div>
                 </SortableContext>
              </DndContext>
-
            )}
         </main>
       </div>
 
-      {/* 2. RIGHT SIDE: TICKET (30% FIJO) */}
-      <aside className="bg-slate-50 shadow-inner z-30" style={{ width: '30%', height: '100%', flex: '0 0 30%', display: 'flex', flexDirection: 'column', borderLeft: '1px solid #e2e8f0' }}>
-         <header className="h-20 px-6 flex items-center justify-between border-b border-slate-200 bg-white" style={{ flexShrink: 0 }}>
-            <div className="flex flex-col">
-               <h2 className="text-xl font-black tracking-tighter uppercase leading-none text-slate-800">Venta Actual</h2>
-               <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">Ticket #{String(Number(localStorage.getItem('bachan_pos_ticket_seq') || 0) + 1).padStart(4, '0')}</span>
+      {/* 2. SECCIÓN DERECHA: TICKET */}
+      <aside className="pos-sidebar">
+         <header className="pos-sidebar-header">
+            <div>
+               <h2 className="pos-ticket-title">Venta Actual</h2>
+               <div className="pos-ticket-number">Ticket #{String(Number(localStorage.getItem('bachan_pos_ticket_seq') || 0) + 1).padStart(4, '0')}</div>
             </div>
-            <button onClick={() => setCart([])} className="p-2 text-slate-300 hover:text-rose-500 transition-colors"><Trash2 size={24}/></button>
+            <button onClick={() => setCart([])} className="pos-icon-btn" style={{ color: '#ef4444' }}><Trash2 size={24}/></button>
          </header>
 
-         {/* Items List */}
-         <div className="flex-1 overflow-y-auto space-y-2" style={{ padding: '24px' }}>
+         {/* INPUTS CLIENTE/MESA */}
+         <div className="pos-sidebar-inputs">
+            <div className="pos-input-group">
+               <label className="pos-label">Mesa / Zona</label>
+               <select value={tableId} onChange={(e) => setTableId(e.target.value)} className="pos-select">
+                  <option value="Barra">Barra</option>
+                  <option value="Mesa 1">Mesa 1</option>
+                  <option value="Mesa 2">Mesa 2</option>
+                  <option value="Mesa 3">Mesa 3</option>
+                  <option value="Terraza 1">Terraza 1</option>
+                  <option value="Para Llevar">Para Llevar</option>
+                  <option value="Delivery">Delivery</option>
+               </select>
+            </div>
+            <div className="pos-input-group" style={{ flex: 2 }}>
+               <label className="pos-label">Nombre Cliente</label>
+               <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Opcional..." className="pos-input" />
+            </div>
+         </div>
+
+         {/* LISTA DE ITEMS */}
+         <div className="pos-cart-list">
             {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-300 italic opacity-50 px-8 text-center">
-                 <ShoppingBag size={48} className="mb-4 text-slate-200" />
-                 <p className="font-black uppercase tracking-widest text-[10px]">Esperando productos...</p>
-                 <p className="text-[10px] mt-2">Haz clic en un Bento para sumarlo al ticket</p>
+              <div className="pos-cart-empty">
+                 <ShoppingBag size={48} className="mb-4" />
+                 <p className="pos-label">Ticket Vacío</p>
               </div>
             ) : cart.map(item => (
-              <div key={item.cartId} className="bg-white border border-slate-100 rounded-lg p-3 flex justify-between items-center group shadow-sm transition-all hover:border-blue-200">
-                 <div className="flex-1 min-w-0 pr-3">
-                    <div className="font-black text-slate-800 text-[11px] uppercase truncate">{item.name}</div>
-                    <div className="text-[10px] font-bold text-slate-400">Unit: {(item.price).toFixed(2)}€</div>
+              <div key={item.cartId} className="pos-cart-item">
+                 <div className="pos-item-info">
+                    <div className="pos-item-name">{item.name}</div>
+                    <div className="pos-item-price">Unit: {(item.price).toFixed(2)}€</div>
                  </div>
-                 <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
-                       <button onClick={() => updateQuantity(item.cartId, -1)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-900"><Minus size={14}/></button>
-                       <span className="font-black text-sm w-8 text-center">{item.quantity}</span>
-                       <button onClick={() => updateQuantity(item.cartId, 1)} className="w-8 h-8 flex items-center justify-center bg-slate-900 text-white rounded-md shadow-sm"><Plus size={14}/></button>
-                    </div>
-                    <div className="font-black text-xs text-slate-800 min-w-[50px] text-right">{(item.price * item.quantity).toFixed(2)}€</div>
+                 <div className="pos-qty-control">
+                    <button onClick={() => updateQuantity(item.cartId, -1)} className="pos-qty-btn"><Minus size={14}/></button>
+                    <span className="pos-qty-num">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.cartId, 1)} className="pos-qty-btn pos-qty-btn-dark"><Plus size={14}/></button>
                  </div>
+                 <div className="pos-item-total">{(item.price * item.quantity).toFixed(2)}€</div>
               </div>
             ))}
          </div>
 
-         {/* Ticket Summary */}
-         <footer className="bg-white border-t border-slate-200 p-6 space-y-4">
-            <div className="space-y-2">
-               <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  <span>Subtotal</span>
-                  <span>{(cartTotal / 1.10).toFixed(2)}€</span>
+         {/* RESUMEN Y ACCIONES */}
+         <footer className="pos-sidebar-footer">
+            
+            {/* BOTÓN DESCUENTO */}
+            <button 
+              onClick={() => setShowDiscountModal(true)} 
+              className={`pos-discount-btn ${discountValue > 0 ? 'active' : ''}`}
+            >
+               <Sparkles size={16}/>
+               <span>{discountValue > 0 ? `Descuento: ${discountValue}${discountType === 'percent' ? '%' : '€'}` : 'Aplicar Descuento'}</span>
+            </button>
+
+            <div className="pos-summary-row"><span>Subtotal</span><span>{(subtotal).toFixed(2)}€</span></div>
+            
+            {discountValue > 0 && (
+               <div className="pos-discount-summary">
+                  <span>Descuento ({discountValue}{discountType === 'percent' ? '%' : '€'})</span>
+                  <span>-{calculatedDiscount.toFixed(2)}€</span>
                </div>
-               <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  <span>IVA Incluido (10%)</span>
-                  <span>{(cartTotal - (cartTotal / 1.10)).toFixed(2)}€</span>
-               </div>
-               <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-                  <span className="font-black text-sm uppercase text-slate-800">TOTAL</span>
-                  <span className="font-black tracking-tighter text-slate-900" style={{ fontSize: '32px' }}>{cartTotal.toFixed(2)}€</span>
-               </div>
+            )}
+
+            <div className="pos-summary-row"><span>IVA (10%)</span><span>{(cartTotal - (cartTotal / 1.10)).toFixed(2)}€</span></div>
+            <div className="pos-summary-total">
+               <span className="pos-total-label">TOTAL</span>
+               <span className="pos-total-amount">{cartTotal.toFixed(2)}€</span>
             </div>
             
-            <button 
-              disabled={cartTotal <= 0 || isProcessing}
-              onClick={() => setShowCheckout(true)}
-              style={{
-                 width: '100%', padding: '24px 0', borderRadius: '12px', fontWeight: '900', fontSize: '20px',
-                 textTransform: 'uppercase', letterSpacing: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
-                 backgroundColor: cartTotal > 0 ? '#2563eb' : '#cbd5e1',
-                 color: 'white',
-                 transition: 'all 0.2s',
-                 boxShadow: cartTotal > 0 ? '0 10px 15px -3px rgba(37, 99, 235, 0.3)' : 'none',
-                 cursor: cartTotal > 0 ? 'pointer' : 'not-allowed',
-                 border: 'none'
-              }}
-            >
-              {isProcessing ? <RefreshCw className="animate-spin" size={24}/> : (
-                <>
-                  <CreditCard size={24}/>
-                  <span>COBRAR</span>
-                </>
-              )}
-            </button>
+            <div className="pos-actions">
+               <button disabled={cartTotal <= 0 || isProcessing} onClick={() => handleSaveOrder('march')} className="pos-btn pos-btn-marchar">
+                 {isProcessing ? <RefreshCw className="animate-spin" size={16}/> : <><Utensils size={16}/><span>Marchar</span></>}
+               </button>
+               <button disabled={cartTotal <= 0 || isProcessing} onClick={() => { console.log('--- Iniciando Checkout ---'); setShowCheckout(true); }} className="pos-btn pos-btn-cobrar">
+                 {isProcessing ? <RefreshCw className="animate-spin" size={16}/> : <><CreditCard size={16}/><span>Cobrar</span></>}
+               </button>
+            </div>
          </footer>
       </aside>
 
-      {/* 3. MODALS (Settings, Checkout, Modifiers) */}
+      {/* 3. MODALES */}
       
+      {/* CHECKOUT MODAL */}
+      {showCheckout && (
+         <div className="pos-modal-overlay">
+            <div className="pos-modal-content">
+               {saleSuccess ? (
+                 <div className="pos-success-body">
+                    <div className="pos-success-icon"><CheckCircle2 size={56}/></div>
+                    <h2 className="pos-modal-title">¡LISTO!</h2>
+                    <p className="pos-modal-subtitle">Venta registrada</p>
+                 </div>
+               ) : (
+                 <div className="pos-modal-body">
+                    <button onClick={() => setShowCheckout(false)} className="pos-modal-close"><X size={32}/></button>
+                    
+                    {/* TOTAL DESTACADO AL INICIO */}
+                    <div style={{ textAlign: 'center', marginBottom: '40px', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '24px' }}>
+                       <div className="pos-label" style={{ marginBottom: '8px' }}>Total a Pagar</div>
+                       <div style={{ fontSize: '5rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.05em', lineHeight: 1 }}>{cartTotal.toFixed(2)}€</div>
+                    </div>
+
+                    <h2 className="pos-modal-title" style={{ fontSize: '1.5rem', textAlign: 'center' }}>Cierre de Ticket</h2>
+                    <p className="pos-modal-subtitle" style={{ textAlign: 'center', marginBottom: '32px' }}>{customerName || 'Cliente General'}</p>
+                    
+                    <div className="pos-payment-grid">
+                       <button onClick={() => handleSaveOrder('charge', 'cash')} disabled={isProcessing} className="pos-payment-btn cash"><Banknote size={40}/> Efectivo</button>
+                       <button onClick={() => handleSaveOrder('charge', 'card')} disabled={isProcessing} className="pos-payment-btn card"><CreditCard size={40}/> Tarjeta</button>
+                       <button onClick={() => handleSaveOrder('charge', 'bizum')} disabled={isProcessing} className="pos-payment-btn bizum"><Coffee size={40}/> Bizum</button>
+                    </div>
+                 </div>
+               )}
+            </div>
+         </div>
+      )}
+
+      {/* CUENTAS ABIERTAS MODAL */}
+      {showOpenOrders && (
+         <div className="pos-modal-overlay">
+            <div className="pos-modal-content" style={{ maxWidth: '900px', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+               <div className="pos-modal-body" style={{ flex: 1, overflowY: 'auto' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                    <div>
+                       <h2 className="pos-modal-title">Cuentas Abiertas</h2>
+                       <p className="pos-modal-subtitle">Comandas pendientes</p>
+                    </div>
+                    <button onClick={() => setShowOpenOrders(false)} className="pos-modal-close"><X size={32}/></button>
+                 </div>
+                 
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                    {openOrdersList.map(order => (
+                       <div key={order.id} onClick={() => loadOpenOrder(order)} className="pos-card" style={{ padding: '24px', height: 'auto', background: 'white' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                             <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 900, fontSize: '1.2rem', textTransform: 'uppercase', lineHeight: 1 }}>{order.customer_name}</div>
+                                <div className="pos-badge" style={{ marginTop: '8px', display: 'inline-block' }}>EN COCINA</div>
+                             </div>
+                             <button onClick={(e) => handleDeleteOrder(e, order.id)} className="pos-btn-delete-order">
+                                <Trash2 size={20} />
+                             </button>
+                          </div>
+                          <div style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '12px' }}>
+                             {order.table_id} • Pedido #{order.ticket_number?.split('-').pop()}
+                          </div>
+                          <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: 'auto' }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>Total</span>
+                                <span style={{ fontWeight: 900, fontSize: '1.2rem', color: '#2563eb' }}>{(Number(order.total) || 0).toFixed(2)}€</span>
+                             </div>
+                          </div>
+                       </div>
+                    ))}
+                 </div>
+               </div>
+            </div>
+         </div>
+      )}
+
       {/* SETTINGS MODAL */}
       {showSettings && (
-         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
-               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                  <h2 className="text-2xl font-black">Ajustes TPV</h2>
-                  <button onClick={() => setShowSettings(false)} className="p-2 text-slate-300 hover:text-slate-900"><X size={32}/></button>
-               </div>
-               <div className="p-8 space-y-8">
-                  <div className="space-y-4">
-                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Columnas del Grid (iPad/Desktop)</label>
-                     <div className="flex gap-2">
+         <div className="pos-modal-overlay">
+            <div className="pos-modal-content" style={{ maxWidth: '450px' }}>
+               <div className="pos-modal-body">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                     <h2 className="pos-modal-title" style={{ fontSize: '1.5rem' }}>Ajustes TPV</h2>
+                     <button onClick={() => setShowSettings(false)} className="pos-modal-close" style={{ position: 'static' }}><X size={24}/></button>
+                  </div>
+                  
+                  <div className="pos-settings-group">
+                     <label className="pos-label">Columnas del Grid</label>
+                     <div className="pos-settings-grid">
                         {[3,4,5,6].map(n => (
-                          <button key={n} onClick={() => setViewSettings({...viewSettings, columns: n})} className={`flex-1 py-4 rounded-2xl font-black transition-all ${viewSettings.columns === n ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{n}</button>
+                           <button 
+                             key={n} 
+                             onClick={() => setViewSettings({...viewSettings, columns: n})}
+                             className={`pos-btn ${viewSettings.columns === n ? 'pos-btn-cobrar' : 'pos-btn-marchar'}`}
+                             style={{ padding: '12px' }}
+                           >
+                              {n}
+                           </button>
                         ))}
                      </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                     <div><label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Mostrar Fotos</label></div>
-                     <button onClick={() => setViewSettings({...viewSettings, showPhotos: !viewSettings.showPhotos})} className={`w-14 h-8 rounded-full relative transition-all ${viewSettings.showPhotos ? 'bg-emerald-500' : 'bg-slate-200'}`}><div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-all ${viewSettings.showPhotos ? 'translate-x-6' : 'translate-x-0'}`}/></button>
+
+                  <div className="pos-settings-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <label className="pos-label">Mostrar Fotos</label>
+                     <button 
+                       onClick={() => setViewSettings({...viewSettings, showPhotos: !viewSettings.showPhotos})}
+                       className={`pos-toggle-btn ${viewSettings.showPhotos ? 'active' : ''}`}
+                     >
+                        <div className="pos-toggle-thumb" />
+                     </button>
                   </div>
-                  <div className="space-y-4">
-                     <div className="flex justify-between font-black text-[10px] uppercase text-slate-400 tracking-widest"><span>Tamaño Fuente</span> <span>{viewSettings.fontSize}px</span></div>
-                     <input type="range" min="12" max="24" value={viewSettings.fontSize} onChange={(e)=>setViewSettings({...viewSettings, fontSize: Number(e.target.value)})} className="w-full accent-slate-900"/>
+
+                  <div className="pos-settings-group">
+                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <label className="pos-label">Tamaño Fuente</label>
+                        <span className="pos-label" style={{ color: '#0f172a' }}>{viewSettings.fontSize}px</span>
+                     </div>
+                     <input 
+                       type="range" min="12" max="24" 
+                       value={viewSettings.fontSize} 
+                       onChange={(e) => setViewSettings({...viewSettings, fontSize: Number(e.target.value)})} 
+                       className="pos-range"
+                     />
                   </div>
-                  <button onClick={() => setViewSettings({...viewSettings, isEditMode: !viewSettings.isEditMode})} className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest shadow-lg transition-all ${viewSettings.isEditMode ? 'bg-emerald-500 text-white' : 'bg-orange-500 text-white'}`}>
+
+                  <button 
+                    onClick={() => setViewSettings({...viewSettings, isEditMode: !viewSettings.isEditMode})}
+                    className="pos-btn" 
+                    style={{ width: '100%', padding: '20px', background: viewSettings.isEditMode ? '#10b981' : '#f59e0b', color: 'white', marginBottom: '12px' }}
+                  >
                      {viewSettings.isEditMode ? 'Guardar Cambios' : 'Modo Reordenar'}
+                  </button>
+
+                  <button 
+                    onClick={resetTicketCounter}
+                    className="pos-btn" 
+                    style={{ width: '100%', padding: '16px', background: '#f8fafc', color: '#ef4444', border: '1px solid #fee2e2' }}
+                  >
+                     Reiniciar Contador de Tickets
                   </button>
                </div>
             </div>
          </div>
       )}
 
-      {/* CHECKOUT MODAL */}
-      {showCheckout && (
-         <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8">
-            <div className="bg-white w-full max-w-2xl rounded-[4rem] p-10 sm:p-16 shadow-2xl relative overflow-hidden animate-in zoom-in slide-in-from-bottom-20 duration-500">
-               {saleSuccess ? (
-                 <div className="text-center py-10 scale-in flex flex-col items-center">
-                    <div className="w-24 h-24 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-6"><CheckCircle2 size={56}/></div>
-                    <h2 className="text-5xl font-black tracking-tighter">¡LISTO!</h2>
-                    <p className="text-slate-400 font-bold uppercase tracking-widest text-sm mt-4">Venta registrada correctamente</p>
-                 </div>
-               ) : (
-                 <>
-                   <button onClick={() => setShowCheckout(false)} className="absolute top-10 right-10 text-slate-200 hover:text-slate-900"><X size={32}/></button>
-                   <h2 className="text-4xl font-black mb-2 tracking-tight">Cierre de Ticket</h2>
-                   <p className="text-xl text-slate-500 font-bold mb-10 tracking-tight uppercase">{customerName}</p>
-                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-                      <button onClick={() => handleSaveOrder('charge', 'cash')} disabled={isProcessing} className="p-8 bg-slate-50 rounded-3xl flex flex-col items-center gap-4 hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-200 transition-all font-black text-slate-400 hover:text-emerald-500 uppercase text-xs tracking-widest"><Banknote size={40}/> Efectivo</button>
-                      <button onClick={() => handleSaveOrder('charge', 'card')} disabled={isProcessing} className="p-8 bg-slate-50 rounded-3xl flex flex-col items-center gap-4 hover:bg-sky-50 border-2 border-transparent hover:border-sky-200 transition-all font-black text-slate-400 hover:text-sky-500 uppercase text-xs tracking-widest"><CreditCard size={40}/> Tarjeta</button>
-                      <button onClick={() => handleSaveOrder('charge', 'bizum')} disabled={isProcessing} className="p-8 bg-slate-50 rounded-3xl flex flex-col items-center gap-4 hover:bg-pink-50 border-2 border-transparent hover:border-pink-200 transition-all font-black text-slate-400 hover:text-pink-500 uppercase text-xs tracking-widest"><div className="w-10 h-10 bg-current rounded-full flex items-center justify-center text-white italic text-xl">B</div> Bizum</button>
-                   </div>
-                   <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] flex flex-col sm:flex-row justify-between items-center gap-4 shadow-2xl shadow-slate-200">
-                      <span className="font-black uppercase tracking-widest text-xs opacity-50">Total Final</span>
-                      <span className="text-4xl font-black">{cartTotal.toFixed(2)}€</span>
-                   </div>
-                 </>
-               )}
-            </div>
-         </div>
-      )}
-
       {/* MODIFIERS MODAL */}
       {pendingModifierProduct && (
-         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-lg rounded-[3rem] p-10 overflow-hidden shadow-2xl animate-in zoom-in duration-300">
-               <h2 className="text-3xl font-black mb-2">{pendingModifierProduct.name}</h2>
-               <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-8">Opciones obligatorias</p>
-               <div className="space-y-3">
-                  {pendingModifierProduct.modifiers?.map(mod => (
-                    <button key={mod} onClick={() => addToCart(pendingModifierProduct, mod)} className="w-full p-6 bg-slate-50 rounded-2xl flex justify-between items-center group hover:bg-slate-900 hover:text-white transition-all">
-                       <span className="font-black text-lg">{mod}</span>
-                       <ChevronRight className="text-slate-200 group-hover:translate-x-1 transition-transform"/>
-                    </button>
-                  ))}
-               </div>
-               <button onClick={() => setPendingModifierProduct(null)} className="w-full mt-8 py-4 text-slate-300 font-bold uppercase tracking-widest text-[10px] hover:text-rose-500">Cancelar</button>
-            </div>
-         </div>
-      )}
-
-      {/* OPEN ORDERS MODAL */}
-      {showOpenOrders && (
-         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-4xl rounded-[3rem] p-10 overflow-hidden shadow-2xl animate-in zoom-in duration-300" style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-               <div className="flex justify-between items-center mb-6">
-                 <div>
-                   <h2 className="text-3xl font-black tracking-tight">Cuentas Abiertas</h2>
-                   <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1">Comandas en cocina pendientes de cobro</p>
-                 </div>
-                 <button onClick={() => setShowOpenOrders(false)} className="p-2 text-slate-300 hover:text-slate-900"><X size={32}/></button>
-               </div>
-               
-               <div className="flex-1 overflow-y-auto pr-2">
-                 {isProcessing && openOrdersList.length === 0 ? (
-                    <div className="py-20 flex justify-center text-slate-300"><RefreshCw className="animate-spin" size={32}/></div>
-                 ) : openOrdersList.length === 0 ? (
-                    <div className="py-20 text-center text-slate-400 font-bold uppercase tracking-widest">No hay cuentas abiertas</div>
-                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {openOrdersList.map(order => (
-                         <div key={order.id} onClick={() => loadOpenOrder(order)} className="bg-slate-50 hover:bg-amber-50 border-2 border-transparent hover:border-amber-200 rounded-2xl p-6 cursor-pointer transition-all flex flex-col group">
-                            <div className="flex justify-between items-start mb-4">
-                               <div className="font-black text-lg uppercase text-slate-800 break-words line-clamp-2 pr-4">{order.customer_name}</div>
-                               <div className="bg-white px-3 py-1 rounded-lg text-[10px] font-black text-amber-500 shadow-sm whitespace-nowrap">{(Number(order.total) || 0).toFixed(2)}€</div>
-                            </div>
-                            <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
-                               {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                            </div>
-                            <div className="flex-1 space-y-1 mb-4 opacity-70 group-hover:opacity-100 transition-opacity">
-                               {order.items?.slice(0,3).map((item, idx) => (
-                                  <div key={idx} className="text-xs font-bold text-slate-500 truncate">• {item.quantity}x {item.name}</div>
-                                ))}
-                                {order.items?.length > 3 && <div className="text-xs font-bold text-slate-400 italic">+{order.items.length - 3} más...</div>}
-                            </div>
-                            <div className="mt-auto flex items-center justify-between text-[10px] font-black text-amber-600 uppercase tracking-widest pt-4 border-t border-amber-100/50">
-                               <span>Retomar Pedido</span>
-                               <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform"/>
-                            </div>
-                         </div>
-                      ))}
-                    </div>
-                 )}
+         <div className="pos-modal-overlay">
+            <div className="pos-modal-content" style={{ maxWidth: '500px' }}>
+               <div className="pos-modal-body">
+                  <h2 className="pos-modal-title" style={{ fontSize: '1.8rem' }}>{pendingModifierProduct.name}</h2>
+                  <p className="pos-modal-subtitle">Opciones requeridas</p>
+                  
+                  <div className="pos-modifier-list">
+                     {pendingModifierProduct.modifiers?.map(mod => (
+                        <button 
+                          key={mod} 
+                          onClick={() => addToCart(pendingModifierProduct, mod)}
+                          className="pos-modifier-btn"
+                        >
+                           <span style={{ fontWeight: 900, fontSize: '1.1rem' }}>{mod}</span>
+                           <ChevronRight size={20} />
+                        </button>
+                     ))}
+                  </div>
+                  
+                  <button 
+                    onClick={() => setPendingModifierProduct(null)}
+                    className="pos-btn pos-btn-marchar" 
+                    style={{ width: '100%', marginTop: '24px', padding: '16px' }}
+                  >
+                     Cancelar
+                  </button>
                </div>
             </div>
          </div>
       )}
 
+      {/* DISCOUNT MODAL */}
+      {showDiscountModal && (
+        <DiscountModal 
+          value={discountValue}
+          type={discountType}
+          onValueChange={setDiscountValue}
+          onTypeChange={setDiscountType}
+          onClose={() => setShowDiscountModal(false)}
+          onApply={() => setShowDiscountModal(false)}
+        />
+      )}
+
+    </div>
+  );
+}
+
+// MODAL DE DESCUENTO
+function DiscountModal({ value, type, onValueChange, onTypeChange, onClose, onApply }) {
+  return (
+    <div className="pos-modal-overlay">
+      <div className="pos-modal-content" style={{ maxWidth: '400px' }}>
+        <div className="pos-modal-body">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h2 className="pos-modal-title" style={{ fontSize: '1.5rem' }}>Descuento</h2>
+            <button onClick={onClose} className="pos-modal-close" style={{ position: 'static' }}><X size={24}/></button>
+          </div>
+
+          <div className="pos-type-selector">
+            <button onClick={() => onTypeChange('percent')} className={`pos-type-btn ${type === 'percent' ? 'active' : ''}`}>%</button>
+            <button onClick={() => onTypeChange('fixed')} className={`pos-type-btn ${type === 'fixed' ? 'active' : ''}`}>€</button>
+          </div>
+
+          <div style={{ position: 'relative', marginBottom: '32px' }}>
+            <input 
+              type="number" 
+              value={value || ''} 
+              onChange={(e) => onValueChange(Number(e.target.value))}
+              className="pos-input" 
+              style={{ fontSize: '3rem', height: '100px', textAlign: 'center', paddingRight: '40px' }}
+              placeholder="0"
+              autoFocus
+            />
+            <span style={{ position: 'absolute', right: '24px', top: '50%', transform: 'translateY(-50%)', fontSize: '2rem', fontWeight: 900, color: '#64748b' }}>
+              {type === 'percent' ? '%' : '€'}
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <button onClick={() => onValueChange(0)} className="pos-btn pos-btn-marchar">Limpiar</button>
+            <button onClick={onApply} className="pos-btn pos-btn-cobrar">Aplicar</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -16,7 +16,13 @@ import {
   Loader2,
   ArrowUpRight,
   PieChart,
-  Clock
+  Clock,
+  User,
+  Ticket,
+  CreditCard,
+  Banknote,
+  QrCode,
+  Wallet
 } from 'lucide-react';
 
 import '../styles/Common.css';
@@ -25,7 +31,7 @@ import './BusinessAnalytics.css';
 export default function BusinessAnalytics() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState('30d'); // today, 7d, 30d, all
+  const [period, setPeriod] = useState('today'); // today, 7d, 30d, all
   const [menuItems, setMenuItems] = useState([]);
 
   // ── Data Fetching ──────────────────────────────
@@ -40,7 +46,7 @@ export default function BusinessAnalytics() {
         supabase
           .from('orders')
           .select('*')
-          .in('status', ['delivered', 'paid'])
+          .in('status', ['completed', 'paid', 'delivered', 'finalizado'])
           .order('created_at', { ascending: false }),
         supabase
           .from('menu_items')
@@ -51,6 +57,7 @@ export default function BusinessAnalytics() {
       if (ordersRes.error) throw ordersRes.error;
       if (menuRes.error) throw menuRes.error;
 
+      console.log('📊 [Analytics] Órdenes recuperadas:', ordersRes.data?.length || 0);
       setOrders(ordersRes.data || []);
       setMenuItems(menuRes.data || []);
     } catch (err) {
@@ -496,6 +503,97 @@ export default function BusinessAnalytics() {
                   )) : <div className="bcg-empty">Ningún plato en esta categoría</div>}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* ── Historial de Ventas ────────────── */}
+          <div className="analytics-section mt-8">
+            <div className="analytics-section-header">
+              <h2 className="analytics-section-title">
+                <div className="icon-bg" style={{ background: '#e0f2fe', color: '#0ea5e9' }}>
+                  <ShoppingBag size={20} />
+                </div>
+                Historial de Ventas
+              </h2>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>
+                Tickets de venta cobrados en este periodo
+              </span>
+            </div>
+
+            {/* HEADER DE TABLA (VISIBLE SOLO SI HAY ÓRDENES) */}
+            {filteredOrders.filter(o => ['completed', 'paid', 'delivered', 'finalizado'].includes(o.status)).length > 0 && (
+              <div className="flex px-5 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[2px]">
+                <div style={{ flexBasis: '20%' }}>Cliente</div>
+                <div style={{ flexBasis: '25%' }}>Fecha y Hora</div>
+                <div style={{ flexBasis: '10%' }} className="text-right">Precio</div>
+                <div style={{ flexBasis: '10%' }} className="text-right">Dto.</div>
+                <div style={{ flexBasis: '15%' }} className="text-right">Total</div>
+                <div style={{ flexBasis: '20%' }} className="text-center">Tipo</div>
+              </div>
+            )}
+
+            <div className="ranking-list">
+              {filteredOrders
+                .filter(o => ['completed', 'paid', 'delivered', 'finalizado'].includes(o.status))
+                .map((order) => {
+                  const getPaymentStyles = (method) => {
+                    switch(method) {
+                      case 'bizum': return { bg: '#eff6ff', color: '#1d4ed8', label: 'Bizum' };
+                      case 'cash': return { bg: '#f0fdf4', color: '#15803d', label: 'Efectivo' };
+                      case 'card': return { bg: '#faf5ff', color: '#7e22ce', label: 'Tarjeta' };
+                      default: return { bg: '#f8fafc', color: '#64748b', label: 'Otro' };
+                    }
+                  };
+                  const pStyles = getPaymentStyles(order.payment_method);
+                  const subtotal = Number(order.total) + Number(order.discount_amount || 0);
+                  const discount = Number(order.discount_amount || 0);
+
+                  return (
+                    <div key={order.id} className="ranking-item flex items-center gap-0 py-4" style={{ cursor: 'default' }}>
+                      {/* 1. CLIENTE (20%) */}
+                      <div style={{ flexBasis: '20%' }} className="font-black text-slate-800 text-xs uppercase truncate pr-4">
+                        {order.customer_name || 'Mostrador'}
+                      </div>
+
+                      {/* 2. FECHA Y HORA (25%) */}
+                      <div style={{ flexBasis: '25%' }} className="text-xs font-bold text-slate-400 flex items-center gap-2">
+                        <Clock size={12} className="opacity-30"/>
+                        {new Date(order.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+
+                      {/* 3. PRECIO (10%) */}
+                      <div style={{ flexBasis: '10%' }} className="text-right text-xs font-bold text-slate-500">
+                        {subtotal.toFixed(2)}€
+                      </div>
+
+                      {/* 4. DTO. (10%) */}
+                      <div style={{ flexBasis: '10%' }} className={`text-right text-xs font-black ${discount > 0 ? 'text-red-400' : 'text-slate-300'}`}>
+                        {discount > 0 ? `-${discount.toFixed(2)}€` : '—'}
+                      </div>
+
+                      {/* 5. TOTAL (15%) */}
+                      <div style={{ flexBasis: '15%' }} className="text-right text-base font-black text-slate-900 pr-4">
+                        {Number(order.total).toFixed(2)}€
+                      </div>
+
+                      {/* 6. TIPO (20%) */}
+                      <div style={{ flexBasis: '20%' }} className="text-center">
+                        <span 
+                          className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest inline-block min-w-[80px]"
+                          style={{ backgroundColor: pStyles.bg, color: pStyles.color }}
+                        >
+                          {pStyles.label}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              
+              {filteredOrders.filter(o => ['completed', 'paid', 'delivered', 'finalizado'].includes(o.status)).length === 0 && (
+                <div className="text-center py-20 bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-100 text-slate-300 font-bold text-xs uppercase tracking-[4px] italic">
+                   No hay ventas registradas
+                </div>
+              )}
             </div>
           </div>
         </>
