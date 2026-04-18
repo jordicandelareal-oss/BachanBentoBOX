@@ -1,4 +1,4 @@
-/* POS.css - BaChan TPV Premium Styles (v2.0.9) */
+/* POS.css - BaChan TPV Premium Styles (v2.1.0) */
 
 .pos-app {
   display: flex !important;
@@ -614,7 +614,7 @@
 .pos-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 2000;
   background-color: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(12px);
   display: flex;
@@ -622,6 +622,13 @@
   justify-content: center;
   padding: 24px;
   animation: fadeIn 0.3s ease-out;
+}
+
+@media (max-width: 640px) {
+  .pos-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
 }
 
 .pos-modal-content {
@@ -633,6 +640,17 @@
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   animation: modalScaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 640px) {
+  .pos-modal-content {
+    height: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top, 44px);
+  }
 }
 
 @keyframes fadeIn {
@@ -649,15 +667,32 @@
   position: absolute;
   top: 24px;
   right: 24px;
-  background: transparent;
+  width: 48px;
+  height: 48px;
+  background: #f1f5f9;
   border: none;
-  color: #cbd5e1;
+  color: #0f172a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.2s;
+  z-index: 2100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 640px) {
+  .pos-modal-close {
+    top: calc(env(safe-area-inset-top, 44px) + 12px);
+    background: #0f172a;
+    color: white;
+  }
 }
 
 .pos-modal-close:hover {
-  color: #0f172a;
+  transform: scale(1.1);
+  background: #e2e8f0;
 }
 
 .pos-modal-body {
@@ -929,7 +964,7 @@
   letter-spacing: 0.05em;
 }
 
-/* 4. RESPONSIVE EXTENSIONS (v2.0.9) */
+/* 4. RESPONSIVE EXTENSIONS (v2.1.0) */
 .pos-floating-cart-btn {
   display: none;
   position: fixed;

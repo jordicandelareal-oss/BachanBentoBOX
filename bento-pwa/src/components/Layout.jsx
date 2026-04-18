@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useIngredients } from '../hooks/useIngredients'
 import { useRecipes } from '../hooks/useRecipes'
 import { processCommand } from '../lib/geminiClient'
-import { BookOpen, CookingPot, Carrot, Sparkles, Settings, BarChart3 } from 'lucide-react'
+import { BookOpen, CookingPot, Carrot, Sparkles, Settings, BarChart3, LayoutGrid, ShoppingBag } from 'lucide-react'
 import pkg from '../../package.json'
 import NanaOverlay from './Nana/NanaOverlay'
 import AIActionSheet from './Nana/AIActionSheet'
@@ -129,30 +129,35 @@ export default function Layout() {
           <div className="nav-top-row">
             <NavLink to="/" className="nav-brand">🍱 BaChan</NavLink>
             <div className="desktop-nav">
+              <NavLink to="/dashboard" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Inicio</NavLink>
+              <NavLink to="/pos" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>TPV</NavLink>
               <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Menú</NavLink>
               <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
               <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
-              <NavLink to="/analytics" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Analítica</NavLink>
-              <NavLink to="/settings" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Categorías</NavLink>
+              <NavLink to="/settings" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Ajustes</NavLink>
             </div>
           </div>
           
-          <nav className="mobile-icon-nav">
+          <nav className="mobile-icon-nav" style={{ justifyContent: 'space-around', gap: '4px' }}>
+            <NavLink to="/dashboard" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+              <LayoutGrid size={22} />
+              <span>Inicio</span>
+            </NavLink>
+            <NavLink to="/pos" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+              <ShoppingBag size={22} />
+              <span>TPV</span>
+            </NavLink>
             <NavLink to="/bento-maker" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
               <BookOpen size={22} />
               <span>Menú</span>
             </NavLink>
             <NavLink to="/preparations" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
               <CookingPot size={22} />
-              <span>Elaboraciones</span>
+              <span>Elabs</span>
             </NavLink>
             <NavLink to="/ingredients" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
               <Carrot size={22} />
-              <span>Inventario</span>
-            </NavLink>
-            <NavLink to="/analytics" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
-              <BarChart3 size={22} />
-              <span>Analítica</span>
+              <span>Items</span>
             </NavLink>
             <NavLink to="/settings" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
               <Settings size={22} />
