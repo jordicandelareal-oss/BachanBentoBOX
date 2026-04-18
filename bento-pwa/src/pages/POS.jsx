@@ -133,6 +133,7 @@ export default function POS() {
   const [discountValue, setDiscountValue] = useState(0); // El valor ingresado (ej: 10)
   const [discountType, setDiscountType] = useState('percent'); // 'percent' o 'fixed'
   const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [showMobileCart, setShowMobileCart] = useState(false);
 
   // 1. DATA FETCHING & SYNC
   useEffect(() => {
@@ -637,8 +638,17 @@ export default function POS() {
         </main>
       </div>
 
-      {/* 2. SECCIÓN DERECHA: TICKET */}
-      <aside className="pos-sidebar">
+      {/* 2. SECCIÓN DERECHA: TICKET (ESCRITORIO) / MODAL (MÓVIL) */}
+      <aside className={`pos-sidebar ${showMobileCart ? 'mobile-visible' : ''}`}>
+         {/* Botón Cerrar (Solo visible en Móvil) */}
+         <button 
+           onClick={() => setShowMobileCart(false)} 
+           className="pos-modal-close mobile-only-block"
+           style={{ display: 'none', position: 'absolute', top: '24px', right: '24px', zIndex: 100 }}
+         >
+           <X size={32}/>
+         </button>
+
          <header className="pos-sidebar-header">
             <div>
                <h2 className="pos-ticket-title">Venta Actual</h2>
@@ -721,12 +731,25 @@ export default function POS() {
                <button disabled={cartTotal <= 0 || isProcessing} onClick={() => handleSaveOrder('march')} className="pos-btn pos-btn-marchar">
                  {isProcessing ? <RefreshCw className="animate-spin" size={16}/> : <><Utensils size={16}/><span>Marchar</span></>}
                </button>
-               <button disabled={cartTotal <= 0 || isProcessing} onClick={() => { console.log('--- Iniciando Checkout ---'); setShowCheckout(true); }} className="pos-btn pos-btn-cobrar">
+               <button disabled={cartTotal <= 0 || isProcessing} onClick={() => { console.log('--- Iniciando Checkout ---'); setShowCheckout(true); setShowMobileCart(false); }} className="pos-btn pos-btn-cobrar">
                  {isProcessing ? <RefreshCw className="animate-spin" size={16}/> : <><CreditCard size={16}/><span>Cobrar</span></>}
                </button>
             </div>
          </footer>
       </aside>
+
+      {/* BOTÓN FLOTANTE CARRITO (MÓVIL) */}
+      <button 
+        className={`pos-floating-cart-btn ${cart.length > 0 ? 'has-items' : ''}`}
+        onClick={() => setShowMobileCart(true)}
+      >
+        <ShoppingBag size={28} />
+        {cart.length > 0 && (
+          <div className="pos-cart-badge">
+            {cart.reduce((sum, item) => sum + item.quantity, 0)}
+          </div>
+        )}
+      </button>
 
       {/* 3. MODALES */}
       
@@ -779,7 +802,7 @@ export default function POS() {
                  
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
                     {openOrdersList.map(order => (
-                       <div key={order.id} onClick={() => loadOpenOrder(order)} className="pos-card" style={{ padding: '24px', height: 'auto', background: 'white' }}>
+                       <div key={order.id} onClick={() => loadOpenOrder(order)} className="pos-open-order-card" style={{ cursor: 'pointer' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                              <div style={{ flex: 1 }}>
                                 <div style={{ fontWeight: 900, fontSize: '1.2rem', textTransform: 'uppercase', lineHeight: 1 }}>{order.customer_name}</div>

@@ -1,4 +1,4 @@
-/* POS.css - BaChan TPV Premium Styles (v2.0.6) */
+/* POS.css - BaChan TPV Premium Styles (v2.0.8) */
 
 .pos-app {
   display: flex !important;
@@ -7,7 +7,14 @@
   overflow: hidden !important;
   width: 100% !important;
   background-color: #f8fafc;
+  line-height: normal;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@media (max-width: 1024px) {
+  .pos-app {
+    flex-direction: column !important;
+  }
 }
 
 /* 1. LEFT SIDE: CATALOG */
@@ -22,6 +29,14 @@
   overflow: hidden;
 }
 
+@media (max-width: 1024px) {
+  .pos-catalog-container {
+    width: 100% !important;
+    flex: 1 !important;
+    border-right: none;
+  }
+}
+
 .pos-header {
   height: 80px;
   display: flex;
@@ -29,6 +44,19 @@
   border-bottom: 1px solid #f1f5f9;
   background-color: white;
   z-index: 20;
+}
+
+@media (max-width: 640px) {
+  .pos-header {
+    height: 60px;
+  }
+  .pos-logo-text {
+    font-size: 1.1rem !important;
+  }
+  .pos-logo-wrapper svg {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 .pos-header-top {
@@ -198,6 +226,14 @@
   min-height: 600px;
 }
 
+@media (max-width: 1024px) {
+  .pos-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto;
+    min-height: auto;
+  }
+}
+
 .pos-card {
   position: relative;
   aspect-ratio: 1 / 1;
@@ -299,6 +335,19 @@
   flex-direction: column;
   background-color: #f8fafc;
   border-left: 1px solid #e2e8f0;
+}
+
+@media (max-width: 1024px) {
+  .pos-sidebar {
+    display: none; /* Hidden by default on mobile, shown in modal */
+  }
+  .pos-sidebar.mobile-visible {
+    display: flex;
+    width: 100% !important;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+  }
 }
 
 .pos-sidebar-header {
@@ -465,6 +514,17 @@
   background-color: white;
   border-top: 1px solid #e2e8f0;
   padding: 24px;
+}
+
+@media (max-width: 1024px) {
+  .pos-sidebar-footer {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    box-shadow: 0 -10px 20px rgba(0,0,0,0.05);
+  }
 }
 
 .pos-summary-row {
@@ -837,3 +897,97 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* 4. RESPONSIVE EXTENSIONS (v2.0.8) */
+.pos-floating-cart-btn {
+  display: none;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 64px;
+  height: 64px;
+  background-color: #0f172a;
+  color: white;
+  border-radius: 50%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 50;
+  border: none;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  animation: pos-bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pos-floating-cart-btn.has-items {
+  background-color: #2563eb;
+}
+
+.pos-cart-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #ef4444;
+  color: white;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border: 2px solid white;
+}
+
+@keyframes pos-bounce-in {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 1024px) {
+  .pos-floating-cart-btn {
+    display: flex;
+  }
+}
+
+/* Mobile Adjustments for Open Orders */
+@media (max-width: 640px) {
+  .pos-open-order-card {
+    background: white !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+    border: 1px solid #f1f5f9 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  
+  .pos-modal-content {
+    border-radius: 24px !important;
+    max-height: 95vh !important;
+  }
+  
+  .pos-modal-body {
+    padding: 24px !important;
+  }
+  
+  .pos-payment-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .pos-payment-btn {
+    padding: 20px !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    gap: 16px !important;
+  }
+  
+  .pos-payment-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+}
+
