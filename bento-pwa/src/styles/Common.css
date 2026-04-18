@@ -17,6 +17,7 @@
 
 .page-container {
   padding: 24px;
+  padding-top: env(safe-area-inset-top, 24px);
   max-width: 800px;
   margin: 0 auto;
 }

@@ -22,7 +22,8 @@ import {
   CreditCard,
   Banknote,
   QrCode,
-  Wallet
+  Wallet,
+  LayoutGrid
 } from 'lucide-react';
 
 import '../styles/Common.css';

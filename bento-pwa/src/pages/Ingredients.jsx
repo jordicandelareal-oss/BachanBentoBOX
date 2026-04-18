@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { supabase } from '../lib/supabaseClient';
-import { Carrot, Search, Plus, AlertCircle, Loader2, ChevronRight, X, Save, Trash2, Camera, Scan, Image as ImageIcon, RotateCcw, Sparkles, Scale, Package, Store } from 'lucide-react';
+import { Carrot, Search, Plus, AlertCircle, Loader2, ChevronRight, X, Save, Trash2, Camera, Scan, Image as ImageIcon, RotateCcw, Sparkles, Scale, Package, Store, LayoutGrid } from 'lucide-react';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import NumPad from '../components/Common/NumPad';
 import { compressImage, uploadImage, blobToBase64 } from '../lib/imageUtils';
