@@ -1,4 +1,4 @@
-/* POS.css - BaChan TPV Premium Styles (v2.1.0) */
+/* POS.css - BaChan TPV Premium Styles (v2.1.1) */
 
 .pos-app {
   display: flex !important;
@@ -328,25 +328,43 @@
 
 /* 2. RIGHT SIDE: TICKET */
 .pos-sidebar {
-  width: 30%;
-  height: 100%;
-  flex: 0 0 30%;
-  display: flex;
-  flex-direction: column;
-  background-color: #f8fafc;
-  border-left: 1px solid #e2e8f0;
+  width: 440px;
+  background-color: white;
+  border-left: 1px solid #f1f5f9;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative;
+  z-index: 50;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (max-width: 1024px) {
   .pos-sidebar {
-    display: none; /* Hidden by default on mobile, shown in modal */
-  }
-  .pos-sidebar.mobile-visible {
-    display: flex;
-    width: 100% !important;
     position: fixed;
-    inset: 0;
-    z-index: 2000;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 1000;
+    transform: translateX(100%);
+    visibility: hidden;
+  }
+
+  .pos-sidebar.mobile-visible {
+    transform: translateX(0);
+    visibility: visible;
+    /* SAFE AREA (v2.1.1) */
+    padding-top: env(safe-area-inset-top, 44px);
+  }
+
+  .pos-sidebar-header {
+    padding: 32px 24px !important;
+    margin-bottom: 8px; /* Respiración */
+  }
+
+  .pos-ticket-number {
+    margin-top: 12px; /* Respiración interna */
+    font-size: 1.2rem !important;
   }
 }
 
@@ -695,6 +713,31 @@
   background: #e2e8f0;
 }
 
+.pos-sidebar-close-mobile {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .pos-sidebar-close-mobile {
+    display: flex;
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: 54px; /* Generoso */
+    height: 54px;
+    background-color: #0f172a;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    /* Safe area adjustment for closure */
+    top: calc(env(safe-area-inset-top, 44px) + 12px);
+  }
+}
+
 .pos-modal-body {
   padding: 40px;
 }
@@ -964,7 +1007,7 @@
   letter-spacing: 0.05em;
 }
 
-/* 4. RESPONSIVE EXTENSIONS (v2.1.0) */
+/* 4. RESPONSIVE EXTENSIONS (v2.1.1) */
 .pos-floating-cart-btn {
   display: none;
   position: fixed;

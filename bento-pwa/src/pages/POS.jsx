@@ -674,14 +674,13 @@ export default function POS() {
 
       {/* 2. SECCIÓN DERECHA: TICKET (ESCRITORIO) / MODAL (MÓVIL) */}
       <aside className={`pos-sidebar ${showMobileCart ? 'mobile-visible' : ''}`}>
-         {/* Botón Cerrar (Solo visible en Móvil) */}
-         <button 
-           onClick={() => setShowMobileCart(false)} 
-           className="pos-modal-close mobile-only-block"
-           style={{ display: 'none', position: 'absolute', top: '24px', right: '24px', zIndex: 100 }}
-         >
-           <X size={32}/>
-         </button>
+          {/* Botón Cerrar (Solo visible en Móvil v2.1.1) */}
+          <button 
+            onClick={() => setShowMobileCart(false)} 
+            className="pos-sidebar-close-mobile"
+          >
+            <X size={28}/>
+          </button>
 
          <header className="pos-sidebar-header">
              <div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { deductStockForOrder } from '../lib/inventoryService';
 import { 
@@ -14,12 +15,14 @@ import {
   AlertCircle,
   Truck,
   History,
-  Activity
+  Activity,
+  ArrowLeft
 } from 'lucide-react';
 
 import '../styles/Common.css';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('active'); // active, preparing, delivered
@@ -95,9 +98,29 @@ export default function Dashboard() {
     <div className="page-container fade-in">
       {/* Header Estilo BaChan */}
       <div className="page-header">
-        <div>
-          <h1 className="page-title" style={{ fontFamily: 'var(--font-serif)', fontSize: '2.4rem' }}>Ventas & Pedidos</h1>
-          <p className="page-subtitle">Gestión operativa y métricas en tiempo real</p>
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={() => navigate('/')} 
+            className="btn-dashboard"
+            style={{ 
+              background: '#f1f5f9', 
+              color: '#475569', 
+              padding: '12px 20px',
+              borderRadius: '16px',
+              fontWeight: '800',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              border: '1px solid #e2e8f0'
+            }}
+          >
+            <ArrowLeft size={20} />
+            <span>Inicio</span>
+          </button>
+          <div>
+            <h1 className="page-title" style={{ fontFamily: 'var(--font-serif)', fontSize: '2.4rem' }}>Ventas & Pedidos</h1>
+            <p className="page-subtitle">Gestión operativa y métricas en tiempo real</p>
+          </div>
         </div>
         <div className="card-icon-wrapper" style={{ width: '56px', height: '56px', background: 'var(--color-brand)', color: 'white' }}>
            <Activity size={28} />
