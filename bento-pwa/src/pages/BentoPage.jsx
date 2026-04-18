@@ -119,6 +119,10 @@ export default function BentoPage() {
           <p className="page-subtitle">Organiza tu carta y gestiona artículos en venta</p>
         </div>
         <div className="flex gap-4 items-center">
+          <button onClick={() => window.location.href='/dashboard'} className="btn-dashboard">
+            <LayoutGrid size={18}/>
+            <span>Dashboard</span>
+          </button>
           <button 
             className="flex items-center justify-center bg-[#f3f4f6] text-slate-400 hover:text-sky-500 hover:bg-sky-50 transition-all duration-300" 
             onClick={() => navigate('/settings')} 

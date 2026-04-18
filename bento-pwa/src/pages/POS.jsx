@@ -20,7 +20,8 @@ import {
   Settings,
   GripVertical,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  ArrowLeft
 } from 'lucide-react';
 
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -113,6 +114,7 @@ export default function POS() {
     };
   });
 
+  const [ticketSeq, setTicketSeq] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showMobileTicket, setShowMobileTicket] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -136,19 +138,38 @@ export default function POS() {
   const [showMobileCart, setShowMobileCart] = useState(false);
 
   // 1. DATA FETCHING & SYNC
-  useEffect(() => {
-    // Reset sequence check for v2.0.9 cleanup
-    if (!localStorage.getItem('bachan_v209_reset')) {
-      localStorage.setItem('bachan_pos_ticket_seq', '0');
-      localStorage.setItem('bachan_v209_reset', 'true');
-      console.log('🔄 TPV: Ticket sequence reset to #0001 (Phase v2.0.9)');
+  const fetchTicketSeq = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pos_config')
+        .select('value')
+        .eq('key', 'ticket_sequence')
+        .single();
+      
+      if (error) throw error;
+      setTicketSeq(Number(data.value?.last_number || 0));
+    } catch (err) {
+      console.warn('⚠️ TPV: Error fetching ticket sequence for preview:', err);
     }
+  };
+
+  useEffect(() => {
+    fetchTicketSeq();
   }, []);
 
-  const resetTicketCounter = () => {
-    if (window.confirm("¿Seguro que quieres reiniciar la numeración de tickets al #0001?")) {
-      localStorage.setItem('bachan_pos_ticket_seq', '0');
-      alert("Numeración reiniciada. El próximo ticket será el #0001.");
+  const resetTicketCounter = async () => {
+    if (window.confirm("¿Seguro que quieres reiniciar la numeración de tickets al #0001? (Esto afectará a todos los dispositivos)")) {
+      const { error } = await supabase
+        .from('pos_config')
+        .update({ value: { last_number: 0 } })
+        .eq('key', 'ticket_sequence');
+      
+      if (error) {
+        alert("Error al reiniciar: " + error.message);
+      } else {
+        fetchTicketSeq();
+        alert("Numeración reiniciada. El próximo ticket será el #0001.");
+      }
     }
   };
 
@@ -434,15 +455,23 @@ export default function POS() {
       const year = new Date().getFullYear();
       
       if (activeOrderId) {
+        // Reuse existing ticket number for open orders
         const existing = openOrdersList.find(o => o.id === activeOrderId);
         ticketNumber = existing?.ticket_number || `T-${year}-OPEN`;
         if (existing?.created_at) originalCreatedAt = existing.created_at;
       } else {
-        let lastNum = Number(localStorage.getItem('bachan_pos_ticket_seq') || 0);
-        if (lastNum >= 1000) lastNum = 0; 
-        const nextNum = lastNum + 1;
-        ticketNumber = `T-${year}-${String(nextNum).padStart(4, '0')}`;
-        localStorage.setItem('bachan_pos_ticket_seq', nextNum);
+        // ATOMIC SYNC: Fetch next sequence from Supabase RPC
+        console.log('🔄 TPV: Requesting next ticket sequence from Supabase...');
+        const { data: nextSeq, error: seqError } = await supabase.rpc('increment_ticket_sequence');
+        
+        if (seqError) {
+          console.error('❌ TPV: Error fetching sequence:', seqError);
+          // Fallback minimal safe numbering if RPC fails (should not happen in production)
+          ticketNumber = `T-${year}-ERR-${Date.now().toString().slice(-4)}`;
+        } else {
+          ticketNumber = `T-${year}-${String(nextSeq).padStart(4, '0')}`;
+          console.log(`✅ TPV: Atomic Ticket Sequence assigned: ${ticketNumber}`);
+        }
       }
       
       // 3. Preparación de datos para Supabase
@@ -489,6 +518,7 @@ export default function POS() {
       if (action === 'charge') {
         await deductStockForOrder(orderData);
         setSaleSuccess(true);
+        fetchTicketSeq(); // REFRESH SEQUENCE PREVIEW
         setTimeout(() => {
           setSaleSuccess(false);
           setShowCheckout(false);
@@ -503,6 +533,7 @@ export default function POS() {
         setDiscountValue(0);
         setDiscountType('percent');
         setActiveOrderId(null);
+        fetchTicketSeq(); // REFRESH SEQUENCE PREVIEW
       }
     } catch (err) {
       console.error('❌ ERROR CRÍTICO EN handleSaveOrder:', err);
@@ -555,7 +586,10 @@ export default function POS() {
              <div className="pos-header-actions">
                 <button onClick={() => fetchProducts()} className="pos-icon-btn"><RefreshCw size={20} className={loading ? 'animate-spin' : ''}/></button>
                 <button onClick={() => setShowSettings(true)} className="pos-icon-btn"><Settings size={20}/></button>
-                <button onClick={() => window.location.href='/dashboard'} className="pos-icon-btn"><LayoutGrid size={20}/></button>
+                <button onClick={() => window.location.href='/dashboard'} className="btn-dashboard">
+                   <LayoutGrid size={18}/>
+                   <span>Inicio</span>
+                </button>
              </div>
           </div>
           <nav className="pos-category-nav">
@@ -650,10 +684,10 @@ export default function POS() {
          </button>
 
          <header className="pos-sidebar-header">
-            <div>
-               <h2 className="pos-ticket-title">Venta Actual</h2>
-               <div className="pos-ticket-number">Ticket #{String(Number(localStorage.getItem('bachan_pos_ticket_seq') || 0) + 1).padStart(4, '0')}</div>
-            </div>
+             <div>
+                <h2 className="pos-ticket-title">Venta Actual</h2>
+                <div className="pos-ticket-number">Ticket #{String(ticketSeq + 1).padStart(4, '0')}</div>
+             </div>
             <button onClick={() => setCart([])} className="pos-icon-btn" style={{ color: '#ef4444' }}><Trash2 size={24}/></button>
          </header>
 
@@ -781,6 +815,15 @@ export default function POS() {
                        <button onClick={() => handleSaveOrder('charge', 'card')} disabled={isProcessing} className="pos-payment-btn card"><CreditCard size={40}/> Tarjeta</button>
                        <button onClick={() => handleSaveOrder('charge', 'bizum')} disabled={isProcessing} className="pos-payment-btn bizum"><Coffee size={40}/> Bizum</button>
                     </div>
+
+                    {/* BOTÓN VOLVER (NUEVO v2.0.9) */}
+                    <button 
+                      onClick={() => setShowCheckout(false)} 
+                      className="pos-btn-back-checkout"
+                    >
+                       <ArrowLeft size={24} />
+                       <span>Volver al Carrito</span>
+                    </button>
                  </div>
                )}
             </div>

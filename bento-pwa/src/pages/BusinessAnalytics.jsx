@@ -239,12 +239,18 @@ export default function BusinessAnalytics() {
           </h1>
           <p className="page-subtitle">Inteligencia operativa para optimizar tu carta</p>
         </div>
-        <div className="card-icon-wrapper" style={{
-          width: '48px', height: '48px',
-          background: 'linear-gradient(135deg, #c084fc, #a855f7)',
-          color: 'white', cursor: 'pointer'
-        }} onClick={fetchData}>
-          <Sparkles size={22} />
+        <div className="flex gap-4 items-center">
+          <button onClick={() => window.location.href='/dashboard'} className="btn-dashboard">
+            <LayoutGrid size={18}/>
+            <span>Dashboard</span>
+          </button>
+          <div className="card-icon-wrapper" style={{
+            width: '48px', height: '48px',
+            background: 'linear-gradient(135deg, #c084fc, #a855f7)',
+            color: 'white', cursor: 'pointer'
+          }} onClick={fetchData}>
+            <Sparkles size={22} />
+          </div>
         </div>
       </div>
 

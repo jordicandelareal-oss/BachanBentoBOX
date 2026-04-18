@@ -642,9 +642,15 @@ export default function Ingredients() {
           <h1 className="page-title">Insumos</h1>
           <p className="page-subtitle">Gestiona tus ingredientes y precios base de compra</p>
         </div>
-        <button className="btn-icon-main" onClick={openAdd}>
-          <Plus size={24} />
-        </button>
+        <div className="flex gap-4 items-center">
+          <button onClick={() => window.location.href='/dashboard'} className="btn-dashboard">
+            <LayoutGrid size={18}/>
+            <span>Dashboard</span>
+          </button>
+          <button className="btn-icon-main" onClick={openAdd}>
+            <Plus size={24} />
+          </button>
+        </div>
       </div>
 
       <div className="search-wrapper mb-6">

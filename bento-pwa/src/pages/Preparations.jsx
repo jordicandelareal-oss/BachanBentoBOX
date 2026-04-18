@@ -117,9 +117,15 @@ export function Preparations() {
           <h1 className="page-title">Elaboraciones</h1>
           <p className="page-subtitle">Gestiona la mise en place y recetas base</p>
         </div>
-        <button className="btn-icon-main" onClick={() => handleOpenEditor()}>
-          <Plus size={24} />
-        </button>
+        <div className="flex gap-4 items-center">
+          <button onClick={() => window.location.href='/dashboard'} className="btn-dashboard">
+            <LayoutGrid size={18}/>
+            <span>Dashboard</span>
+          </button>
+          <button className="btn-icon-main" onClick={() => handleOpenEditor()}>
+            <Plus size={24} />
+          </button>
+        </div>
       </div>
 
       <div className="category-tabs-wrapper">
