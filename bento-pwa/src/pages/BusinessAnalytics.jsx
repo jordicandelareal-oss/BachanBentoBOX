@@ -114,6 +114,10 @@ export default function BusinessAnalytics() {
         const cost = Number(item.cost) || (lookupItem ? Number(lookupItem.cost) : 0) || 0;
         const mult = Number(item.quantity_multiplier) || 1;
 
+        if (cost === 0) {
+          console.warn(`⚠️ [Analytics] Producto sin coste definido: ${item.name || item.id}`);
+        }
+
         stats[key].totalQty += qty * mult;
         stats[key].totalRevenue += price * qty;
         stats[key].totalCost += cost * qty;
@@ -155,8 +159,9 @@ export default function BusinessAnalytics() {
       }
     });
     const avgServiceTimeMins = countedServiceOrders > 0 ? (totalServiceTimeMs / countedServiceOrders) / 60000 : 0;
+    const netProfit = totalRevenue - totalCost;
 
-    return { totalRevenue, totalOrders, avgTicket, totalItemsSold, avgMargin, avgServiceTimeMins };
+    return { totalRevenue, totalOrders, avgTicket, totalItemsSold, totalCost, netProfit, avgMargin, avgServiceTimeMins };
   }, [filteredOrders, itemStats]);
 
   // ── Rankings ───────────────────────────────────
@@ -264,10 +269,24 @@ export default function BusinessAnalytics() {
       {/* ── KPI Cards ────────────────────────── */}
       <div className="kpi-grid">
         <div className="kpi-card revenue">
-          <div className="kpi-label">Ingresos</div>
+          <div className="kpi-label">Ingresos Netos</div>
           <div className="kpi-value">{kpis.totalRevenue.toFixed(0)}€</div>
           <div className="kpi-trend positive">
             <TrendingUp size={12} /> {filteredOrders.length} pedidos
+          </div>
+        </div>
+        <div className="kpi-card cost">
+          <div className="kpi-label">Coste Total (Food Cost)</div>
+          <div className="kpi-value">{kpis.totalCost.toFixed(0)}€</div>
+          <div className="kpi-trend negative">
+            <TrendingDown size={12} /> Salida de caja
+          </div>
+        </div>
+        <div className="kpi-card profit">
+          <div className="kpi-label">Beneficio Neto</div>
+          <div className="kpi-value">{kpis.netProfit.toFixed(0)}€</div>
+          <div className="kpi-trend positive">
+            <ArrowUpRight size={12} /> Beneficio real
           </div>
         </div>
         <div className="kpi-card orders">
@@ -548,6 +567,14 @@ export default function BusinessAnalytics() {
                   const subtotal = Number(order.total) + Number(order.discount_amount || 0);
                   const discount = Number(order.discount_amount || 0);
 
+                  // Cálculo de margen por ticket
+                  const orderItems = Array.isArray(order.items) ? order.items : [];
+                  const orderCost = orderItems.reduce((acc, item) => {
+                    const itemCost = Number(item.cost) || 0;
+                    return acc + (itemCost * (Number(item.quantity) || 0));
+                  }, 0);
+                  const orderMarginPct = order.total > 0 ? ((Number(order.total) - orderCost) / Number(order.total)) * 100 : 0;
+
                   return (
                     <React.Fragment key={order.id}>
                       {/* 1. VISTA ESCRITORIO (ROW) */}
@@ -566,7 +593,10 @@ export default function BusinessAnalytics() {
                           {discount > 0 ? `-${discount.toFixed(2)}€` : '—'}
                         </div>
                         <div style={{ flexBasis: '15%' }} className="text-right text-base font-black text-slate-900 pr-4">
-                          {Number(order.total).toFixed(2)}€
+                          <div className="flex flex-col items-end">
+                            <span>{Number(order.total).toFixed(2)}€</span>
+                            <span className="ticket-margin-badge mt-1">Margen: {orderMarginPct.toFixed(0)}%</span>
+                          </div>
                         </div>
                         <div style={{ flexBasis: '20%' }} className="text-center">
                           <span 
@@ -586,6 +616,7 @@ export default function BusinessAnalytics() {
                             <div className="history-card-meta mt-1">
                               <Ticket size={12} />
                               #{order.ticket_number?.split('-').pop()}
+                              <span className="ticket-margin-badge ml-2">{orderMarginPct.toFixed(0)}% marg.</span>
                             </div>
                           </div>
                           <div className="history-card-total">{Number(order.total).toFixed(2)}€</div>

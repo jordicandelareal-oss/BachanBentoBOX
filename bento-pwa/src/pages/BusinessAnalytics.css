@@ -16,6 +16,12 @@
 
 @media (min-width: 768px) {
   .kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .kpi-grid {
     grid-template-columns: repeat(4, 1fr);
   }
 }
@@ -52,6 +58,8 @@
 .kpi-card.orders::after { background: #3b82f6; }
 .kpi-card.margin::after { background: #8b5cf6; }
 .kpi-card.items::after { background: #f59e0b; }
+.kpi-card.cost::after { background: #f97316; }
+.kpi-card.profit::after { background: #10b981; }
 
 .kpi-label {
   font-size: 10px;
@@ -501,4 +509,31 @@
     font-size: 24px;
   }
 }
+
+/* ── Financial Extras ─────────────────────────── */
+.kpi-card.cost .kpi-value {
+  color: #f97316;
+}
+
+.kpi-card.profit .kpi-value {
+  color: #10b981;
+}
+
+.ticket-margin-badge {
+  font-size: 10px;
+  font-weight: 900;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ranking-item:hover .ticket-margin-badge,
+.history-card:hover .ticket-margin-badge {
+  background: #e2e8f0;
+  color: #475569;
+}
+
 
