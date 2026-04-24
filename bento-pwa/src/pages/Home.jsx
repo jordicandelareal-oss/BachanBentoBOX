@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import AIActionSheet from '../components/Nana/AIActionSheet';
 import './Home.css';
-import { SquareMenu, CookingPot, Carrot, Sparkles, ShoppingBag, TrendingUp, BookOpen } from 'lucide-react';
+import { SquareMenu, CookingPot, Carrot, Sparkles, ShoppingBag, TrendingUp, BookOpen, Settings } from 'lucide-react';
 
 
 
@@ -33,7 +33,7 @@ export default function Home() {
     },
     {
       id: 'sales',
-      title: 'Analítica y Ventas',
+      title: 'Analítica',
       desc: 'Dashboard y análisis histórico',
       icon: <TrendingUp size={42} strokeWidth={1.2} />,
       path: '/analytics'
@@ -59,6 +59,13 @@ export default function Home() {
       desc: 'Control de stock y precios de mercado',
       icon: <IngredientsIcon />,
       path: '/ingredients'
+    },
+    {
+      id: 'settings',
+      title: 'Ajustes',
+      desc: 'Configuración general del sistema',
+      icon: <Settings size={42} strokeWidth={1.2} />,
+      path: '/settings'
     }
   ];
 

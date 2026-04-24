@@ -129,7 +129,7 @@ export default function Layout() {
           <div className="nav-top-row">
             <NavLink to="/" className="nav-brand">🍱 BaChan</NavLink>
             <div className="desktop-nav">
-              <NavLink to="/dashboard" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Inicio</NavLink>
+              <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Inicio</NavLink>
               <NavLink to="/pos" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>TPV</NavLink>
               <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Menú</NavLink>
               <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
@@ -139,7 +139,7 @@ export default function Layout() {
           </div>
           
           <nav className="mobile-icon-nav" style={{ justifyContent: 'space-around', gap: '4px' }}>
-            <NavLink to="/dashboard" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+            <NavLink to="/" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
               <LayoutGrid size={22} />
               <span>Inicio</span>
             </NavLink>

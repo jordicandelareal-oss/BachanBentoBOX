@@ -204,13 +204,19 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
 
   const formatVal = parseFloat(form.purchase_format) || 0;
   const priceVal = parseFloat(form.purchase_price) || 0;
+  const wasteVal = parseFloat(form.waste_percentage) || 0;
+  
   let dynamicCost = 0;
   if (formatVal > 0) {
-    if (form.calculation_type === 'unidad') {
-      dynamicCost = priceVal / formatVal;
-    } else {
-      dynamicCost = (priceVal / formatVal) * 1000;
-    }
+    const grossCost = (form.calculation_type === 'unidad') 
+      ? (priceVal / formatVal) 
+      : ((priceVal / formatVal) * 1000);
+      
+    // Aplicar factor de rendimiento: yield = 1 + (merma/100)
+    // Merma negativa = pérdida de peso -> yield < 1 -> precio sube
+    // Merma positiva = hidratación -> yield > 1 -> precio baja
+    const yieldFactor = 1 + (wasteVal / 100);
+    dynamicCost = yieldFactor > 0 ? (grossCost / yieldFactor) : grossCost;
   }
 
   // --- PVP SECTION ---
@@ -449,32 +455,51 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
                   <span>Merma (-50%)</span>
                   <span>Hidratación (+100%)</span>
                 </div>
+                {form.waste_percentage < -45 && (
+                  <div className="mt-2 flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 animate-pulse">
+                    <AlertCircle size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-tight">Atención: Merma muy elevada detectada</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           <div style={{
-            backgroundColor: '#f0f7ff',
-            border: '1px solid #bae6fd',
-            borderRadius: '12px',
-            padding: '16px',
+            backgroundColor: form.waste_percentage < -45 ? '#fff7ed' : '#f0f7ff',
+            border: form.waste_percentage < -45 ? '1px solid #fed7aa' : '1px solid #bae6fd',
+            borderRadius: '16px',
+            padding: '20px',
             marginTop: '20px',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)',
+            transition: 'all 0.3s ease'
           }}>
             <span style={{
-               fontSize: '12px',
-               fontWeight: 700,
-               color: '#64748b',
-               textTransform: 'uppercase'
+               fontSize: '11px',
+               fontWeight: 900,
+               color: form.waste_percentage < -45 ? '#9a3412' : '#64748b',
+               textTransform: 'uppercase',
+               letterSpacing: '0.05em',
+               marginBottom: '4px'
             }}>COSTE NETO CALCULADO {form.calculation_type === 'peso' ? '(€/KG)' : '(€/UD)'}</span>
             <div style={{
-               fontSize: '24px',
-               fontWeight: 800,
-               color: '#0c4a6e'
+               fontSize: '32px',
+               fontWeight: 900,
+               color: form.waste_percentage < -45 ? '#c2410c' : '#0c4a6e',
+               lineHeight: 1
             }}>
-              {dynamicCost.toFixed(2)}€ {form.calculation_type === 'peso' ? '/ KG' : '/ UD'}
+              {dynamicCost.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ 
+              <span style={{ fontSize: '14px', opacity: 0.6, marginLeft: '4px' }}>
+                {form.calculation_type === 'peso' ? '/ KG' : '/ UD'}
+              </span>
             </div>
+            {form.waste_percentage !== 0 && (
+              <span style={{ fontSize: '10px', marginTop: '8px', fontWeight: 600, color: form.waste_percentage < 0 ? '#ef4444' : '#10b981' }}>
+                Impacto de {form.waste_percentage < 0 ? 'merma' : 'hidratación'}: {form.waste_percentage}%
+              </span>
+            )}
           </div>
 
           {/* Fila 4: PVP y Estado Tienda (v2.0.0) */}

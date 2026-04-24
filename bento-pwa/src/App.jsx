@@ -9,7 +9,6 @@ import Recipes from './pages/Recipes'
 import BentoPage from './pages/BentoPage'
 import Preparations from './pages/Preparations'
 import CatalogSettings from './pages/CatalogSettings'
-import Dashboard from './pages/Dashboard'
 import POS from './pages/POS'
 import BusinessAnalytics from './pages/BusinessAnalytics'
 import SplashScreen from './components/SplashScreen'
@@ -37,8 +36,6 @@ function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="pos" element={<POS />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="admin/ventas" element={<Dashboard />} />
             <Route path="ingredients" element={<Ingredients />} />
             <Route path="analytics" element={<BusinessAnalytics />} />
 

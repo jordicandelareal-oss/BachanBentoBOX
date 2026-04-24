@@ -128,34 +128,75 @@
   color: #475569;
 }
 
-/* ── Section Headers ────────────────────────── */
-.analytics-section {
-  margin-bottom: 40px;
+/* ── Accordion Sections ─────────────────────── */
+.analytics-accordion-section {
+  background: white;
+  border-radius: 32px;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.analytics-section-header {
+.analytics-accordion-section:hover {
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.accordion-trigger {
+  width: 100%;
+  padding: 24px 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.analytics-section-title {
+.accordion-trigger:hover {
+  background: #f8fafc;
+}
+
+.accordion-title {
   font-size: 18px;
   font-weight: 900;
   color: #0f172a;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  letter-spacing: -0.5px;
 }
 
-.analytics-section-title .icon-bg {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
+.accordion-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.accordion-content {
+  padding: 0 32px 32px 32px;
+}
+
+.analytics-accordion-section .icon-bg {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .accordion-trigger {
+    padding: 20px;
+  }
+  .accordion-content {
+    padding: 0 16px 24px 16px;
+  }
+  .accordion-title {
+    font-size: 16px;
+  }
 }
 
 /* ── Ranking Cards ──────────────────────────── */
@@ -438,61 +479,29 @@
     display: none !important;
   }
   
-  .history-card {
+  .history-card-mobile {
     background: white;
-    border-radius: 20px;
-    padding: 20px;
+    border-radius: 18px;
+    padding: 12px 14px;
     border: 1px solid #f1f5f9;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
   }
   
-  .history-card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+  .history-card-mobile:hover {
+    border-color: #e2e8f0;
+    transform: translateX(4px);
   }
-  
-  .history-card-customer {
+
+  .ticket-margin-badge-mini {
+    font-size: 7px;
     font-weight: 900;
-    font-size: 14px;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 1px 6px;
+    border-radius: 4px;
     text-transform: uppercase;
-    color: #1e293b;
-  }
-  
-  .history-card-total {
-    font-size: 20px;
-    font-weight: 900;
-    color: #0f172a;
-  }
-  
-  .history-card-details {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 12px;
-    border-top: 1px solid #f8fafc;
-  }
-  
-  .history-card-meta {
-    font-size: 11px;
-    font-weight: 600;
-    color: #94a3b8;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  
-  .history-card-badge {
-    padding: 4px 10px;
-    border-radius: 100px;
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    white-space: nowrap;
   }
 }
 

@@ -152,9 +152,13 @@ export function useIngredients() {
           const prc = parseFloat(ingredient.purchase_price) || 0;
           let ingredientCost = 0;
           if (fmt > 0) {
-            ingredientCost = ingredient.calculation_type === 'unidad' 
+            const grossCost = ingredient.calculation_type === 'unidad' 
               ? (prc / fmt) 
               : ((prc / fmt) * 1000);
+            
+            // Factor de rendimiento: yield = 1 + (waste/100)
+            const yieldFactor = 1 + (parseFloat(ingredient.waste_percentage || 0) / 100);
+            ingredientCost = yieldFactor > 0 ? (grossCost / yieldFactor) : grossCost;
           } else {
             ingredientCost = parseFloat(ingredient.cost_per_unit || 0);
           }
