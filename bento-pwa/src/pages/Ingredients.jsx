@@ -12,6 +12,31 @@ import './Ingredients.css';
 
 import PhotoSelector from '../components/Common/PhotoSelector';
 
+// ─── Alphabet Sidebar Component ──────────────────────────────────────────────
+function AlphabetSidebar({ scrollToLetter, presentLetters }) {
+  const alfabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  return (
+    <aside className="alphabet-sidebar">
+      {alfabet.map(letter => {
+        const isPresent = presentLetters.includes(letter);
+        return (
+          <button
+            key={letter}
+            className={`alphabet-letter ${isPresent ? 'present' : 'absent'}`}
+            onClick={(e) => {
+              e.preventDefault();
+              if (isPresent) scrollToLetter(letter);
+            }}
+            disabled={!isPresent}
+          >
+            {letter}
+          </button>
+        );
+      })}
+    </aside>
+  );
+}
+
 // ─── Modal Component ──────────────────────────────────────────────────────────
 function IngredientModal({ ingredient, onClose, onSave, loading }) {
   const { units } = useUnits();
@@ -600,8 +625,7 @@ export default function Ingredients() {
     return matchesSearch && matchesCategory && matchesSubcategory;
   });
 
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-  const presentLetters = [...new Set(filteredIngredients.map(ing => ing.name[0]?.toUpperCase()))].filter(Boolean);
+  const presentLetters = [...new Set(filteredIngredients.map(ing => (ing.name || "")[0]?.toUpperCase()))].filter(Boolean);
 
   const scrollToLetter = (letter) => {
     const el = document.getElementById(`letter-${letter}`);
@@ -731,96 +755,104 @@ export default function Ingredients() {
         </div>
       )}
 
-      {loading && !ingredients.length ? (
-        <div className="card-grid" style={{ paddingRight: '60px', maxWidth: '500px', margin: '0 auto' }}>
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="h-20 bg-slate-100 rounded-xl animate-pulse" style={{ height: '80px', background: '#f1f5f9', borderRadius: '16px' }} />
-          ))}
-        </div>
-      ) : (
-        <div className="card-grid" style={{ paddingRight: '60px', maxWidth: '500px', margin: '0 auto' }}>
-          {filteredIngredients.map((ingredient, idx) => {
-            const firstLetter = ingredient.name[0]?.toUpperCase();
-            const isFirstOfLetter = idx === 0 || filteredIngredients[idx - 1].name[0]?.toUpperCase() !== firstLetter;
-            
-            return (
-              <div 
-                key={ingredient.id} 
-                id={isFirstOfLetter ? `letter-${firstLetter}` : undefined}
-                className="premium-card" 
-                onClick={() => openEdit(ingredient)}
-              >
-                <div className="card-avatar">
-                  {ingredient.image_url ? (
-                    <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" />
-                  ) : (
-                    <div className="avatar-initials">
-                      {ingredient.name.substring(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                </div>
+      {/* Layout Principal: Flexbox para separar Abecedario y Lista (v2.3.2) */}
+      <div className="insumos-layout-wrapper">
+        <AlphabetSidebar scrollToLetter={scrollToLetter} presentLetters={presentLetters} />
 
-                <div className="card-info-center">
-                  <h3 className="card-name-bold">{ingredient.name}</h3>
-                  <div className="flex items-center gap-2">
-                    <p className="card-subtext">
-                      {ingredient.category_name || 'General'} · {ingredient.brand || 'S/M'}
-                    </p>
-                    {ingredient.is_published && (
-                       <span className="badge-published-blue">EN MENÚ</span>
-                    )}
-                  </div>
-                </div>
+
+        <section className="card-grid-container">
+          {loading && !ingredients.length ? (
+            <div className="card-grid">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="h-20 bg-slate-100 rounded-xl animate-pulse" style={{ height: '80px', background: '#f1f5f9', borderRadius: '16px' }} />
+              ))}
+            </div>
+          ) : (
+            <div className="card-grid">
+              {filteredIngredients.map((ingredient, idx) => {
+                const firstLetter = (ingredient.name || "")[0]?.toUpperCase() || "#";
+                const isFirstOfLetter = idx === 0 || (filteredIngredients[idx - 1].name || "")[0]?.toUpperCase() !== firstLetter;
                 
-                <div className="card-price-right">
-                  <div className="price-main">
-                    {(() => {
-                      const fmt = parseFloat(ingredient.purchase_format) || 0;
-                      const prc = parseFloat(ingredient.purchase_price) || 0;
-                      if (fmt <= 0) return (parseFloat(ingredient.cost_per_unit || 0)).toFixed(2);
-                      if (ingredient.calculation_type === 'unidad') return (prc / fmt).toFixed(2);
-                      return ((prc / fmt) * 1000).toFixed(2);
-                    })()} €
-                  </div>
-                  <div className="price-unit-label">
-                    {ingredient.calculation_type === 'unidad' ? '/ UD' : '/ KG'}
-                  </div>
-                </div>
-
-                <div className="card-actions-subtle flex items-center gap-2">
-                  <button 
-                    className={`p-2 rounded-lg transition-all ${ingredient.is_published ? 'btn-published-blue' : 'text-slate-300 hover:bg-slate-100'}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleStore(ingredient.id, ingredient.is_published, ingredient.sale_price);
-                    }}
-                    title={ingredient.is_published ? "Quitar de la tienda" : "Enviar a la tienda"}
+                return (
+                  <div 
+                    key={ingredient.id} 
+                    id={isFirstOfLetter ? `letter-${firstLetter}` : undefined}
+                    className="premium-card" 
+                    onClick={() => openEdit(ingredient)}
                   >
-                    <Store size={18} />
-                  </button>
-                  <button 
-                    className="delete-btn-subtle"
-                    style={{ opacity: 0.3 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setConfirmDelete(ingredient.id);
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                    <div className="card-avatar">
+                      {ingredient.image_url ? (
+                        <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" />
+                      ) : (
+                        <div className="avatar-initials">
+                          {ingredient.name.substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
 
-          {!loading && filteredIngredients.length === 0 && (
-            <div className="text-center py-12" style={{ textAlign: 'center', padding: '48px 0' }}>
-              <Carrot className="mx-auto text-slate-200 mb-4" size={48} style={{ margin: '0 auto 16px', color: '#e2e8f0' }} />
-              <p style={{ color: '#94a3b8' }}>No se encontraron insumos</p>
+                    <div className="card-info-center">
+                      <h3 className="card-name-bold">{ingredient.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <p className="card-subtext">
+                          {ingredient.category_name || 'General'} · {ingredient.brand || 'S/M'}
+                        </p>
+                        {ingredient.is_published && (
+                           <span className="badge-published-blue">EN MENÚ</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="card-price-right">
+                      <div className="price-main">
+                        {(() => {
+                          const fmt = parseFloat(ingredient.purchase_format) || 0;
+                          const prc = parseFloat(ingredient.purchase_price) || 0;
+                          if (fmt <= 0) return (parseFloat(ingredient.cost_per_unit || 0)).toFixed(2);
+                          if (ingredient.calculation_type === 'unidad') return (prc / fmt).toFixed(2);
+                          return ((prc / fmt) * 1000).toFixed(2);
+                        })()} €
+                      </div>
+                      <div className="price-unit-label">
+                        {ingredient.calculation_type === 'unidad' ? '/ UD' : '/ KG'}
+                      </div>
+                    </div>
+
+                    <div className="card-actions-subtle flex items-center gap-2">
+                      <button 
+                        className={`p-2 rounded-lg transition-all ${ingredient.is_published ? 'btn-published-blue' : 'text-slate-300 hover:bg-slate-100'}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleStore(ingredient.id, ingredient.is_published, ingredient.sale_price);
+                        }}
+                        title={ingredient.is_published ? "Quitar de la tienda" : "Enviar a la tienda"}
+                      >
+                        <Store size={18} />
+                      </button>
+                      <button 
+                        className="delete-btn-subtle"
+                        style={{ opacity: 0.3 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDelete(ingredient.id);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {!loading && filteredIngredients.length === 0 && (
+                <div className="text-center py-12" style={{ textAlign: 'center', padding: '48px 0' }}>
+                  <Carrot className="mx-auto text-slate-200 mb-4" size={48} style={{ margin: '0 auto 16px', color: '#e2e8f0' }} />
+                  <p style={{ color: '#94a3b8' }}>No se encontraron insumos</p>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
+        </section>
+      </div>
 
       {modal && (
         <IngredientModal
@@ -853,22 +885,6 @@ export default function Ingredients() {
         title="¿Eliminar insumo?"
         message="Esta acción no se puede deshacer y podría afectar a las recetas que usan este ingrediente."
       />
-
-      <div className="alphabet-sidebar">
-        {alphabet.map(letter => {
-          const isPresent = presentLetters.includes(letter);
-          return (
-            <button
-              key={letter}
-              className={`alphabet-letter ${isPresent ? 'present' : 'absent'}`}
-              onClick={() => isPresent && scrollToLetter(letter)}
-              disabled={!isPresent}
-            >
-              {letter}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }

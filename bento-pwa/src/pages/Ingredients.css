@@ -76,8 +76,8 @@
 
 @media (max-width: 768px) {
   .card-grid {
-    padding-left: 12px;
-    padding-right: 64px !important; /* Aumentado a 64px para asegurar acceso total a papelera y botón tienda en iPhone */
+    padding-left: 20px !important; /* Spacing for alphabet on left */
+    padding-right: 15px !important; /* Safety buffer requested 15px */
     box-sizing: border-box;
     max-width: 600px;
     margin: 0 auto;
@@ -212,31 +212,115 @@
     padding: 6px !important;
   }
 }
-/* ─── Alphabet Sidebar ───────────────────────────────────────── */
+/* ─── Layout Flexbox (v2.3.2 + Fixed Sticky) ───────────────────────── */
+.insumos-layout-wrapper {
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  min-height: 100vh;
+  align-items: flex-start;
+  overflow: visible !important; /* CRÍTICO para sticky */
+}
+
 .alphabet-sidebar {
-  position: fixed;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  width: 28px !important;
+  min-width: 25px !important;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(4px);
-  padding: 8px 4px;
-  border-radius: 20px;
-  border: 1px solid #f1f5f9;
+  position: sticky !important;
+  top: 100px !important;
+  left: 0 !important; /* Estricto a la izquierda */
+  height: fit-content !important;
   z-index: 100;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  background: white !important; /* Garantizar legibilidad sobre fondo */
+  padding: 10px 0 !important;
+  border-right: none !important;
+  margin-left: 0 !important;
+}
+
+.card-grid-container {
+  flex-grow: 1 !important;
+  width: calc(100% - 25px);
+  padding: 0 15px 100px 5px !important; /* 15px margen derecho solicitado */
+  overflow: visible !important; /* CRÍTICO para sticky */
+}
+
+@media (max-width: 768px) {
+  .card-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    overflow: visible !important; /* CRÍTICO para sticky */
+  }
+
+  .premium-card {
+    display: grid !important;
+    grid-template-columns: 40px 1fr auto 40px !important; /* 4 Columnas: Foto | Info | Precio | Papelera */
+    align-items: center !important;
+    padding: 8px 6px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 12px !important;
+  }
+
+  .card-avatar {
+    width: 36px !important;
+    height: 36px !important; /* -20% aprox */
+    min-width: 36px !important;
+  }
+
+  .card-name-bold {
+    font-size: 12px !important;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px; /* Forzar elipsis */
+  }
+
+  .card-subtext {
+    font-size: 10px !important;
+    opacity: 0.7;
+  }
+
+  .card-price-right {
+    text-align: right !important;
+    padding: 0 4px !important;
+    min-width: 55px !important;
+  }
+
+  .price-main {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+  }
+
+  .price-unit-label {
+    font-size: 9px !important;
+  }
+
+  .delete-btn-subtle {
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0.4 !important;
+    padding: 0 !important;
+    background: #fee2e2 !important; /* Fondo suave para que se distinga */
+    border-radius: 8px !important;
+    color: #ef4444 !important;
+  }
 }
 
 .alphabet-letter {
   background: none;
   border: none;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  width: 20px;
-  height: 20px;
+  width: 100%;
+  aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
