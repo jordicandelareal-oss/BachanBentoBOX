@@ -13,11 +13,12 @@ import './Ingredients.css';
 import PhotoSelector from '../components/Common/PhotoSelector';
 
 // ─── Alphabet Sidebar Component ──────────────────────────────────────────────
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
 function AlphabetSidebar({ scrollToLetter, presentLetters }) {
-  const alfabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
   return (
     <aside className="alphabet-sidebar">
-      {alfabet.map(letter => {
+      {alphabet.map(letter => {
         const isPresent = presentLetters.includes(letter);
         return (
           <button
@@ -25,7 +26,9 @@ function AlphabetSidebar({ scrollToLetter, presentLetters }) {
             className={`alphabet-letter ${isPresent ? 'present' : 'absent'}`}
             onClick={(e) => {
               e.preventDefault();
-              if (isPresent) scrollToLetter(letter);
+              if (isPresent && typeof scrollToLetter === 'function') {
+                scrollToLetter(letter);
+              }
             }}
             disabled={!isPresent}
           >
@@ -685,7 +688,7 @@ export default function Ingredients() {
   }
 
   return (
-    <div className="page-container fade-in">
+    <div className="page-container fade-in insumos-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">Insumos</h1>
@@ -762,13 +765,13 @@ export default function Ingredients() {
 
         <section className="card-grid-container">
           {loading && !ingredients.length ? (
-            <div className="card-grid">
+            <div className="insumos-grid">
               {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className="h-20 bg-slate-100 rounded-xl animate-pulse" style={{ height: '80px', background: '#f1f5f9', borderRadius: '16px' }} />
               ))}
             </div>
           ) : (
-            <div className="card-grid">
+            <div className="insumos-grid">
               {filteredIngredients.map((ingredient, idx) => {
                 const firstLetter = (ingredient.name || "")[0]?.toUpperCase() || "#";
                 const isFirstOfLetter = idx === 0 || (filteredIngredients[idx - 1].name || "")[0]?.toUpperCase() !== firstLetter;
@@ -777,7 +780,7 @@ export default function Ingredients() {
                   <div 
                     key={ingredient.id} 
                     id={isFirstOfLetter ? `letter-${firstLetter}` : undefined}
-                    className="premium-card" 
+                    className="insumo-card" 
                     onClick={() => openEdit(ingredient)}
                   >
                     <div className="card-avatar">
@@ -796,9 +799,6 @@ export default function Ingredients() {
                         <p className="card-subtext">
                           {ingredient.category_name || 'General'} · {ingredient.brand || 'S/M'}
                         </p>
-                        {ingredient.is_published && (
-                           <span className="badge-published-blue">EN MENÚ</span>
-                        )}
                       </div>
                     </div>
                     

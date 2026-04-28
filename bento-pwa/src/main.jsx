@@ -3,26 +3,33 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import App from './App.jsx'
 
-// Registrar el Service Worker con auto-update
+// ─── Service Worker: Actualización Silenciosa ────────────────────────────────
+// CRÍTICO: En Safari iOS en modo PWA standalone, el confirm() está bloqueado
+// por políticas de seguridad de WebKit. Usamos reload silencioso para
+// garantizar que el SW nuevo tome el control inmediatamente en todos los
+// dispositivos sin requerir interacción del usuario.
 const updateSW = registerSW({
   onNeedRefresh() {
-    // Nueva versión detectada → pedir confirmación al usuario
-    if (confirm('🍱 Nueva versión de BaChan disponible. ¿Actualizar ahora?')) {
-      updateSW(true)
-    }
+    console.log('🔄 [SW] Nueva versión detectada → recargando automáticamente...')
+    // Reload silencioso: activa el nuevo SW y recarga la página
+    updateSW(true)
   },
   onOfflineReady() {
-    console.log('✅ BaChan lista para usar offline')
+    console.log('✅ [SW] BaChan lista para usar offline')
   },
-  // Comprobar actualizaciones cada hora (seguridad para apps en segundo plano)
   onRegisteredSW(swUrl, registration) {
     if (registration) {
+      // Comprobar actualizaciones cada 5 minutos (crítico post-deploy)
       setInterval(() => {
         registration.update()
-      }, 60 * 60 * 1000) // 1 hora
+      }, 5 * 60 * 1000)
     }
+  },
+  onRegisterError(error) {
+    console.error('❌ [SW] Error de registro:', error)
   }
 })
+// ─────────────────────────────────────────────────────────────────────────────
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

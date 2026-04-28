@@ -96,8 +96,11 @@ export default function POS() {
         console.log('📦 TPV: No active categories found, using first available ID:', categories[0].id);
         setActiveCategory(String(categories[0].id));
       }
+    } else if (categories.length === 0 && !loading) {
+       // PWA SECURITY FIX: Si por alguna razón el hook no cargó, reintentar una vez más
+       console.log('📦 TPV PWA: Categories empty, forcing health check...');
     }
-  }, [categories, activeCategory]);
+  }, [categories, activeCategory, loading]);
   const [cart, setCart] = useState(() => {
     const saved = localStorage.getItem('bachan_tpv_cart');
     return saved ? JSON.parse(saved) : [];
@@ -132,10 +135,15 @@ export default function POS() {
   const [openOrdersList, setOpenOrdersList] = useState([]);
   
   // Discount States
-  const [discountValue, setDiscountValue] = useState(0); // El valor ingresado (ej: 10)
-  const [discountType, setDiscountType] = useState('percent'); // 'percent' o 'fixed'
+  const [discountValue, setDiscountValue] = useState(0);
+  const [discountType, setDiscountType] = useState('percent');
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
+
+  // Delivery / Envío
+  const [deliveryCost, setDeliveryCost] = useState(3.00);
+  const [editingDelivery, setEditingDelivery] = useState(false);
+  const [deliveryInput, setDeliveryInput] = useState('3.00');
 
   // 1. DATA FETCHING & SYNC
   const fetchTicketSeq = async () => {
@@ -409,6 +417,9 @@ export default function POS() {
     setTableId(order.table_id || 'Delivery');
     setDiscountValue(Number(order.discount_amount_input || 0));
     setDiscountType(order.discount_type || 'percent');
+    const savedDelivery = Number(order.delivery_cost ?? 3.00);
+    setDeliveryCost(savedDelivery);
+    setDeliveryInput(savedDelivery.toFixed(2));
     setActiveOrderId(order.id);
     setShowOpenOrders(false);
   };
@@ -433,7 +444,8 @@ export default function POS() {
   const calculatedDiscount = discountType === 'percent' 
     ? Number(subtotal * (Number(discountValue) / 100)) 
     : Number(discountValue);
-  const cartTotal = Math.max(0, subtotal - calculatedDiscount);
+  // El total incluye: subtotal - descuento + envío/delivery
+  const cartTotal = Math.max(0, subtotal - calculatedDiscount + Number(deliveryCost || 0));
 
   const handleSaveOrder = async (action, method = null) => {
     try {
@@ -480,10 +492,11 @@ export default function POS() {
         table_id: tableId,
         ticket_number: ticketNumber,
         total: cartTotal,
-        tax_amount: cartTotal - (cartTotal / 1.10), // IVA 10% incluido en el total
+        tax_amount: cartTotal - (cartTotal / 1.10),
         discount_amount: calculatedDiscount,
         discount_amount_input: discountValue,
         discount_type: discountType,
+        delivery_cost: Number(deliveryCost || 0),
         sold_at: isCharge ? new Date().toISOString() : null,
         created_at: originalCreatedAt,
         items: cart.map(i => ({ 
@@ -518,22 +531,26 @@ export default function POS() {
       if (action === 'charge') {
         await deductStockForOrder(orderData);
         setSaleSuccess(true);
-        fetchTicketSeq(); // REFRESH SEQUENCE PREVIEW
+        fetchTicketSeq();
         setTimeout(() => {
           setSaleSuccess(false);
           setShowCheckout(false);
           setCart([]);
           setCustomerName('');
           setActiveOrderId(null);
+          setDeliveryCost(3.00);
+          setDeliveryInput('3.00');
         }, 1500);
       } else {
         setCart([]);
         setCustomerName('');
-        setTableId('Delivery'); // Reset to Delivery
+        setTableId('Delivery');
         setDiscountValue(0);
         setDiscountType('percent');
+        setDeliveryCost(3.00);
+        setDeliveryInput('3.00');
         setActiveOrderId(null);
-        fetchTicketSeq(); // REFRESH SEQUENCE PREVIEW
+        fetchTicketSeq();
       }
     } catch (err) {
       console.error('❌ ERROR CRÍTICO EN handleSaveOrder:', err);
@@ -753,6 +770,45 @@ export default function POS() {
                   <span>-{calculatedDiscount.toFixed(2)}€</span>
                </div>
             )}
+
+
+             {/* ── ENVÍO / DELIVERY ─────────────────────────────────────── */}
+             <div className="pos-summary-row" style={{ alignItems: 'center' }}>
+               <span>🚴 Envío</span>
+               {editingDelivery ? (
+                 <input
+                   type="number" min="0" step="0.5"
+                   value={deliveryInput}
+                   autoFocus
+                   onChange={(e) => setDeliveryInput(e.target.value)}
+                   onBlur={() => {
+                     const val = Math.max(0, parseFloat(deliveryInput) || 0);
+                     setDeliveryCost(val);
+                     setDeliveryInput(val.toFixed(2));
+                     setEditingDelivery(false);
+                   }}
+                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') e.target.blur(); }}
+                   style={{
+                     width: '72px', textAlign: 'right',
+                     border: '1.5px solid #6366f1', borderRadius: '8px',
+                     padding: '2px 6px', fontSize: '14px',
+                     fontWeight: 700, background: '#f0f0ff', outline: 'none'
+                   }}
+                 />
+               ) : (
+                 <span
+                   onClick={() => { setEditingDelivery(true); setDeliveryInput(deliveryCost.toFixed(2)); }}
+                   style={{
+                     cursor: 'pointer', fontWeight: 700,
+                     color: deliveryCost > 0 ? '#4f46e5' : '#94a3b8',
+                     borderBottom: '1px dashed #a5b4fc', paddingBottom: '1px'
+                   }}
+                   title="Toca para editar el coste de envío"
+                 >
+                   {deliveryCost > 0 ? `+${deliveryCost.toFixed(2)}€` : 'Gratis'}
+                 </span>
+               )}
+             </div>
 
             <div className="pos-summary-row"><span>IVA (10%)</span><span>{(cartTotal - (cartTotal / 1.10)).toFixed(2)}€</span></div>
             <div className="pos-summary-total">

@@ -40,7 +40,7 @@ body {
   color: var(--color-text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden; /* Block horizontal scroll */
+  /* overflow-x NOT set here — would break position:sticky on mobile */
 }
 
 .app-wrapper {
@@ -48,7 +48,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden; /* Solid block */
+  /* overflow-x NOT set here — would break position:sticky on children */
 }
 
 

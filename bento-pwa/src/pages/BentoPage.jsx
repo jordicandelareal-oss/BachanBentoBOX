@@ -191,7 +191,7 @@ export default function BentoPage() {
                 return (
                   <div 
                     key={item.id} 
-                    className="premium-card relative overflow-hidden cursor-pointer" 
+                    className="menu-card relative overflow-hidden cursor-pointer" 
                     onClick={() => setEditingItem({
                       id: item.id,
                       name: item.name,

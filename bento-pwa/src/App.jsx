@@ -68,24 +68,27 @@ class ErrorBoundary extends Component {
 function App() {
   const [showSplash, setShowSplash] = useState(true);
 
-  // 🚨 SHOCK RECOVERY (v2.2.8): Purga inmediata si la versión es antigua
+  // 🚨 EMERGENCY CLEANUP (v2.3.2): Clear cache once to stop the loop
   useEffect(() => {
-    const APP_VERSION = '2.3.2';
-    const savedVersion = localStorage.getItem('bachan_app_version');
-    
-    if (savedVersion && savedVersion !== APP_VERSION) {
-      console.log('🔄 BaChan SHOCK UPDATE (v2.3.5): Limpiando caché y forzando recarga...');
+    const CLEANUP_KEY = 'bachan_emergency_cleanup_v232';
+    if (!localStorage.getItem(CLEANUP_KEY)) {
+      console.log('🧹 BaChan EMERGENCY CLEANUP: Purging storage...');
       
-      // Limpiar cachés del Service Worker
-      if ('serviceWorker' in navigator) {
-        caches.keys().then(names => {
-          for (let name of names) caches.delete(name);
-        });
-      }
+      // Preserve auth token if needed, but the user said "Limpieza de Caché Forzada"
+      const adminToken = localStorage.getItem('bachan_admin_token');
       
-      localStorage.setItem('bachan_app_version', APP_VERSION);
-      // Hard reload saltándose la caché
-      window.location.reload(true);
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Restore token to avoid logging out if possible, 
+      // but if the loop is broken, maybe it's better to clear everything.
+      if (adminToken) localStorage.setItem('bachan_admin_token', adminToken);
+      
+      localStorage.setItem(CLEANUP_KEY, 'done');
+      localStorage.setItem('bachan_app_version', '2.4.0');
+      
+      // No automatic reload here to avoid loops. Let the user refresh once.
+      console.log('✅ Cleanup finished. Please refresh if needed.');
     }
   }, []);
 

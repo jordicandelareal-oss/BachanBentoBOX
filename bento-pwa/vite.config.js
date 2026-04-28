@@ -12,15 +12,34 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
+        // ── Cache Bust v4 ─────────────────────────────────────────────────────
+        // Cambiar este prefijo fuerza a TODOS los Service Workers instalados
+        // a invalidar sus cachés y descargar la versión más reciente.
+        // Imprescindible cuando el SW antiguo sigue sirviendo código roto.
+        cacheId: 'BACHAN_CACHE_FINAL_V9',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/api/],
+        navigateFallbackDenylist: [/^\/api/, /\/supabase\//],
         runtimeCaching: [
+          {
+            // ESTRATEGIA DE CHOQUE: Siempre preguntar al servidor por cambios (HTML/JS/CSS)
+            urlPattern: /\.(?:html|js|css)$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'BACHAN_CACHE_MAIN_V3',
+              expiration: { maxEntries: 100 }
+            }
+          },
+          {
+            // No cachear NUNCA las peticiones a Supabase (datos en tiempo real)
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: 'NetworkOnly'
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'google-fonts-cache',
+              cacheName: 'bachan-fonts-v6',
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
               cacheableResponse: { statuses: [0, 200] }
             }
@@ -36,8 +55,11 @@ export default defineConfig({
 
         background_color: '#F8F9FA',
         display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
         orientation: 'portrait',
         scope: '/',
+        // start_url apunta a la raíz. El token de admin en localStorage
+        // se detecta en Home.jsx y muestra el panel directamente.
         start_url: '/',
         icons: [
           {

@@ -7,6 +7,12 @@ export function useIngredients() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    const isMaster = localStorage.getItem('bachan_admin_token') === 'BachAn_Master_2026_Secure';
+    if (!isMaster) {
+      setLoading(false);
+      return;
+    }
+
     fetchIngredients()
 
     const channel = supabase

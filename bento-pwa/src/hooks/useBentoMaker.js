@@ -102,6 +102,7 @@ export default function useBentoMaker(initialRecipe = null, recipeType = 'bento'
     
     // 1. Prepare data and force Bento Category ID
     const dataToSave = { 
+      id: initialRecipe?.id || undefined, // Clave única para evitar fallos de desincronización (v2.2.8)
       name: bentoName, 
       recipe_type: recipeType,
       sale_price: recipeType === 'elaboracion' ? 0 : salePrice,

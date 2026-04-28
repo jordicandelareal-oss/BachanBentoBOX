@@ -105,35 +105,48 @@
   color: #0f172a;
 }
 
+
 .pos-category-nav {
-  height: 48px;
+  height: 56px;
   display: flex;
   align-items: center;
   padding: 0 16px;
-  justify-content: space-between;
-  background-color: #f8fafc;
-  border-top: 1px solid #f1f5f9;
+  justify-content: flex-start;
+  background-color: white;
+  border-bottom: 2px solid #f1f5f9;
+  overflow: hidden;
 }
 
 .pos-category-tabs {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   height: 100%;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.pos-category-tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .pos-category-tab {
-  padding: 0 24px;
+  padding: 0 20px;
   height: 100%;
-  font-weight: 900;
-  font-size: 10px;
+  font-weight: 800;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   background: transparent;
   border: none;
   border-bottom: 4px solid transparent;
   color: #94a3b8;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap; /* No cortar nombres */
+  flex-shrink: 0;
 }
 
 .pos-category-tab:hover {
@@ -228,9 +241,17 @@
 
 @media (max-width: 1024px) {
   .pos-grid {
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: auto;
-    min-height: auto;
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-rows: auto !important;
+    min-height: calc(100vh - 160px);
+    overflow-y: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .pos-grid {
+    gap: 8px;
+    padding-bottom: 40px;
   }
 }
 
@@ -348,23 +369,39 @@
     z-index: 1000;
     transform: translateX(100%);
     visibility: hidden;
+    height: 100%;
   }
 
   .pos-sidebar.mobile-visible {
     transform: translateX(0);
     visibility: visible;
-    /* SAFE AREA (v2.1.1) */
-    padding-top: env(safe-area-inset-top, 44px);
+    background: white;
+    /* Shock Fix v2.2.8: Padding extra para evitar solapamiento con la barra de estado (Notch/Bateria) */
+    padding-top: env(safe-area-inset-top, 175px) !important;
+    margin-top: 10px;
   }
 
   .pos-sidebar-header {
-    padding: 32px 24px !important;
-    margin-bottom: 8px; /* Respiración */
+    padding: 12px 24px !important;
+    height: auto !important;
+    border-bottom: 2px solid #f1f5f9;
+    flex-shrink: 0;
+    margin-top: 80px !important; /* Desplazamiento extra solicitado (v2.2.9.1) */
+  }
+
+  .pos-cart-item {
+    padding: 8px 12px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .pos-ticket-title {
+    font-size: 1.5rem !important;
+    margin-top: 20px; /* Margen para el botón de cierre */
   }
 
   .pos-ticket-number {
-    margin-top: 12px; /* Respiración interna */
-    font-size: 1.2rem !important;
+    margin-top: 8px;
+    font-size: 0.9rem !important;
   }
 }
 

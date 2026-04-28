@@ -100,8 +100,9 @@ export default function BentoMaker({ recipe = null, onClose }) {
   };
 
   const handleSave = async () => {
-    if (!bentoName) return alert("Indica un nombre para el Producto");
-    if (!menuCategoryId) return alert("Selecciona una Categoría de Menú obligatoria.");
+    if (!bentoName) return alert("⚠️ Indica un nombre para el Producto.");
+    if (!menuCategoryId) return alert("⚠️ Selecciona una Categoría de Menú obligatoria.");
+    if (items.length === 0) return alert("⚠️ Añade al menos un componente al Bento.");
     
     setIsSaving(true);
     try {
@@ -116,7 +117,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
         }
       }, 1500);
     } catch (error) {
-      alert('Error: ' + error.message);
+      alert('❌ Error: ' + error.message);
       setIsSaving(false);
     }
   };
@@ -134,12 +135,18 @@ export default function BentoMaker({ recipe = null, onClose }) {
           <p className="page-subtitle">Diseña productos finales y asígnales una categoría</p>
         </div>
         <button 
-          className={`btn-primary ${isSaved ? 'bg-emerald-500' : ''}`} 
+          className={`btn-primary shadow-lg transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-600' : ''}`} 
           onClick={handleSave}
-          disabled={isSaving || isSaved || !bentoName || !menuCategoryId || items.length === 0}
+          disabled={isSaving || isSaved}
+          style={{ opacity: (isSaving || isSaved) ? 0.8 : 1 }}
         >
-          {isSaving ? '...' : isSaved ? '¡Guardado! ✓' : <Save size={20} />}
-          <span>{isSaving ? 'Guardando' : isSaved ? '' : 'Guardar Producto'}</span>
+          {isSaving ? (
+            <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={20} /> Guardando...</span>
+          ) : isSaved ? (
+            <span className="flex items-center gap-2"><CheckCircle2 size={20} /> ¡Guardado!</span>
+          ) : (
+            <span className="flex items-center gap-2"><Save size={20} /> Guardar Producto</span>
+          )}
         </button>
       </div>
 
@@ -363,11 +370,18 @@ export default function BentoMaker({ recipe = null, onClose }) {
       {/* FOOTER ACCIÓN FLOTANTE (MÓVIL) */}
       <div className="floating-save-container md:hidden" style={{ bottom: numPad ? '340px' : '90px', transition: 'bottom 0.3s ease' }}>
         <button 
-          disabled={isSaving || isSaved || !bentoName || items.length === 0}
+          disabled={isSaving || isSaved}
           onClick={handleSave}
           className={`floating-save-btn ${isSaved ? 'saved' : ''}`}
+          style={{ opacity: (isSaving || isSaved) ? 0.8 : 1 }}
         >
-          {isSaving ? 'Guardando...' : isSaved ? <><CheckCircle2 size={20} /> ¡Guardado!</> : <><Save size={20} /> Guardar Bento</>}
+          {isSaving ? (
+            <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={20} /> Guardando...</span>
+          ) : isSaved ? (
+            <span className="flex items-center gap-2"><CheckCircle2 size={20} /> ¡Guardado!</span>
+          ) : (
+            <span className="flex items-center gap-2"><Save size={20} /> Guardar Producto</span>
+          )}
         </button>
       </div>
 

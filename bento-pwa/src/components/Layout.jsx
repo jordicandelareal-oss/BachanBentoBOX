@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useIngredients } from '../hooks/useIngredients'
 import { useRecipes } from '../hooks/useRecipes'
+import { useOrderNotifications } from '../hooks/useOrderNotifications'
 import { processCommand } from '../lib/geminiClient'
 import { BookOpen, CookingPot, Carrot, Sparkles, Settings, BarChart3, LayoutGrid, ShoppingBag } from 'lucide-react'
 import pkg from '../../package.json'
@@ -25,6 +26,87 @@ export default function Layout() {
   
   const { ingredients } = useIngredients()
   const { recipes } = useRecipes()
+
+  const isMaster = localStorage.getItem('bachan_admin_token') === 'BachAn_Master_2026_Secure';
+  
+  // 🔑 MASTER ACCESS LOGIC (Shock Recovery)
+  const [accessKey, setAccessKey] = useState('');
+  const [showGate, setShowGate] = useState(!isMaster);
+  const [clickCount, setClickCount] = useState(0);
+
+  // Auto-validate via URL
+  useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('access') === 'master' || params.get('key') === 'BENTO2026') {
+      localStorage.setItem('bachan_admin_token', 'BachAn_Master_2026_Secure');
+      window.location.href = '/';
+    }
+  });
+
+  const handleGateSubmit = (e) => {
+    e.preventDefault();
+    if (accessKey.toUpperCase() === 'BENTO2026') {
+      localStorage.setItem('bachan_admin_token', 'BachAn_Master_2026_Secure');
+      setShowGate(false);
+      window.location.reload();
+    } else {
+      alert('Llave incorrecta');
+      setAccessKey('');
+    }
+  };
+
+  const handleLogoClick = () => {
+    const next = clickCount + 1;
+    if (next >= 5) {
+      const key = prompt('Introduce la Llave Maestra:');
+      if (key?.toUpperCase() === 'BENTO2026') {
+        localStorage.setItem('bachan_admin_token', 'BachAn_Master_2026_Secure');
+        window.location.reload();
+      }
+      setClickCount(0);
+    } else {
+      setClickCount(next);
+    }
+  };
+
+  // Activar Notificaciones (Gong + Desktop)
+  useOrderNotifications(isMaster);
+
+  if (showGate) {
+    return (
+      <div style={{
+        height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', backgroundColor: '#0c1c2e',
+        color: 'white', padding: '24px', textAlign: 'center'
+      }}>
+        <div style={{ marginBottom: '32px', animation: 'float 3s ease-in-out infinite' }}>
+          <img src="/logo-bachan.png" alt="BaChan" style={{ width: '120px', filter: 'drop-shadow(0 0 20px rgba(245,230,200,0.3))' }} />
+        </div>
+        <h2 style={{ fontFamily: 'var(--font-serif)', color: '#f5e6c8', marginBottom: '8px' }}>BaChan BentoBox</h2>
+        <p style={{ color: '#aaa', fontSize: '14px', marginBottom: '32px' }}>Puerta de Enlace de Administración</p>
+        
+        <form onSubmit={handleGateSubmit} style={{ width: '100%', maxWidth: '300px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <input 
+            type="password"
+            placeholder="Introduce la llave..."
+            value={accessKey}
+            onChange={(e) => setAccessKey(e.target.value)}
+            style={{
+              padding: '16px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)',
+              backgroundColor: 'rgba(255,255,255,0.05)', color: 'white', textAlign: 'center',
+              fontSize: '18px', fontWeight: 'bold', outline: 'none'
+            }}
+          />
+          <button type="submit" className="btn-primary" style={{ backgroundColor: '#f5e6c8', color: '#000', padding: '16px', borderRadius: '16px', fontWeight: '900' }}>
+            VALIDAR ACCESO
+          </button>
+        </form>
+        <p style={{ marginTop: '40px', fontSize: '10px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '2px' }}>
+          Sistema Privado • v{pkg.version}
+        </p>
+      </div>
+    );
+  }
 
   const handleSendMessage = async (text, imageBase64 = null) => {
     setNanaState('THINKING')
@@ -127,43 +209,47 @@ export default function Layout() {
       <header className="nav-header">
         <div className="container nav-content-wrapper">
           <div className="nav-top-row">
-            <NavLink to="/" className="nav-brand">🍱 BaChan</NavLink>
-            <div className="desktop-nav">
-              <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Inicio</NavLink>
-              <NavLink to="/pos" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>TPV</NavLink>
-              <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Menú</NavLink>
-              <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
-              <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
-              <NavLink to="/settings" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Ajustes</NavLink>
-            </div>
+            <div onClick={handleLogoClick} style={{ cursor: 'pointer' }} className="nav-brand">🍱 BaChan</div>
+            {isMaster && (
+              <div className="desktop-nav">
+                <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Inicio</NavLink>
+                <NavLink to="/pos" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>TPV</NavLink>
+                <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Menú</NavLink>
+                <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
+                <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
+                <NavLink to="/settings" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Ajustes</NavLink>
+              </div>
+            )}
           </div>
           
-          <nav className="mobile-icon-nav" style={{ justifyContent: 'space-around', gap: '4px' }}>
-            <NavLink to="/" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
-              <LayoutGrid size={22} />
-              <span>Inicio</span>
-            </NavLink>
-            <NavLink to="/pos" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
-              <ShoppingBag size={22} />
-              <span>TPV</span>
-            </NavLink>
-            <NavLink to="/bento-maker" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
-              <BookOpen size={22} />
-              <span>Menú</span>
-            </NavLink>
-            <NavLink to="/preparations" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
-              <CookingPot size={22} />
-              <span>Elabs</span>
-            </NavLink>
-            <NavLink to="/ingredients" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
-              <Carrot size={22} />
-              <span>Items</span>
-            </NavLink>
-            <NavLink to="/settings" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
-              <Settings size={22} />
-              <span>Ajustes</span>
-            </NavLink>
-          </nav>
+          {isMaster && (
+            <nav className="mobile-icon-nav" style={{ justifyContent: 'space-around', gap: '4px' }}>
+              <NavLink to="/" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+                <LayoutGrid size={22} />
+                <span>Inicio</span>
+              </NavLink>
+              <NavLink to="/pos" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+                <ShoppingBag size={22} />
+                <span>TPV</span>
+              </NavLink>
+              <NavLink to="/bento-maker" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+                <BookOpen size={22} />
+                <span>Menú</span>
+              </NavLink>
+              <NavLink to="/preparations" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+                <CookingPot size={22} />
+                <span>Elabs</span>
+              </NavLink>
+              <NavLink to="/ingredients" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+                <Carrot size={22} />
+                <span>Items</span>
+              </NavLink>
+              <NavLink to="/settings" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+                <Settings size={22} />
+                <span>Ajustes</span>
+              </NavLink>
+            </nav>
+          )}
         </div>
       </header>
       

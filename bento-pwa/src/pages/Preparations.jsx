@@ -158,7 +158,7 @@ export function Preparations() {
       ) : (
         <div className="card-grid">
           {(filteredRecipes || []).map((recipe, index) => (
-            <div key={recipe?.id || index} className="premium-card" onClick={() => handleOpenEditor(recipe)}>
+            <div key={recipe?.id || index} className="elaboracion-card" onClick={() => handleOpenEditor(recipe)}>
               <div className="ingredient-info">
                 <div className="card-icon-wrapper">
                   {isBentosTab ? <ChefHat size={20} /> : <CookingPot size={20} />}
@@ -166,9 +166,6 @@ export function Preparations() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="card-title">{recipe?.name || 'Receta sin nombre'}</h3>
-                    {recipe?.is_published && (
-                      <span className="badge-published-blue">EN MENÚ</span>
-                    )}
                   </div>
                   <p className="card-meta">
                     RINDE: {recipe?.yield_scenario === 'weight' 
@@ -183,7 +180,7 @@ export function Preparations() {
               <div className="flex items-center gap-4">
                 <div className="text-right">
                   <div className="card-meta" style={{ fontSize: '10px' }}>
-                    {isBentosTab ? 'Coste Sugerido' : 'Coste Neto'}
+                    Coste
                   </div>
                   <div className="price-display">
                     {recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}
@@ -379,18 +376,29 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = async () => {
-    if (!bentoName) return alert("Indica un nombre");
+    // Validación explícita para evitar que el usuario se quede sin feedback
+    if (!bentoName) return alert("⚠️ Indica un nombre para la elaboración.");
+    if (!prepCategoryId) return alert("⚠️ Selecciona una categoría de Mise en Place.");
+    if (items.length === 0) return alert("⚠️ Añade al menos un ingrediente a la receta.");
+    
+    // Alerta de seguridad para costes excesivos (informativa, no bloqueante si el usuario confirma)
+    if (totals.costPerPortion > 1000) {
+      if (!window.confirm(`⚠️ El coste calculado es muy alto (${totals.costPerPortion.toFixed(2)}€). ¿Estás seguro de que las cantidades son correctas?`)) {
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       await saveBento();
       setIsSaving(false);
       setIsSaved(true);
-      // Feedback visible during 1.5 seconds, then close
+      // Feedback visible durante 1.5 segundos, luego cerrar
       setTimeout(() => {
         onClose();
-      }, 1800);
+      }, 1500);
     } catch (err) {
-      alert("Error al guardar: " + err.message);
+      alert("❌ Error al guardar: " + err.message);
       setIsSaving(false);
     }
   };
@@ -574,12 +582,22 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
               {/* Desktop Save Button */}
               <div className="hidden md:block mt-8">
                 <button 
-                  disabled={isSaving || isSaved || !bentoName || !prepCategoryId || items.length === 0 || totals.costPerPortion > 500}
+                  disabled={isSaving || isSaved}
                   onClick={handleSave}
-                  className={`btn-primary w-full py-4 text-lg ${isSaved ? 'bg-emerald-500' : ''}`}
-                  style={{ borderRadius: '16px', fontFamily: 'var(--font-serif)', backgroundColor: totals.costPerPortion > 500 ? '#fca5a5' : undefined }}
+                  className={`btn-primary w-full py-4 text-lg transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-600' : ''}`}
+                  style={{ 
+                    borderRadius: '16px', 
+                    fontFamily: 'var(--font-serif)',
+                    opacity: (isSaving || isSaved) ? 0.8 : 1
+                  }}
                 >
-                  {isSaving ? 'Guardando...' : isSaved ? <><CheckCircle2 size={20} /> Guardado con éxito</> : <><Save size={20} /> Guardar Elaboración</>}
+                  {isSaving ? (
+                    <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={20} /> Guardando...</span>
+                  ) : isSaved ? (
+                    <span className="flex items-center gap-2"><CheckCircle2 size={20} /> Guardado con éxito</span>
+                  ) : (
+                    <span className="flex items-center gap-2"><Save size={20} /> Guardar Elaboración</span>
+                  )}
                 </button>
               </div>
             </div>
@@ -711,12 +729,21 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
       {/* FOOTER ACCIÓN FLOTANTE (MÓVIL) */}
       <div className="floating-save-container md:hidden" style={{ bottom: numPad ? '340px' : '32px', transition: 'bottom 0.3s ease' }}>
         <button 
-          disabled={isSaving || isSaved || !bentoName || !prepCategoryId || items.length === 0 || totals.costPerPortion > 500}
+          disabled={isSaving || isSaved}
           onClick={handleSave}
           className={`floating-save-btn ${isSaved ? 'saved' : ''}`}
-          style={{ backgroundColor: isSaved ? '#10b981' : totals.costPerPortion > 500 ? '#fca5a5' : undefined }}
+          style={{ 
+            backgroundColor: isSaved ? '#10b981' : undefined,
+            opacity: (isSaving || isSaved) ? 0.8 : 1
+          }}
         >
-          {isSaving ? 'Guardando...' : isSaved ? <><CheckCircle2 size={20} /> Guardado</> : <><Save size={20} /> Guardar Elaboración</>}
+          {isSaving ? (
+            <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={20} /> Guardando...</span>
+          ) : isSaved ? (
+            <span className="flex items-center gap-2"><CheckCircle2 size={20} /> Guardado</span>
+          ) : (
+            <span className="flex items-center gap-2"><Save size={20} /> Guardar Elaboración</span>
+          )}
         </button>
       </div>
 

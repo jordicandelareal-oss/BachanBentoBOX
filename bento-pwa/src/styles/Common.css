@@ -42,13 +42,20 @@
   margin-top: 4px;
 }
 
-.card-grid {
+.card-grid,
+.elaboraciones-grid,
+.menu-grid,
+.dashboard-grid {
   display: grid;
   gap: 16px;
 }
 
 /* Premium Card System */
-.premium-card {
+.premium-card,
+.insumo-card,
+.elaboracion-card,
+.menu-card,
+.dashboard-card {
   background: white;
   padding: 18px;
   border-radius: var(--radius-md);
@@ -60,7 +67,11 @@
   cursor: pointer;
 }
 
-.premium-card:hover {
+.premium-card:hover,
+.insumo-card:hover,
+.elaboracion-card:hover,
+.menu-card:hover,
+.dashboard-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 24px -10px rgba(15, 23, 42, 0.15);
   border-color: var(--color-accent);
@@ -210,6 +221,87 @@
   }
   .btn-dashboard {
     padding: 10px !important;
+  }
+}
+
+/* ─── State: Published (Azul Corporativo #0ea5e9) ───────────── */
+.btn-published-blue {
+  background-color: #0ea5e9 !important; /* Sky Blue 500 */
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+}
+
+.badge-published-blue {
+  background-color: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #e0f2fe;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─── Actions & Buttons ─────────────────────────────────────── */
+.card-actions-subtle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+@media (max-width: 480px) {
+  .card-actions-subtle {
+    margin-right: 8px; /* Internal safety in row */
+    gap: 4px;
+  }
+  
+  /* Reducir ligeramente el impacto de los iconos en móvil */
+  .card-actions-subtle button {
+    padding: 6px !important;
+  }
+}
+
+.delete-btn-subtle {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  color: var(--color-text-light); /* Subtle as requested */
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  opacity: 0.5;
+}
+
+.delete-btn-subtle:hover {
+  background-color: #f1f5f9;
+  color: var(--color-text);
+  opacity: 1;
+}
+
+.delete-btn-subtle:active {
+  transform: scale(0.9);
+}
+
+@media (max-width: 768px) {
+  .delete-btn-subtle {
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0.4 !important;
+    padding: 0 !important;
+    background: #fee2e2 !important; /* Fondo suave para que se distinga */
+    border-radius: 8px !important;
+    color: #ef4444 !important;
   }
 }
 
@@ -485,4 +577,103 @@
   border-radius: 8px;
   background: #f1f5f9;
   margin-left: auto;
+}
+
+/* ─── Mobile Compact Layout for Elaboraciones & Menus ─── */
+@media (max-width: 768px) {
+  /* Layout constraints to maximize width */
+  .page-container {
+    padding-left: 10px !important;
+    padding-right: 15px !important; /* Safety margin */
+  }
+
+  /* Compact Cards */
+  .elaboracion-card,
+  .menu-card {
+    padding: 8px 10px !important;
+    border-radius: 12px !important;
+    gap: 8px !important;
+  }
+
+  /* Icon wrapper - reduce 15% (from 44px to 36px) */
+  .elaboracion-card .card-icon-wrapper,
+  .menu-card .card-icon-wrapper {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+  }
+  
+  /* Remove inline overrides from BentoPage for mobile */
+  .menu-card .card-icon-wrapper[style] {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .ingredient-info {
+    gap: 8px !important; /* reduce gap */
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ingredient-info > div:last-child {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .elaboracion-card .card-title,
+  .menu-card .card-title {
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Menu card title has text-lg from Tailwind, need to override */
+  .menu-card .text-lg {
+    font-size: 12px !important;
+  }
+
+  /* Category tabs */
+  .category-tab {
+    font-size: 12px !important;
+    padding: 6px 14px !important;
+  }
+
+  .elaboracion-card .card-meta,
+  .menu-card .card-meta {
+    font-size: 9px !important;
+    margin-top: 0 !important;
+  }
+
+  .elaboracion-card .price-display,
+  .menu-card .price-display {
+    font-size: 14px !important;
+  }
+
+  /* Reduce action buttons inside cards */
+  .card-actions-subtle {
+    gap: 2px !important;
+    margin-left: 4px !important;
+  }
+  
+  .card-actions-subtle button {
+    padding: 6px !important;
+  }
+  
+  .card-actions-subtle svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  
+  /* Make sure delete btn doesn't take too much height */
+  .delete-btn-subtle {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  
+  .delete-btn-subtle svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
 }

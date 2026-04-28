@@ -13,6 +13,12 @@ export function useRecipes(type = null) {
       setLoading(true)
       
       const parsedType = JSON.parse(typeDep);
+
+      const isMaster = localStorage.getItem('bachan_admin_token') === 'BachAn_Master_2026_Secure';
+      if (!isMaster) {
+        setLoading(false);
+        return;
+      }
       
       let recipesQuery = supabase
         .from('recipes')
@@ -52,8 +58,13 @@ export function useRecipes(type = null) {
   }, [typeDep]);
 
   useEffect(() => {
+    const isMaster = localStorage.getItem('bachan_admin_token') === 'BachAn_Master_2026_Secure';
+    
     fetchRecipes()
     
+    // Solo activar realtime si es administrador
+    if (!isMaster) return;
+
     // Watch recipes
     const recipesChannel = supabase
       .channel('public:recipes')
