@@ -82,6 +82,16 @@ export function useIngredients() {
         .eq('id', id)
         
       if (supError) throw supError
+
+      // ✅ FIX: actualización optimista inmediata del estado local
+      // Así la lista muestra el nuevo costo_neto sin esperar el refetch completo
+      setIngredients(prev =>
+        prev.map(ing =>
+          ing.id === id ? { ...ing, ...fields } : ing
+        )
+      )
+
+      // Refetch completo para obtener datos relacionados (categorías, etc.)
       await fetchIngredients()
       return { success: true }
     } catch (err) {
@@ -89,6 +99,7 @@ export function useIngredients() {
       return { success: false, error: err.message }
     }
   }
+
 
   // Add a new ingredient
   async function addIngredient(fields) {

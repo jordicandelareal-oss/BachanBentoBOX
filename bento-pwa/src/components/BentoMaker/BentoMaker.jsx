@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Plus, Save, ChevronRight, LayoutGrid, Trash2, TrendingUp, TrendingDown, DollarSign, Target, Info, Carrot, CookingPot, CheckCircle2 } from 'lucide-react';
+import { Package, Plus, Save, ChevronRight, LayoutGrid, Trash2, TrendingUp, TrendingDown, DollarSign, Target, Info, Carrot, CookingPot, CheckCircle2, Loader2 } from 'lucide-react';
 import PhotoSelector from '../Common/PhotoSelector';
 import SequentialSelector from '../Common/SequentialSelector';
 import NumPad from '../Common/NumPad';

@@ -126,11 +126,34 @@ export default function useBentoMaker(initialRecipe = null, recipeType = 'bento'
 
     console.log('DATOS A GUARDAR (CASE SENSITIVE):', finalData);
 
-    const { data: recipeData, error: recipeErr } = await supabase
-      .from('recipes')
-      .upsert(finalData, { onConflict: 'name' })
-      .select()
-      .single()
+    let recipeData;
+    let recipeErr;
+
+    // ✅ FIX: validación estricta para evitar INSERT accidental en recetas existentes
+    // Antes: if (finalData.id) → falla si id es '', null, 0, undefined
+    // Ahora: comprobación explícita de string no vacío → garantiza UPDATE correcto
+    const isExistingRecipe = typeof finalData.id === 'string' && finalData.id.trim().length > 0;
+
+    if (isExistingRecipe) {
+      const { data, error } = await supabase
+        .from('recipes')
+        .update(finalData)
+        .eq('id', finalData.id)
+        .select()
+        .single();
+      recipeData = data;
+      recipeErr = error;
+    } else {
+      delete finalData.id;
+      const { data, error } = await supabase
+        .from('recipes')
+        .insert(finalData)
+        .select()
+        .single();
+      recipeData = data;
+      recipeErr = error;
+    }
+
 
     if (recipeErr) throw recipeErr
 

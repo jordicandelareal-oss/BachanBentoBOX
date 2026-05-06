@@ -183,9 +183,19 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     e.preventDefault();
     e.stopPropagation(); // Evita que se propague a los padres (ej. el overlay del modal)
     
+    // Calcular cost_per_unit definitivo con merma para persistir en BD
     const format = form.purchase_format ? parseFloat(form.purchase_format) : 0;
     const price = form.purchase_price !== '' ? parseFloat(form.purchase_price) : 0;
-    // cost_per_unit is now calculated on the server by a Supabase Trigger
+    const wasteVal = parseFloat(form.waste_percentage) || 0;
+    let computedCostPerUnit = 0;
+    if (format > 0) {
+      const grossCost = form.calculation_type === 'unidad'
+        ? (price / format)
+        : ((price / format) * 1000);
+      const yieldFactor = 1 + (wasteVal / 100);
+      computedCostPerUnit = yieldFactor > 0 ? (grossCost / yieldFactor) : grossCost;
+    }
+
 
     const payload = {
       name: form.name,
@@ -199,7 +209,9 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       brand: form.brand || null,
       barcode: form.barcode || null,
       calculation_type: form.calculation_type,
-      waste_percentage: form.waste_percentage || 0,
+      waste_percentage: wasteVal,
+      // ✅ FIX: persistir coste neto calculado (incluye factor merma/hidratación)
+      cost_per_unit: computedCostPerUnit,
       is_published: form.is_published || false,
       sale_price: form.sale_price !== '' ? parseFloat(form.sale_price) : 0,
       provider_product_code: form.provider_product_code || null,
