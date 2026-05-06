@@ -816,18 +816,15 @@ export default function Ingredients() {
                     
                     <div className="card-price-right">
                       <div className="price-main">
-                        {(() => {
-                          const fmt = parseFloat(ingredient.purchase_format) || 0;
-                          const prc = parseFloat(ingredient.purchase_price) || 0;
-                          if (fmt <= 0) return (parseFloat(ingredient.cost_per_unit || 0)).toFixed(2);
-                          if (ingredient.calculation_type === 'unidad') return (prc / fmt).toFixed(2);
-                          return ((prc / fmt) * 1000).toFixed(2);
-                        })()} €
+                        {/* ✅ FIX: leer cost_per_unit directamente (incluye merma persistida en BD)
+                            Antes: recalculaba desde purchase_price/format ignorando waste_percentage */}
+                        {(parseFloat(ingredient.cost_per_unit) || 0).toFixed(2)} €
                       </div>
                       <div className="price-unit-label">
                         {ingredient.calculation_type === 'unidad' ? '/ UD' : '/ KG'}
                       </div>
                     </div>
+
 
                     <div className="card-actions-subtle flex items-center gap-2">
                       <button 
