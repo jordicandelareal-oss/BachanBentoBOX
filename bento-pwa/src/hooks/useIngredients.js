@@ -76,23 +76,41 @@ export function useIngredients() {
   // Update full ingredient fields
   async function updateIngredient(id, fields) {
     try {
-      const { error: supError } = await supabase
+      // ✅ FIX DEFINITIVO: usar .select().single() para obtener el registro
+      // exactamente como quedó guardado en Supabase (fuente de verdad absoluta)
+      const { data: savedRow, error: supError } = await supabase
         .from('ingredients')
         .update(fields)
         .eq('id', id)
+        .select()
+        .single()
         
       if (supError) throw supError
 
-      // ✅ FIX: actualización optimista inmediata del estado local
-      // Así la lista muestra el nuevo costo_neto sin esperar el refetch completo
-      setIngredients(prev =>
-        prev.map(ing =>
-          ing.id === id ? { ...ing, ...fields } : ing
-        )
-      )
+      // Log para verificar qué guardó realmente Supabase
+      console.log('✅ [Supabase] Ingrediente guardado. cost_per_unit en BD:', savedRow?.cost_per_unit, '| Enviado:', fields.cost_per_unit);
 
-      // Refetch completo para obtener datos relacionados (categorías, etc.)
-      await fetchIngredients()
+      // Actualización instantánea del estado local con los datos REALES de BD
+      // (no con fields locales, por si Supabase aplica triggers o transforms)
+      if (savedRow) {
+        setIngredients(prev =>
+          prev.map(ing =>
+            ing.id === id
+              ? {
+                  ...ing,
+                  ...savedRow,
+                  // Preservar campos calculados del join que no devuelve el UPDATE
+                  category_name: ing.category_name,
+                  subcategory_name: ing.subcategory_name,
+                  unit_name: ing.unit_name,
+                }
+              : ing
+          )
+        )
+      }
+
+      // Refetch completo en background para sincronizar datos relacionados
+      fetchIngredients()
       return { success: true }
     } catch (err) {
       console.error("❌ [Supabase Update Error]", err);

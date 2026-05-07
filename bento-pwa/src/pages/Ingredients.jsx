@@ -12,6 +12,33 @@ import './Ingredients.css';
 
 import PhotoSelector from '../components/Common/PhotoSelector';
 
+// ─── Shared Cost Calculation ──────────────────────────────────────────────────
+// Fórmula única para todo el módulo: modal, payload y lista usan el mismo cálculo
+// merma > 0 → pérdida de peso → coste SUBE  (waste en %, ej: 20 → pierde 20%)
+// merma < 0 → hidratación    → coste BAJA   (ganancia de peso al cocinar)
+//
+// Fórmula: coste_bruto / (1 - merma/100)
+// Equivale a: coste_bruto * (100 / (100 - merma))
+//
+// Ejemplos:
+//   merma  0% → divisor 1.00  → sin cambio
+//   merma 20% → divisor 0.80  → coste sube un 25%
+//   merma-20% → divisor 1.20  → coste baja un ~17%
+function computeNetCost(purchasePrice, purchaseFormat, calculationType, wastePercent) {
+  const format = parseFloat(purchaseFormat) || 0;
+  const price  = parseFloat(purchasePrice)  || 0;
+  const waste  = parseFloat(wastePercent)   || 0;
+  if (format <= 0) return 0;
+  // Coste bruto por KG (o por UD si es de tipo unidad)
+  const grossCost = calculationType === 'unidad'
+    ? (price / format)
+    : ((price / format) * 1000);
+  // Divisor de merma: 1 - (waste/100)
+  // Clampeado a mínimo 0.01 para evitar división por cero con mermas extremas
+  const divisor = Math.max(1 - (waste / 100), 0.01);
+  return grossCost / divisor;
+}
+
 // ─── Alphabet Sidebar Component ──────────────────────────────────────────────
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -184,23 +211,22 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     e.stopPropagation(); // Evita que se propague a los padres (ej. el overlay del modal)
     
     // Calcular cost_per_unit definitivo con merma para persistir en BD
-    const format = form.purchase_format ? parseFloat(form.purchase_format) : 0;
-    const price = form.purchase_price !== '' ? parseFloat(form.purchase_price) : 0;
-    const wasteVal = parseFloat(form.waste_percentage) || 0;
-    let computedCostPerUnit = 0;
-    if (format > 0) {
-      const grossCost = form.calculation_type === 'unidad'
-        ? (price / format)
-        : ((price / format) * 1000);
-      const yieldFactor = 1 + (wasteVal / 100);
-      computedCostPerUnit = yieldFactor > 0 ? (grossCost / yieldFactor) : grossCost;
-    }
+    // Usamos la función compartida para garantizar que el cálculo sea idéntico en todo el sistema
+    const computedCostPerUnit = computeNetCost(
+      form.purchase_price,
+      form.purchase_format,
+      form.calculation_type,
+      form.waste_percentage
+    );
 
+    const format = form.purchase_format ? parseFloat(form.purchase_format) : null;
+    const price = form.purchase_price !== '' ? parseFloat(form.purchase_price) : null;
+    const wasteVal = parseFloat(form.waste_percentage) || 0;
 
     const payload = {
       name: form.name,
-      purchase_format: format || null,
-      purchase_price: price || null,
+      purchase_format: format,
+      purchase_price: price,
       provider: form.provider || null,
       unit_id: form.calculation_type === 'peso' ? 'c39f0ea5-5325-4876-8395-940b4995ce4a' : '6b013d2c-2079-41fc-a210-2f8e1cb11e41',
       category_id: form.category_id || null,
@@ -242,22 +268,13 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
     await onSave(payload);
   };
 
-  const formatVal = parseFloat(form.purchase_format) || 0;
-  const priceVal = parseFloat(form.purchase_price) || 0;
-  const wasteVal = parseFloat(form.waste_percentage) || 0;
-  
-  let dynamicCost = 0;
-  if (formatVal > 0) {
-    const grossCost = (form.calculation_type === 'unidad') 
-      ? (priceVal / formatVal) 
-      : ((priceVal / formatVal) * 1000);
-      
-    // Aplicar factor de rendimiento: yield = 1 + (merma/100)
-    // Merma negativa = pérdida de peso -> yield < 1 -> precio sube
-    // Merma positiva = hidratación -> yield > 1 -> precio baja
-    const yieldFactor = 1 + (wasteVal / 100);
-    dynamicCost = yieldFactor > 0 ? (grossCost / yieldFactor) : grossCost;
-  }
+  // Calcular el costo dinámico para mostrar en el modal usando la función compartida
+  const dynamicCost = computeNetCost(
+    form.purchase_price,
+    form.purchase_format,
+    form.calculation_type,
+    form.waste_percentage
+  );
 
   // --- PVP SECTION ---
   const handlePvpClick = () => {
