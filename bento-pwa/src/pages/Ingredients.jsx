@@ -238,6 +238,7 @@ function IngredientModal({ ingredient, onClose, onSave, loading }) {
       waste_percentage: wasteVal,
       // ✅ FIX: persistir coste neto calculado (incluye factor merma/hidratación)
       cost_per_unit: computedCostPerUnit,
+      net_cost_per_unit: computedCostPerUnit,
       is_published: form.is_published || false,
       sale_price: form.sale_price !== '' ? parseFloat(form.sale_price) : 0,
       provider_product_code: form.provider_product_code || null,
@@ -833,9 +834,8 @@ export default function Ingredients() {
                     
                     <div className="card-price-right">
                       <div className="price-main">
-                        {/* ✅ FIX: leer cost_per_unit directamente (incluye merma persistida en BD)
-                            Antes: recalculaba desde purchase_price/format ignorando waste_percentage */}
-                        {(parseFloat(ingredient.cost_per_unit) || 0).toFixed(2)} €
+                        {/* ✅ FIX: leer net_cost_per_unit directamente de BD como solicitó el usuario */}
+                        {(parseFloat(ingredient.net_cost_per_unit || ingredient.cost_per_unit) || 0).toFixed(2)} €
                       </div>
                       <div className="price-unit-label">
                         {ingredient.calculation_type === 'unidad' ? '/ UD' : '/ KG'}
