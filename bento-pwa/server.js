@@ -39,7 +39,7 @@ async function humanType(page, selector, text) {
 // ── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
-  res.send('🤖 Servidor Robot Bachan Activo (v2.12.6)');
+  res.send('🤖 Servidor Robot Bachan Activo (v2.12.7)');
 });
 
 app.post('/sync-mercadona', async (req, res) => {
@@ -50,7 +50,7 @@ app.post('/sync-mercadona', async (req, res) => {
     return res.status(400).json({ success: false, error: 'SKUs no válidos' });
   }
 
-  console.log(`\n[ROBOT] 🚀 Iniciando v2.12.6 (Estrategia Profesional) para ${skus.length} productos...`);
+  console.log(`\n[ROBOT] 🚀 Iniciando v2.12.7 (Selector Técnico) para ${skus.length} productos...`);
 
   let browser = null;
   try {
@@ -64,7 +64,7 @@ app.post('/sync-mercadona', async (req, res) => {
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(90000);
 
-    // Bloqueo de recursos ligeros
+    // Bloqueo ligero
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       if (['image', 'font', 'media'].includes(req.resourceType())) req.abort();
@@ -73,10 +73,10 @@ app.post('/sync-mercadona', async (req, res) => {
 
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
-    // 1. Identificación Lenta y Segura
-    console.log('[ROBOT] 1/3 Identificando sesión...');
+    // 1. Identificación
+    console.log('[ROBOT] 1/3 Identificando...');
     await page.goto('https://tienda.mercadona.es/?authenticate-user=', { waitUntil: 'load' });
-    await wait(5000); // Tiempo de asentamiento largo
+    await wait(5000);
     
     await page.keyboard.press('Escape');
     await wait(1000);
@@ -94,50 +94,47 @@ app.post('/sync-mercadona', async (req, res) => {
           page.keyboard.press('Enter')
         ]);
         await wait(5000);
-        console.log('[ROBOT] ✅ Sesión preparada.');
+        console.log('[ROBOT] ✅ Login OK.');
       }
     }
 
-    // 2. Sincronización Profesional
-    console.log('[ROBOT] 2/3 Procesando productos...');
+    // 2. Proceso Técnico de Click
+    console.log('[ROBOT] 2/3 Sincronizando productos...');
     const itemsAdded = [];
 
     for (const sku of skus) {
       try {
         const productUrl = `https://tienda.mercadona.es/product/${sku}/`;
-        console.log(`[DEBUG] SKU ${sku}: Navegando a ${productUrl}`);
+        console.log(`[DEBUG] Procesando SKU ${sku}: ${productUrl}`);
         
         await page.goto(productUrl, { waitUntil: 'load' });
-        await wait(5000); // 5 segundos para que la página sea totalmente interactiva
+        await wait(4000); // Espera de renderizado
 
-        // Cerrar posibles popups
-        await page.keyboard.press('Escape');
+        // Selector técnico maestro
+        const targetSelector = 'button[data-testid="product-format-selection-add-button"]';
+        
+        // Espera dinámica a que el botón exista y sea visible
+        await page.waitForSelector(targetSelector, { visible: true, timeout: 15000 });
 
-        // Intento de Click Técnico
-        const added = await page.evaluate(() => {
-          const mainSelector = 'button[data-testid="product-format-selection-add-button"]';
-          const fallbackSelector = 'button.product-format-selection__add-button';
-          
-          let btn = document.querySelector(mainSelector) || document.querySelector(fallbackSelector);
-          
-          if (btn && !btn.disabled) {
-            btn.scrollIntoView();
-            btn.click();
-            return true;
-          }
-          return false;
-        });
+        // Scroll forzado para activación
+        await page.evaluate((sel) => {
+          document.querySelector(sel)?.scrollIntoView();
+        }, targetSelector);
+        
+        await wait(1000);
 
-        if (added) {
-          console.log(`[OK] SKU ${sku} añadido correctamente.`);
+        // Click técnico final
+        const btn = await page.$(targetSelector);
+        if (btn) {
+          await btn.click();
+          console.log(`[OK] Botón técnico pulsado para SKU ${sku}`);
           itemsAdded.push(sku);
-          await wait(3000); // Pausa de consolidación
+          await wait(2000);
         } else {
-          console.log(`[WARN] No se encontró el botón técnico para SKU ${sku}.`);
+          console.log(`[WARN] Botón no encontrado para SKU ${sku}`);
         }
       } catch (err) {
-        // Ignoramos errores de navegación 'detached' para seguir con el siguiente
-        console.warn(`[SKIP SKU ${sku}] Error de navegación: ${err.message}`);
+        console.warn(`[SKIP SKU ${sku}] Error: ${err.message}`);
       }
     }
 
@@ -153,5 +150,5 @@ app.post('/sync-mercadona', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Bachan Robot v2.12.6 escuchando en puerto ${port}`);
+  console.log(`🚀 Bachan Robot v2.12.7 escuchando en puerto ${port}`);
 });
