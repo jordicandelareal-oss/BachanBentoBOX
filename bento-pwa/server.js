@@ -29,7 +29,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 // ── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
-  res.send('🤖 Servidor Robot Bachan Activo (v2.12.8)');
+  res.send('🤖 Servidor Robot Bachan Activo (v2.12.9)');
 });
 
 app.post('/sync-mercadona', async (req, res) => {
@@ -40,7 +40,7 @@ app.post('/sync-mercadona', async (req, res) => {
     return res.status(400).json({ success: false, error: 'SKUs no válidos' });
   }
 
-  console.log(`\n[ROBOT] 🚀 Iniciando v2.12.8 (Click Coordenadas) para ${skus.length} productos...`);
+  console.log(`\n[ROBOT] 🚀 Iniciando v2.12.9 (Rastreo Universal) para ${skus.length} productos...`);
 
   let browser = null;
   try {
@@ -54,14 +54,16 @@ app.post('/sync-mercadona', async (req, res) => {
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(90000);
 
-    // User Agent Real para evitar sospechas
-    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+    // User-Agent de Incógnito (Chrome Windows actualizado)
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
     // 1. Identificación
     console.log('[ROBOT] 1/3 Identificando sesión...');
     await page.goto('https://tienda.mercadona.es/?authenticate-user=', { waitUntil: 'load' });
     await wait(5000);
     
+    // Limpieza a ciegas de overlays
+    await page.mouse.click(10, 10);
     await page.keyboard.press('Escape');
     await wait(1000);
 
@@ -82,49 +84,49 @@ app.post('/sync-mercadona', async (req, res) => {
       }
     }
 
-    // 2. Click por Coordenadas Reales
+    // 2. Rastreo Universal de Botones
     console.log('[ROBOT] 2/3 Sincronizando productos...');
     const itemsAdded = [];
 
     for (const sku of skus) {
       try {
         const productUrl = `https://tienda.mercadona.es/product/${sku}/`;
-        console.log(`[DEBUG] Procesando SKU ${sku}: ${productUrl}`);
+        console.log(`[DEBUG] Visitando ficha: ${productUrl}`);
         
         await page.goto(productUrl, { waitUntil: 'load' });
         await wait(4000);
 
-        const targetSelector = 'button[data-testid="product-format-selection-add-button"]';
-        
-        // Espera de visibilidad
-        await page.waitForSelector(targetSelector, { visible: true, timeout: 20000 });
+        // Click en (10, 10) para limpiar banners por si acaso
+        await page.mouse.click(10, 10);
 
-        // Obtener Coordenadas
-        const rect = await page.evaluate((sel) => {
-          const el = document.querySelector(sel);
-          if (!el) return null;
-          el.scrollIntoView();
-          const {top, left, width, height} = el.getBoundingClientRect();
-          return {x: left + width/2, y: top + height/2, oldText: el.innerText};
-        }, targetSelector);
-
-        if (rect) {
-          console.log(`[ROBOT] Clicando coordenadas: X=${rect.x}, Y=${rect.y}`);
-          await page.mouse.click(rect.x, rect.y);
+        // Script de Rastreo Universal
+        const scanResult = await page.evaluate(() => {
+          const botones = Array.from(document.querySelectorAll('button'));
+          const btnCompra = botones.find(b => 
+            b.innerText.includes('Añadir') || 
+            b.innerHTML.includes('cart') ||
+            b.className.includes('add-button') ||
+            b.getAttribute('aria-label')?.includes('Añadir')
+          );
           
-          // 3. Verificación de éxito
-          await wait(3000);
-          const isAdded = await page.evaluate((sel, oldText) => {
-            const el = document.querySelector(sel);
-            return el && el.innerText !== oldText;
-          }, targetSelector, rect.oldText);
-
-          if (isAdded) {
-            console.log(`[OK] SKU ${sku} confirmado en el carrito.`);
-            itemsAdded.push(sku);
-          } else {
-            console.log(`[WARN] El click no cambió el estado del botón para SKU ${sku}.`);
+          if (btnCompra && !btnCompra.disabled) {
+            btnCompra.scrollIntoView();
+            btnCompra.click();
+            return { success: true, count: botones.length, text: btnCompra.innerText };
           }
+          return { success: false, count: botones.length };
+        });
+
+        console.log(`[DEBUG] Botones encontrados en página: ${scanResult.count}`);
+
+        if (scanResult.success) {
+          console.log(`[OK] Producto ${sku} añadido (Botón: "${scanResult.text}")`);
+          itemsAdded.push(sku);
+          await wait(2000);
+        } else {
+          console.log(`[ERROR] No se detectó botón de compra para SKU: ${sku}`);
+          const html = await page.content();
+          console.log('[DEBUG] Fragmento HTML:', html.substring(0, 300));
         }
       } catch (err) {
         console.warn(`[SKIP SKU ${sku}] Error: ${err.message}`);
@@ -132,7 +134,7 @@ app.post('/sync-mercadona', async (req, res) => {
     }
 
     await browser.close();
-    console.log(`[ROBOT] 3/3 ✨ Finalizado. Total confirmados: ${itemsAdded.length}`);
+    console.log(`[ROBOT] 3/3 ✨ Finalizado. Total añadidos: ${itemsAdded.length}`);
     res.json({ success: true, itemsAdded });
 
   } catch (error) {
@@ -143,5 +145,5 @@ app.post('/sync-mercadona', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Bachan Robot v2.12.8 escuchando en puerto ${port}`);
+  console.log(`🚀 Bachan Robot v2.12.9 escuchando en puerto ${port}`);
 });
