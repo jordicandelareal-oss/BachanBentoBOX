@@ -41,7 +41,7 @@ async function humanType(page, selector, text) {
 // ── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
-  res.send('🤖 Servidor Robot Bachan Activo (v2.11.8)');
+  res.send('🤖 Servidor Robot Bachan Activo (v2.11.9)');
 });
 
 app.post('/sync-mercadona', async (req, res) => {
@@ -52,7 +52,7 @@ app.post('/sync-mercadona', async (req, res) => {
     return res.status(400).json({ success: false, error: 'SKUs no válidos' });
   }
 
-  console.log(`\n[ROBOT] 🚀 Iniciando sincronización para ${skus.length} productos...`);
+  console.log(`\n[ROBOT] 🚀 Iniciando sincronización de ${skus.length} productos vía Búsqueda...`);
 
   let browser = null;
   try {
@@ -67,11 +67,11 @@ app.post('/sync-mercadona', async (req, res) => {
     page.setDefaultNavigationTimeout(60000);
     page.setDefaultTimeout(60000);
 
-    // Optimización: Bloqueo de recursos (solo dejamos lo vital)
+    // Bloqueo de recursos pesados
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const type = req.resourceType();
-      if (['image', 'font', 'media', 'other'].includes(type) || req.url().includes('analytics')) {
+      if (['image', 'font', 'media'].includes(type) || req.url().includes('analytics')) {
         req.abort();
       } else {
         req.continue();
@@ -80,31 +80,29 @@ app.post('/sync-mercadona', async (req, res) => {
 
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
-    // 1. Ir directo a login/carrito
-    console.log('[ROBOT] 1/4 Navegando a Mercadona...');
+    // 1. Login/Identificación
+    console.log('[ROBOT] 1/4 Accediendo a Mercadona...');
     await page.goto('https://tienda.mercadona.es/?authenticate-user=', { waitUntil: 'networkidle2' });
 
     // Aceptar cookies
-    try {
-      await page.evaluate(() => {
-        const btn = document.querySelector('button[data-testid="cookie-policy-accept"]') || 
-                    Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Aceptar'));
-        if (btn) btn.click();
-      });
-    } catch (_) {}
+    await page.evaluate(() => {
+      const btn = document.querySelector('button[data-testid="cookie-policy-accept"]') || 
+                  Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Aceptar'));
+      if (btn) btn.click();
+    });
 
-    // 2. CP si es necesario
+    // 2. CP 03005
     try {
       const cpInput = await page.$('input[name="postalCode"]');
       if (cpInput) {
-        console.log('[ROBOT] 2/4 Validando zona 03005...');
+        console.log('[ROBOT] 2/4 Configurando zona 03005...');
         await page.type('input[name="postalCode"]', '03005');
         await page.keyboard.press('Enter');
         await wait(2000);
       }
     } catch (_) {}
 
-    // 3. Login
+    // 3. Login real
     console.log('[ROBOT] 3/4 Identificando usuario...');
     const emailInput = await page.$('input[name="email"]');
     if (emailInput) {
@@ -119,72 +117,62 @@ app.post('/sync-mercadona', async (req, res) => {
           page.waitForNavigation({ waitUntil: 'networkidle2' }),
           page.keyboard.press('Enter')
         ]);
-        console.log('[ROBOT] ✅ Login completado.');
+        console.log('[ROBOT] ✅ Sesión iniciada.');
       }
     }
 
-    // 4. Añadir productos con nuevos selectores
-    console.log(`[ROBOT] 4/4 Procesando ${skus.length} productos...`);
+    // 4. Búsqueda y Añadido de Productos
+    console.log('[ROBOT] 4/4 Procesando productos mediante búsqueda...');
     const itemsAdded = [];
-    
-    // Procesamos uno a uno o en pequeños grupos si falla el paralelo masivo
+
+    // Ir a la tienda principal para tener el buscador
+    await page.goto('https://tienda.mercadona.es/', { waitUntil: 'networkidle2' });
+
     for (const sku of skus) {
-      const p = await browser.newPage();
       try {
-        await p.setRequestInterception(true);
-        p.on('request', (r) => {
-          if (['image', 'font', 'media'].includes(r.resourceType())) r.abort();
-          else r.continue();
+        console.log(`[ROBOT] Buscando ID: ${sku}...`);
+        
+        // Esperar a que el buscador sea visible
+        await page.waitForSelector('input[type="search"]', { visible: true, timeout: 15000 });
+        
+        // Limpiar búsqueda anterior y escribir nuevo SKU con delay
+        await page.click('input[type="search"]', { clickCount: 3 });
+        await page.keyboard.press('Backspace');
+        await page.type('input[type="search"]', String(sku), { delay: 100 });
+        await page.keyboard.press('Enter');
+        
+        // Esperar a que carguen los resultados
+        await wait(2500);
+
+        // Intentar añadir el producto
+        const added = await page.evaluate(() => {
+          // Buscamos el contenedor del producto y su botón
+          const btn = document.querySelector('button[data-testid="product-button-add"]') || 
+                      document.querySelector('.button--primary') ||
+                      document.querySelector('button[aria-label*="Añadir al carrito"]');
+          
+          if (btn && !btn.disabled) {
+            btn.scrollIntoView();
+            btn.click();
+            return true;
+          }
+          return false;
         });
 
-        console.log(`[ROBOT] Buscando SKU: ${sku}...`);
-        await p.goto(`https://tienda.mercadona.es/product/${sku}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        await wait(1500);
-
-        const result = await p.evaluate(() => {
-          // Intentar múltiples selectores según el cambio de Mercadona
-          const selectors = [
-            'button[data-testid="product-button-add"]',
-            'button[aria-label*="Añadir al carrito"]',
-            'button.button--primary',
-            'button.product-format-selection__add-button'
-          ];
-          
-          for (const sel of selectors) {
-            const btn = document.querySelector(sel);
-            if (btn && !btn.disabled) {
-              btn.click();
-              return { success: true, selector: sel };
-            }
-          }
-          
-          // Último recurso: buscar por texto
-          const allBtns = Array.from(document.querySelectorAll('button'));
-          const addBtn = allBtns.find(b => b.innerText.toUpperCase().includes('AÑADIR'));
-          if (addBtn) {
-            addBtn.click();
-            return { success: true, selector: 'text' };
-          }
-          
-          return { success: false };
-        });
-
-        if (result.success) {
-          console.log(`[ROBOT] ✅ SKU ${sku} añadido (vía ${result.selector}).`);
+        if (added) {
+          console.log(`[ROBOT] ✅ Producto ${sku} añadido al carro.`);
           itemsAdded.push(sku);
-          await wait(1000); // Pequeña espera para asegurar el proceso del click
+          await wait(1500); // Pausa para que Mercadona registre el cambio
         } else {
-          console.log(`[ROBOT] ⚠️ No encontré el botón para el ID: ${sku}`);
+          console.log(`[ERROR] No encontré el botón para el producto: ${sku}`);
         }
-        await p.close();
       } catch (e) {
-        console.error(`[ROBOT] ❌ Error en SKU ${sku}: ${e.message}`);
-        await p.close();
+        console.error(`[ERROR] Error procesando SKU ${sku}: ${e.message}`);
       }
     }
 
     await browser.close();
-    console.log(`[ROBOT] ✨ Sincronización finalizada. Total exitosos: ${itemsAdded.length}`);
+    console.log(`[ROBOT] ✨ Fin. Total añadidos: ${itemsAdded.length}`);
     res.json({ success: true, itemsAdded });
 
   } catch (error) {
@@ -195,5 +183,5 @@ app.post('/sync-mercadona', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Bachan Robot v2.11.8 escuchando en puerto ${port}`);
+  console.log(`🚀 Bachan Robot v2.11.9 escuchando en puerto ${port}`);
 });
