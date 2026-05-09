@@ -77,7 +77,7 @@ export default function ShoppingListModal({ selectedItems, ingredients, provider
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const endpoint = isLocal
       ? 'http://localhost:3001/sync-mercadona'
-      : (import.meta.env.VITE_ROBOT_URL || 'https://bachan-robot.up.railway.app/sync');
+      : (import.meta.env.VITE_ROBOT_URL || 'https://bachan-robot-production.up.railway.app/sync-mercadona');
 
     try {
       console.log(`🔄 Enviando petición a: ${endpoint}`);
