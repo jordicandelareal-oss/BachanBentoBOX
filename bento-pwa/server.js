@@ -88,27 +88,44 @@ app.post('/sync-mercadona', async (req, res) => {
     }
 
     // 2. Identificación Forzada y Verificación de Usuario
-    console.log('[ROBOT] 2/4 Identificando sesión de forma rigurosa...');
-    await page.goto('https://tienda.mercadona.es/?authenticate-user=', { waitUntil: 'domcontentloaded' });
-    await wait(4000);
+    console.log('[ROBOT] 2/4 Iniciando flujo de Login explícito...');
+    await page.goto('https://tienda.mercadona.es/', { waitUntil: 'domcontentloaded' });
+    await wait(3000);
     
-    await page.mouse.click(10, 10);
-    await page.keyboard.press('Escape');
-    await wait(1000);
+    // Detección de Pantalla de Inicio y click en "Entrar" o "Identifícate"
+    await page.evaluate(() => {
+        const els = Array.from(document.querySelectorAll('a, button, span'));
+        const loginBtn = els.find(e => e.innerText.match(/identifícate|entrar/i));
+        if (loginBtn) loginBtn.click();
+    });
+    await wait(3000);
 
     const emailIn = await page.$('input[name="email"]');
     if (emailIn) {
-      await humanType(page, 'input[name="email"]', process.env.MERCADONA_USER || 'jordicocinab@gmail.com');
-      await page.keyboard.press('Enter');
-      await wait(1500);
+      // Escritura Humana estricta a 150ms (petición de usuario)
+      await page.type('input[name="email"]', process.env.MERCADONA_USER || 'jordicocinab@gmail.com', { delay: 150 });
+      await wait(1000);
+      
       const passIn = await page.$('input[name="password"]');
       if (passIn) {
-        await humanType(page, 'input[name="password"]', process.env.MERCADONA_PASS || 'soccersmart123');
-        await Promise.all([
-          page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
-          page.keyboard.press('Enter')
-        ]);
-        await wait(5000);
+        await page.type('input[name="password"]', process.env.MERCADONA_PASS || 'soccersmart123', { delay: 150 });
+        await wait(1000);
+        
+        // Click en el botón de Login (Identificarse)
+        await page.evaluate(() => {
+            const btns = Array.from(document.querySelectorAll('button'));
+            const submitBtn = btns.find(b => b.innerText.match(/iniciar sesión|identificarse|entrar/i)) || document.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.click();
+        });
+
+        // Espera de Navegación obligatoria para asentar sesión
+        try {
+            console.log('[DEBUG] Esperando navegación de red post-login (networkidle2)...');
+            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });
+        } catch (e) {
+            console.log('[INFO] Espera de navegación finalizada por tiempo, verificando DOM...');
+            await wait(4000);
+        }
       }
     }
 
