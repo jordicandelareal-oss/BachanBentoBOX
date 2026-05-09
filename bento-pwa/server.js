@@ -40,7 +40,7 @@ async function humanType(page, selector, text) {
 // ── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
-  res.send('🤖 Servidor Robot Bachan Activo (v2.12.2)');
+  res.send('🤖 Servidor Robot Bachan Activo (v2.12.3)');
 });
 
 app.post('/sync-mercadona', async (req, res) => {
@@ -51,7 +51,7 @@ app.post('/sync-mercadona', async (req, res) => {
     return res.status(400).json({ success: false, error: 'SKUs no válidos' });
   }
 
-  console.log(`\n[ROBOT] 🚀 Iniciando v2.12.2 para ${skus.length} productos...`);
+  console.log(`\n[ROBOT] 🚀 Iniciando v2.12.3 (Ficha Directa) para ${skus.length} productos...`);
 
   let browser = null;
   try {
@@ -65,7 +65,7 @@ app.post('/sync-mercadona', async (req, res) => {
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(60000);
 
-    // Bloqueo de recursos ligeros
+    // Bloqueo de recursos (ligero para ver el botón)
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       if (['image', 'font', 'media'].includes(req.resourceType())) req.abort();
@@ -74,13 +74,14 @@ app.post('/sync-mercadona', async (req, res) => {
 
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
-    // 1. Login e Identificación
-    console.log('[ROBOT] 1/3 Identificando sesión...');
+    // 1. Identificación
+    console.log('[ROBOT] 1/3 Asegurando sesión...');
     await page.goto('https://tienda.mercadona.es/?authenticate-user=', { waitUntil: 'networkidle2' });
     
     // Cookies
     await page.evaluate(() => {
-      ['button[data-testid="cookie-policy-accept"]', '#onesignal-slidedown-cancel-button'].forEach(s => document.querySelector(s)?.click());
+      document.querySelector('button[data-testid="cookie-policy-accept"]')?.click();
+      document.querySelector('#onesignal-slidedown-cancel-button')?.click();
     });
 
     const emailIn = await page.$('input[name="email"]');
@@ -95,32 +96,43 @@ app.post('/sync-mercadona', async (req, res) => {
           page.waitForNavigation({ waitUntil: 'networkidle2' }),
           page.keyboard.press('Enter')
         ]);
-        console.log('[ROBOT] ✅ Login OK.');
+        console.log('[ROBOT] ✅ Sesión activa.');
       }
     }
 
-    // 2. Proceso de Sincronización
-    console.log('[ROBOT] 2/3 Sincronizando productos...');
+    // 2. Navegación Directa a Producto
+    console.log('[ROBOT] 2/3 Añadiendo productos desde ficha directa...');
     const itemsAdded = [];
 
     for (const sku of skus) {
       try {
-        const searchUrl = `https://tienda.mercadona.es/search-results/?query=${sku}`;
-        console.log(`[DEBUG] Visitando URL: ${searchUrl}`);
-        await page.goto(searchUrl, { waitUntil: 'networkidle2' });
+        const productUrl = `https://tienda.mercadona.es/product/${sku}/`;
+        console.log(`[DEBUG] Intentando añadir desde ficha directa: ${productUrl}`);
+        await page.goto(productUrl, { waitUntil: 'networkidle2' });
         
-        // Tiempo de cortesía para renderizado
-        await wait(2000);
+        await wait(2000); // Renderizado
 
+        // Intentar selectores maestros
         const added = await page.evaluate(() => {
-          const buttons = Array.from(document.querySelectorAll('button'));
-          // Buscador robusto: por texto, testid o aria-label
-          const btn = buttons.find(b => 
-            b.innerText.includes('Añadir') || 
-            b.getAttribute('aria-label')?.includes('Añadir') ||
-            b.getAttribute('data-testid') === 'product-button-add'
-          );
+          const selectors = [
+            'button.product-format-selection__add-button',
+            'button.main-button',
+            'button[data-testid="product-button-add"]',
+            'button.button--primary'
+          ];
           
+          let btn = null;
+          for (const s of selectors) {
+            btn = document.querySelector(s);
+            if (btn && !btn.disabled) break;
+          }
+
+          // Respaldo: por texto
+          if (!btn) {
+            const allBtns = Array.from(document.querySelectorAll('button'));
+            btn = allBtns.find(b => b.innerText.includes('Añadir') || b.getAttribute('aria-label')?.includes('Añadir'));
+          }
+
           if (btn && !btn.disabled) {
             btn.scrollIntoView();
             btn.click();
@@ -130,13 +142,13 @@ app.post('/sync-mercadona', async (req, res) => {
         });
 
         if (added) {
-          console.log(`[OK] Producto ${sku} añadido al carrito.`);
+          console.log(`[OK] Producto ${sku} añadido correctamente.`);
           itemsAdded.push(sku);
           await wait(1500);
         } else {
-          console.log(`[ERROR] No encontré el botón para el ID: ${sku}`);
+          console.log(`[ERROR] No encontré botón de compra para SKU: ${sku}`);
           const html = await page.content();
-          console.log('[DEBUG] Snippet HTML:', html.substring(0, 400));
+          console.log('[DEBUG] Fragmento HTML:', html.substring(0, 400));
         }
       } catch (err) {
         console.error(`[ERROR SKU ${sku}]`, err.message);
@@ -144,7 +156,7 @@ app.post('/sync-mercadona', async (req, res) => {
     }
 
     await browser.close();
-    console.log(`[ROBOT] 3/3 ✨ Finalizado. Añadidos: ${itemsAdded.length}`);
+    console.log(`[ROBOT] 3/3 ✨ Sincronización terminada. Total: ${itemsAdded.length}`);
     res.json({ success: true, itemsAdded });
 
   } catch (error) {
@@ -155,5 +167,5 @@ app.post('/sync-mercadona', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Bachan Robot v2.12.2 escuchando en puerto ${port}`);
+  console.log(`🚀 Bachan Robot v2.12.3 escuchando en puerto ${port}`);
 });
