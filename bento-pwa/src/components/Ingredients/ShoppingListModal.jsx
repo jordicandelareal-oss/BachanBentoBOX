@@ -72,11 +72,12 @@ export default function ShoppingListModal({ selectedItems, ingredients, provider
 
     setSyncingId(group.provider.id);
 
-    // En Vercel usamos la API serverless; en local el servidor puente
+    // En producción usamos Railway para el robot (evita timeouts de Vercel)
+    // En local usamos el puerto 3001
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const endpoint = isLocal
       ? 'http://localhost:3001/sync-mercadona'
-      : '/api/sync-mercadona';
+      : (import.meta.env.VITE_ROBOT_URL || 'https://bachan-robot.up.railway.app/sync');
 
     try {
       console.log(`🔄 Enviando petición a: ${endpoint}`);
