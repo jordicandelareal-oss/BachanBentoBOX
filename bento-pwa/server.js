@@ -41,7 +41,7 @@ async function humanType(page, selector, text) {
 // ── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
-  res.send('🤖 Servidor Robot Bachan Activo (v2.11.7)');
+  res.send('🤖 Servidor Robot Bachan Activo (v2.11.8)');
 });
 
 app.post('/sync-mercadona', async (req, res) => {
@@ -64,16 +64,14 @@ app.post('/sync-mercadona', async (req, res) => {
     });
 
     const page = await browser.newPage();
-    
-    // Aumentamos el timeout a 60 segundos por defecto
     page.setDefaultNavigationTimeout(60000);
     page.setDefaultTimeout(60000);
 
-    // ── OPTIMIZACIÓN: Bloqueo de recursos pesados ──────────────────────────
+    // Optimización: Bloqueo de recursos (solo dejamos lo vital)
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const type = req.resourceType();
-      if (['image', 'font', 'media', 'stylesheet', 'other'].includes(type) || req.url().includes('google-analytics') || req.url().includes('facebook')) {
+      if (['image', 'font', 'media', 'other'].includes(type) || req.url().includes('analytics')) {
         req.abort();
       } else {
         req.continue();
@@ -82,23 +80,24 @@ app.post('/sync-mercadona', async (req, res) => {
 
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
-    // 1. Ir directo a la página de validación/login
-    console.log('[ROBOT] 1/4 Navegando directo a login...');
+    // 1. Ir directo a login/carrito
+    console.log('[ROBOT] 1/4 Navegando a Mercadona...');
     await page.goto('https://tienda.mercadona.es/?authenticate-user=', { waitUntil: 'networkidle2' });
 
-    // Aceptar cookies (si aparecen)
+    // Aceptar cookies
     try {
       await page.evaluate(() => {
-        const btn = document.querySelector('button[data-testid="cookie-policy-accept"]');
+        const btn = document.querySelector('button[data-testid="cookie-policy-accept"]') || 
+                    Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Aceptar'));
         if (btn) btn.click();
       });
     } catch (_) {}
 
-    // 2. Código Postal 03005 (si lo pide)
+    // 2. CP si es necesario
     try {
       const cpInput = await page.$('input[name="postalCode"]');
       if (cpInput) {
-        console.log('[ROBOT] 2/4 Introduciendo Código Postal 03005...');
+        console.log('[ROBOT] 2/4 Validando zona 03005...');
         await page.type('input[name="postalCode"]', '03005');
         await page.keyboard.press('Enter');
         await wait(2000);
@@ -120,45 +119,72 @@ app.post('/sync-mercadona', async (req, res) => {
           page.waitForNavigation({ waitUntil: 'networkidle2' }),
           page.keyboard.press('Enter')
         ]);
-        console.log('[ROBOT] ✅ Login completado con éxito.');
+        console.log('[ROBOT] ✅ Login completado.');
       }
-    } else {
-      console.log('[ROBOT] ℹ️ Usuario ya identificado o formulario no visible.');
     }
 
-    // 4. Añadir Productos (en paralelo)
-    console.log(`[ROBOT] 4/4 Sincronizando ${skus.length} productos...`);
+    // 4. Añadir productos con nuevos selectores
+    console.log(`[ROBOT] 4/4 Procesando ${skus.length} productos...`);
     const itemsAdded = [];
     
-    await Promise.all(skus.map(async (sku) => {
+    // Procesamos uno a uno o en pequeños grupos si falla el paralelo masivo
+    for (const sku of skus) {
       const p = await browser.newPage();
       try {
         await p.setRequestInterception(true);
         p.on('request', (r) => {
-          if (['image', 'font', 'media', 'stylesheet'].includes(r.resourceType())) r.abort();
+          if (['image', 'font', 'media'].includes(r.resourceType())) r.abort();
           else r.continue();
         });
-        
+
+        console.log(`[ROBOT] Buscando SKU: ${sku}...`);
         await p.goto(`https://tienda.mercadona.es/product/${sku}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        const done = await p.evaluate(() => {
-          const btn = document.querySelector('button[data-testid="product-button-add"]');
-          if (btn) { btn.click(); return true; }
-          return false;
+        await wait(1500);
+
+        const result = await p.evaluate(() => {
+          // Intentar múltiples selectores según el cambio de Mercadona
+          const selectors = [
+            'button[data-testid="product-button-add"]',
+            'button[aria-label*="Añadir al carrito"]',
+            'button.button--primary',
+            'button.product-format-selection__add-button'
+          ];
+          
+          for (const sel of selectors) {
+            const btn = document.querySelector(sel);
+            if (btn && !btn.disabled) {
+              btn.click();
+              return { success: true, selector: sel };
+            }
+          }
+          
+          // Último recurso: buscar por texto
+          const allBtns = Array.from(document.querySelectorAll('button'));
+          const addBtn = allBtns.find(b => b.innerText.toUpperCase().includes('AÑADIR'));
+          if (addBtn) {
+            addBtn.click();
+            return { success: true, selector: 'text' };
+          }
+          
+          return { success: false };
         });
-        
-        if (done) {
-          console.log(`[ROBOT] 📦 Producto ${sku} añadido.`);
+
+        if (result.success) {
+          console.log(`[ROBOT] ✅ SKU ${sku} añadido (vía ${result.selector}).`);
           itemsAdded.push(sku);
+          await wait(1000); // Pequeña espera para asegurar el proceso del click
+        } else {
+          console.log(`[ROBOT] ⚠️ No encontré el botón para el ID: ${sku}`);
         }
         await p.close();
       } catch (e) {
         console.error(`[ROBOT] ❌ Error en SKU ${sku}: ${e.message}`);
         await p.close();
       }
-    }));
+    }
 
     await browser.close();
-    console.log(`[ROBOT] ✨ Sincronización finalizada. Total: ${itemsAdded.length} productos.`);
+    console.log(`[ROBOT] ✨ Sincronización finalizada. Total exitosos: ${itemsAdded.length}`);
     res.json({ success: true, itemsAdded });
 
   } catch (error) {
@@ -169,5 +195,5 @@ app.post('/sync-mercadona', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Bachan Robot v2.11.7 escuchando en puerto ${port}`);
+  console.log(`🚀 Bachan Robot v2.11.8 escuchando en puerto ${port}`);
 });
