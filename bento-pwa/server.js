@@ -155,27 +155,41 @@ app.post('/sync-mercadona', async (req, res) => {
           console.log(`[DEBUG] Click detectado en botón: "${scanResult.text}". Procediendo a verificación en carrito...`);
           await wait(2000);
 
-          // VERIFICACIÓN DE FUEGO: NAVEGAR AL CARRITO
+          // VERIFICACIÓN DE FUEGO: NAVEGAR AL CARRITO (PERSISTENCIA)
           await page.goto('https://tienda.mercadona.es/cart/', { waitUntil: 'domcontentloaded' });
-          await wait(4000);
+          await wait(5000); // 5 segundos para que los scripts locales sincronicen con el servidor
+          
+          // Pequeño scroll para forzar eventos de ventana
+          await page.evaluate(() => window.scrollBy(0, 500));
+          await wait(1000);
 
-          const cartHasItems = await page.evaluate(() => {
+          const cartValidation = await page.evaluate(() => {
             const bodyText = document.body.innerText.toLowerCase();
+            
             // Buscar indicadores de carrito vacío o "0"
             if (bodyText.includes('tu cesta está vacía') || bodyText.includes('carro vacío') || bodyText.match(/0 productos/i)) {
-              return false;
+              return { hasItems: false, total: '0,00' };
             }
-            // Buscar indicadores de carrito con elementos
-            const hasCheckoutBtn = Array.from(document.querySelectorAll('button')).some(b => 
-              b.innerText.toLowerCase().includes('tramitar') || 
-              b.innerText.toLowerCase().includes('pagar') || 
-              b.innerText.toLowerCase().includes('pedido')
-            );
-            return hasCheckoutBtn || bodyText.includes('total'); // Si hay botón de tramitar o un total, hay items.
+            
+            // Extraer total aproximado (busca el primer precio que parezca un total general)
+            const textNodes = Array.from(document.querySelectorAll('*'))
+                .filter(el => el.children.length === 0 && el.innerText.includes('€'));
+            
+            let totalMatch = 'Desconocido';
+            for (const node of textNodes) {
+              // A menudo el total está cerca de la palabra "Total" o es el número más alto
+              if (node.innerText.match(/\d+,\d{2}/)) {
+                 totalMatch = node.innerText.trim();
+                 break; // Tomamos el primer candidato para el log
+              }
+            }
+
+            return { hasItems: true, total: totalMatch };
           });
 
-          if (cartHasItems) {
+          if (cartValidation.hasItems) {
             console.log(`[OK] AÑADIDO: Producto ${sku} consolidado en el carrito.`);
+            console.log(`Validación final: El carrito tiene un total de ${cartValidation.total}`);
             itemsAdded.push(sku);
           } else {
             console.log(`[FALLO DE SESIÓN] Producto ${sku}: El click no se registró en la cuenta (Carrito con 0 elementos).`);
