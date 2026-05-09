@@ -1,59 +1,14 @@
 // /api/sync-mercadona.js
-// Vercel Serverless Function — Automatización Mercadona vía Browserless.io
-// Evita bloqueos de IP (403) usando un navegador remoto.
+// Vercel Serverless Function — Ultra-Optimized (Speed & Performance)
+// Objetivo: Completar el flujo en < 10s para evitar 504 Timeout.
 
 import puppeteerExtra from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import puppeteer from 'puppeteer-core';
 
-// Usar el plugin stealth para evadir detección de bots
 puppeteerExtra.use(StealthPlugin());
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
-const randomDelay = (min = 80, max = 200) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-/** Escribe en un input simulando ritmo humano */
-async function humanType(page, selector, text) {
-  await page.waitForSelector(selector, { visible: true, timeout: 10000 });
-  await page.click(selector, { clickCount: 3 });
-  await page.keyboard.press('Backspace');
-  await wait(randomDelay(150, 350));
-  for (const char of text) {
-    await page.type(selector, char, { delay: randomDelay(80, 170) });
-  }
-}
-
-/** Hover + click con pausa humana */
-async function humanClick(page, selector, timeout = 8000) {
-  await page.waitForSelector(selector, { visible: true, timeout });
-  await page.hover(selector);
-  await wait(randomDelay(200, 450));
-  await page.click(selector);
-}
-
-/** Busca un botón por texto y hace click */
-async function clickByText(page, text, timeoutMs = 10000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const clicked = await page.evaluate((t) => {
-      const all = Array.from(document.querySelectorAll('button, [role="button"]'));
-      const btn = all.find(b =>
-        !b.disabled &&
-        b.innerText &&
-        b.innerText.trim().toUpperCase().includes(t.toUpperCase())
-      );
-      if (btn) {
-        btn.click();
-        return btn.innerText.trim();
-      }
-      return null;
-    }, text);
-
-    if (clicked) return true;
-    await wait(500);
-  }
-  return false;
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -67,12 +22,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'SKUs no válidos' });
   }
 
-  console.log(`[API] Iniciando sincronización remota para SKUs: ${skus.join(', ')}`);
-
   let browser = null;
   try {
-    // ── Conexión a Browserless.io ──────────────────────────────────────────
-    // Forzamos tamaño de ventana y otros parámetros vía query string
     const browserWSEndpoint = `wss://chrome.browserless.io?token=${token}&--window-size=1280,800`;
     
     browser = await puppeteerExtra.connect({
@@ -81,95 +32,103 @@ export default async function handler(req, res) {
     });
 
     const page = await browser.newPage();
+    
+    // ── OPTIMIZACIÓN 1: Interceptar y Bloquear Recursos Pesados ──────────
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const resourceType = req.resourceType();
+      if (['image', 'font', 'media'].includes(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
-    // ── PASO 1: Home + Cookies ──────────────────────────────────────────────
-    await page.goto('https://tienda.mercadona.es/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await wait(2000);
+    // ── PASO 1: Ir directo a Login (Ahorra un salto de página) ────────────
+    console.log('[API] Navegando directo a login...');
+    await page.goto('https://tienda.mercadona.es/?authenticate-user=', { 
+      waitUntil: 'networkidle2', 
+      timeout: 15000 
+    });
 
-    try {
-      await page.waitForSelector('button[data-testid="cookie-policy-accept"]', { timeout: 5000 });
-      await humanClick(page, 'button[data-testid="cookie-policy-accept"]');
-    } catch (_) {
-      await clickByText(page, 'Aceptar', 4000);
+    // ── PASO 2: Gestionar Cookies/CP si aparecen (Rápido) ─────────────────
+    // Usamos evaluate para detectar y clickar instantáneamente sin esperar timeouts largos
+    await page.evaluate(() => {
+      // Cookies
+      const cookieBtn = document.querySelector('button[data-testid="cookie-policy-accept"]');
+      if (cookieBtn) cookieBtn.click();
+      
+      // Intentar cerrar cualquier modal inicial
+      const closeBtn = document.querySelector('button[aria-label="Cerrar"]');
+      if (closeBtn) closeBtn.click();
+    });
+
+    // Código Postal (Solo si el input está presente)
+    const hasCP = await page.$('input[name="postalCode"]');
+    if (hasCP) {
+      await page.type('input[name="postalCode"]', '03005');
+      await page.keyboard.press('Enter');
+      await wait(1000); // Mínimo para que procese el cambio de zona
     }
 
-    // ── PASO 2: Código Postal 03005 ─────────────────────────────────────────
-    try {
-      await page.waitForSelector('input[name="postalCode"]', { visible: true, timeout: 8000 });
-      await humanType(page, 'input[name="postalCode"]', '03005');
-      await wait(500);
-      await Promise.all([
-        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }),
-        page.keyboard.press('Enter')
-      ]);
-    } catch (_) {
-      console.log('[API] CP no solicitado o error en validación.');
-    }
-
-    // ── PASO 3: Login ───────────────────────────────────────────────────────
-    await page.goto('https://tienda.mercadona.es/?authenticate-user=', { waitUntil: 'networkidle2' });
-    await wait(2000);
-
-    try {
-      let emailSel = null;
-      for (const s of ['input[name="email"]', 'input[type="email"]']) {
-        try {
-          await page.waitForSelector(s, { visible: true, timeout: 3000 });
-          emailSel = s;
-          break;
-        } catch (_) {}
+    // ── PASO 3: Login (Agresivo) ──────────────────────────────────────────
+    const emailInput = await page.$('input[name="email"], input[type="email"]');
+    if (emailInput) {
+      await page.type('input[name="email"]', process.env.MERCADONA_USER || 'jordicocinab@gmail.com');
+      await page.keyboard.press('Enter');
+      await wait(800);
+      
+      const passInput = await page.$('input[name="password"], input[type="password"]');
+      if (passInput) {
+        await page.type('input[name="password"]', process.env.MERCADONA_PASS || 'soccersmart123');
+        await Promise.all([
+          page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 }),
+          page.keyboard.press('Enter')
+        ]);
       }
-
-      if (emailSel) {
-        await humanType(page, emailSel, process.env.MERCADONA_USER || 'jordicocinab@gmail.com');
-        await page.keyboard.press('Enter');
-        await wait(2000);
-
-        let passSel = null;
-        for (const s of ['input[name="password"]', 'input[type="password"]']) {
-          try {
-            await page.waitForSelector(s, { visible: true, timeout: 3000 });
-            passSel = s;
-            break;
-          } catch (_) {}
-        }
-
-        if (passSel) {
-          await humanType(page, passSel, process.env.MERCADONA_PASS || 'soccersmart123');
-          await Promise.all([
-            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }),
-            page.keyboard.press('Enter')
-          ]);
-        }
-      }
-    } catch (e) {
-      console.log('[API] Error en login o ya identificado.');
     }
 
-    // ── PASO 4: Añadir productos ────────────────────────────────────────────
-    const itemsAdded = [];
-    for (const sku of skus) {
+    // ── PASO 4: Añadir productos en Paralelo ──────────────────────────────
+    console.log(`[API] Añadiendo ${skus.length} productos en paralelo...`);
+    
+    // Para maximizar velocidad, procesamos los SKUs de forma concurrente
+    const results = await Promise.all(skus.map(async (sku) => {
+      const productPage = await browser.newPage();
       try {
-        await page.goto(`https://tienda.mercadona.es/product/${sku}`, { waitUntil: 'networkidle2' });
-        await wait(2000);
-        
-        let done = false;
-        try {
-          await page.waitForSelector('button[data-testid="product-button-add"]', { timeout: 5000 });
-          await humanClick(page, 'button[data-testid="product-button-add"]');
-          done = true;
-        } catch (_) {
-          done = await clickByText(page, 'Añadir al carro', 5000);
-        }
-        
-        if (done) itemsAdded.push(sku);
+        await productPage.setRequestInterception(true);
+        productPage.on('request', (r) => {
+          if (['image', 'font', 'media'].includes(r.resourceType())) r.abort();
+          else r.continue();
+        });
+
+        await productPage.goto(`https://tienda.mercadona.es/product/${sku}`, { 
+          waitUntil: 'domcontentloaded', 
+          timeout: 8000 
+        });
+
+        const added = await productPage.evaluate(() => {
+          const btn = document.querySelector('button[data-testid="product-button-add"]') || 
+                      Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Añadir'));
+          if (btn) {
+            btn.click();
+            return true;
+          }
+          return false;
+        });
+
+        await productPage.close();
+        return { sku, success: added };
       } catch (e) {
-        console.error(`[API] Error con SKU ${sku}: ${e.message}`);
+        await productPage.close();
+        return { sku, success: false, error: e.message };
       }
-    }
+    }));
 
     await browser.close();
+    
+    const itemsAdded = results.filter(r => r.success).map(r => r.sku);
     return res.status(200).json({ success: true, itemsAdded });
 
   } catch (error) {
