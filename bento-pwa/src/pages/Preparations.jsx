@@ -346,9 +346,9 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
     let baseCost = 0;
 
     if (item.type === 'ingredient') {
-      // MASTER RULE: Use cost_per_unit from DB (already price per KG)
+      // MASTER RULE: Prioritize net_cost_per_unit from DB (Calculated in DB)
       normalized = normalizeUnit(item.unit_name || 'g');
-      baseCost = parseFloat(item.cost_per_unit || 0);
+      baseCost = parseFloat(item.net_cost_per_unit || item.cost_per_unit || 0);
     } else {
       // Sub-recipe: Respect the recipe's own yield_scenario
       // If weight-based: cost_per_portion is already stored as €/kg → treat like a weight ingredient

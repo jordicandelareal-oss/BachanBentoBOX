@@ -5,7 +5,7 @@ import { useIngredients } from '../hooks/useIngredients'
 import { useRecipes } from '../hooks/useRecipes'
 import { useOrderNotifications } from '../hooks/useOrderNotifications'
 import { processCommand } from '../lib/geminiClient'
-import { BookOpen, CookingPot, Carrot, Sparkles, Settings, BarChart3, LayoutGrid, ShoppingBag } from 'lucide-react'
+import { BookOpen, CookingPot, Carrot, Sparkles, Settings, BarChart3, LayoutGrid, ShoppingBag, Truck } from 'lucide-react'
 import pkg from '../../package.json'
 import NanaOverlay from './Nana/NanaOverlay'
 import AIActionSheet from './Nana/AIActionSheet'
@@ -217,7 +217,8 @@ export default function Layout() {
                 <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Menú</NavLink>
                 <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
                 <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
-                <NavLink to="/settings" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Ajustes</NavLink>
+                <NavLink to="/providers"   className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Proveedores</NavLink>
+                <NavLink to="/settings"    className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Ajustes</NavLink>
               </div>
             )}
           </div>
@@ -243,6 +244,10 @@ export default function Layout() {
               <NavLink to="/ingredients" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
                 <Carrot size={22} />
                 <span>Items</span>
+              </NavLink>
+              <NavLink to="/providers" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+                <Truck size={22} />
+                <span>Prov</span>
               </NavLink>
               <NavLink to="/settings" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
                 <Settings size={22} />

@@ -248,8 +248,8 @@ export default function useBentoMaker(initialRecipe = null, recipeType = 'bento'
       if (isIngredient) {
         unitName = item.units?.name || 'g'
         normalizedUnit = normalizeUnit(unitName)
-        // SOURCE OF TRUTH: cost_per_unit
-        baseCost = parseFloat(item.cost_per_unit || 0);
+        // SOURCE OF TRUTH: Prioritize net_cost_per_unit (Calculated in DB)
+        baseCost = parseFloat(item.net_cost_per_unit || item.cost_per_unit || 0);
       } else {
         // Sub-recipe: Respect the recipe's own yield_scenario
         // If weight-based: cost_per_portion is stored as €/kg → treat like weight ingredient (triggers /1000)

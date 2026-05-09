@@ -44,7 +44,8 @@ export function useIngredients() {
           *,
           categories:category_id ( id, name ),
           subcategories:subcategory_id ( id, name ),
-          units:unit_id ( id, name )
+          units:unit_id ( id, name ),
+          providers:provider_id ( id, name )
         `)
         .order('name')
         
@@ -62,6 +63,7 @@ export function useIngredients() {
         category_name: ing.categories?.name || null,
         subcategory_name: ing.subcategories?.name || null,
         unit_name: ing.units?.name || null,
+        provider_name: ing.providers?.name || ing.provider || null,
       }));
 
       setIngredients(mapped)
@@ -182,21 +184,9 @@ export function useIngredients() {
         if (fetchErr) throw fetchErr;
 
         if (ingredient) {
-          // Calculate the real cost per unit for the ingredient
-          const fmt = parseFloat(ingredient.purchase_format) || 0;
-          const prc = parseFloat(ingredient.purchase_price) || 0;
-          let ingredientCost = 0;
-          if (fmt > 0) {
-            const grossCost = ingredient.calculation_type === 'unidad' 
-              ? (prc / fmt) 
-              : ((prc / fmt) * 1000);
-            
-            // Factor de rendimiento: yield = 1 + (waste/100)
-            const yieldFactor = 1 + (parseFloat(ingredient.waste_percentage || 0) / 100);
-            ingredientCost = yieldFactor > 0 ? (grossCost / yieldFactor) : grossCost;
-          } else {
-            ingredientCost = parseFloat(ingredient.cost_per_unit || 0);
-          }
+          // ✅ MASTER RULE: Use net_cost_per_unit from DB (Source of Truth)
+          // Falls back to cost_per_unit or 0 if null.
+          const ingredientCost = parseFloat(ingredient.net_cost_per_unit || ingredient.cost_per_unit || 0);
 
           const menuItem = {
             id: ingredientId, // Use ingredient ID as PK for menu_items

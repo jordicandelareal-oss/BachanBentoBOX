@@ -13,6 +13,7 @@ import POS             from './pages/POS'
 import BusinessAnalytics from './pages/BusinessAnalytics'
 import AdminRoute      from './components/AdminRoute'
 import SplashScreen    from './components/SplashScreen'
+import Providers       from './pages/Providers'
 
 import './styles/theme.css'
 import './styles/animations.css'
@@ -114,6 +115,7 @@ function App() {
                 <Route path="preparations" element={<Preparations />} />
                 <Route path="recipes"      element={<Recipes />} />
                 <Route path="bento-maker"  element={<BentoPage />} />
+                <Route path="providers"    element={<Providers />} />
                 <Route path="settings"     element={<CatalogSettings />} />
               </Route>
             </Route>
