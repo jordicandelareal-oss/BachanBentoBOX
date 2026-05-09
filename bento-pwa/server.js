@@ -11,16 +11,20 @@ puppeteerExtra.use(StealthPlugin());
 const app = express();
 const port = process.env.PORT || 3001;
 
-// CORS totalmente abierto para testeo y compatibilidad con móvil/Vercel
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.use(express.json());
+// Middleware manual drástico para CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Responder rápido a la petición preflight (OPTIONS)
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
-// Manejo explícito de preflight
-app.options('*', cors());
+app.use(express.json());
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 const randomDelay = (min = 80, max = 200) => Math.floor(Math.random() * (max - min + 1)) + min;
