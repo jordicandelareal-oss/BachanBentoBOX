@@ -1,7 +1,7 @@
 {
   "name": "bachan-bento-box",
   "private": true,
-  "version": "2.12.11",
+  "version": "2.12.12",
   "type": "module",
   "scripts": {
     "dev": "vite --host",

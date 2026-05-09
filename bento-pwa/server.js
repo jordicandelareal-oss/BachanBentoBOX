@@ -29,7 +29,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 // ── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
-  res.send('🤖 Servidor Robot Bachan Activo (v2.12.11 - Ultra-Light)');
+  res.send('🤖 Servidor Robot Bachan Activo (v2.12.12 - Secure Session)');
 });
 
 app.post('/sync-mercadona', async (req, res) => {
@@ -40,11 +40,10 @@ app.post('/sync-mercadona', async (req, res) => {
     return res.status(400).json({ success: false, error: 'SKUs no válidos' });
   }
 
-  console.log(`\n[ROBOT] 🚀 Iniciando v2.12.11 (Modo Ultra-Light) para ${skus.length} productos...`);
+  console.log(`\n[ROBOT] 🚀 Iniciando v2.12.12 (Sesión Segura y Verificación de Carrito) para ${skus.length} productos...`);
 
   let browser = null;
   try {
-    // Argumentos Ultra-Light para Browserless / Puppeteer
     const args = '&--no-sandbox&--disable-setuid-sandbox&--disable-dev-shm-usage&--disable-accelerated-2d-canvas&--no-first-run&--no-zygote&--single-process';
     const browserWSEndpoint = `wss://chrome.browserless.io?token=${token}&--window-size=1280,800${args}`;
     
@@ -54,15 +53,15 @@ app.post('/sync-mercadona', async (req, res) => {
     });
 
     const page = await browser.newPage();
-    page.setDefaultNavigationTimeout(60000); // Reducido a 60s para evitar SIGTERM
+    page.setDefaultNavigationTimeout(60000);
 
-    // User-Agent de Incógnito (Chrome Windows actualizado)
+    // User-Agent de Chrome real
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
     // 1. Zona de Venta y Cookies
     console.log('[ROBOT] 1/4 Estableciendo Zona de Venta...');
     await page.goto('https://tienda.mercadona.es/', { waitUntil: 'domcontentloaded' });
-    await wait(2000);
+    await wait(3000);
 
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('button'));
@@ -72,30 +71,30 @@ app.post('/sync-mercadona', async (req, res) => {
       );
       if (acceptBtn) acceptBtn.click();
     });
-    await wait(1000);
+    await wait(1500);
 
     const cpInput = await page.$('input[name="postalCode"]');
     if (cpInput) {
       await page.type('input[name="postalCode"]', '03005', { delay: 50 });
       await page.keyboard.press('Enter');
-      await wait(2000);
+      await wait(3000);
       console.log('[ROBOT] ✅ Zona de Venta establecida (03005).');
     }
 
-    // 2. Identificación
-    console.log('[ROBOT] 2/4 Identificando sesión...');
+    // 2. Identificación Forzada y Verificación de Usuario
+    console.log('[ROBOT] 2/4 Identificando sesión de forma rigurosa...');
     await page.goto('https://tienda.mercadona.es/?authenticate-user=', { waitUntil: 'domcontentloaded' });
-    await wait(3000);
+    await wait(4000);
     
     await page.mouse.click(10, 10);
     await page.keyboard.press('Escape');
-    await wait(500);
+    await wait(1000);
 
     const emailIn = await page.$('input[name="email"]');
     if (emailIn) {
       await page.type('input[name="email"]', process.env.MERCADONA_USER || 'jordicocinab@gmail.com', { delay: 50 });
       await page.keyboard.press('Enter');
-      await wait(1000);
+      await wait(1500);
       const passIn = await page.$('input[name="password"]');
       if (passIn) {
         await page.type('input[name="password"]', process.env.MERCADONA_PASS || 'soccersmart123', { delay: 50 });
@@ -103,13 +102,24 @@ app.post('/sync-mercadona', async (req, res) => {
           page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
           page.keyboard.press('Enter')
         ]);
-        await wait(3000);
-        console.log('[ROBOT] ✅ Sesión activa.');
+        await wait(5000);
       }
     }
 
-    // 3. Rastreo Universal de Botones
-    console.log('[ROBOT] 3/4 Sincronizando productos...');
+    // Verificación de que "Jordi" aparece en la página (sesión consolidada)
+    const isSessionOk = await page.evaluate(() => {
+      return document.body.innerText.toLowerCase().includes('jordi');
+    });
+
+    if (!isSessionOk) {
+      console.error('[ROBOT FATAL ERROR] [FALLO DE SESIÓN] No se detectó el nombre del usuario en la web. Cookies o login bloqueados.');
+      await browser.close();
+      return res.status(500).json({ success: false, error: 'Fallo de Sesión: Mercadona bloqueó el login.' });
+    }
+    console.log('[ROBOT] ✅ Sesión verificada y mantenida para el usuario.');
+
+    // 3. Sincronización y Verificación Post-Click en /cart/
+    console.log('[ROBOT] 3/4 Sincronizando y verificando carrito...');
     const itemsAdded = [];
 
     for (const sku of skus) {
@@ -118,7 +128,7 @@ app.post('/sync-mercadona', async (req, res) => {
         console.log(`[DEBUG] Visitando ficha: ${productUrl}`);
         
         await page.goto(productUrl, { waitUntil: 'domcontentloaded' });
-        await wait(3000);
+        await wait(4000);
 
         await page.mouse.click(10, 10);
 
@@ -136,26 +146,50 @@ app.post('/sync-mercadona', async (req, res) => {
           if (btnCompra && !btnCompra.disabled) {
             btnCompra.scrollIntoView();
             btnCompra.click();
-            return { success: true, count: botones.length, text: btnCompra.innerText };
+            return { success: true, text: btnCompra.innerText };
           }
-          return { success: false, count: botones.length };
+          return { success: false };
         });
 
         if (scanResult.success) {
-          console.log(`[OK] Producto ${sku} añadido (Botón: "${scanResult.text}")`);
-          itemsAdded.push(sku);
-          await wait(1500);
+          console.log(`[DEBUG] Click detectado en botón: "${scanResult.text}". Procediendo a verificación en carrito...`);
+          await wait(2000);
+
+          // VERIFICACIÓN DE FUEGO: NAVEGAR AL CARRITO
+          await page.goto('https://tienda.mercadona.es/cart/', { waitUntil: 'domcontentloaded' });
+          await wait(4000);
+
+          const cartHasItems = await page.evaluate(() => {
+            const bodyText = document.body.innerText.toLowerCase();
+            // Buscar indicadores de carrito vacío o "0"
+            if (bodyText.includes('tu cesta está vacía') || bodyText.includes('carro vacío') || bodyText.match(/0 productos/i)) {
+              return false;
+            }
+            // Buscar indicadores de carrito con elementos
+            const hasCheckoutBtn = Array.from(document.querySelectorAll('button')).some(b => 
+              b.innerText.toLowerCase().includes('tramitar') || 
+              b.innerText.toLowerCase().includes('pagar') || 
+              b.innerText.toLowerCase().includes('pedido')
+            );
+            return hasCheckoutBtn || bodyText.includes('total'); // Si hay botón de tramitar o un total, hay items.
+          });
+
+          if (cartHasItems) {
+            console.log(`[OK] AÑADIDO: Producto ${sku} consolidado en el carrito.`);
+            itemsAdded.push(sku);
+          } else {
+            console.log(`[FALLO DE SESIÓN] Producto ${sku}: El click no se registró en la cuenta (Carrito con 0 elementos).`);
+          }
         } else {
-          console.log(`[ERROR] No se detectó botón de compra para SKU: ${sku}. Botones en página: ${scanResult.count}`);
-          // Eliminado log HTML completo para no saturar memoria
+          console.log(`[ERROR] No se encontró botón interactivo para SKU: ${sku}`);
         }
       } catch (err) {
-        console.warn(`[SKIP SKU ${sku}] Error de navegación mitigado.`);
+        console.warn(`[SKIP SKU ${sku}] Error de navegación durante el proceso.`);
       }
     }
 
     await browser.close();
-    console.log(`[ROBOT] 4/4 ✨ Finalizado. Total añadidos: ${itemsAdded.length}`);
+    console.log(`[ROBOT] 4/4 ✨ Finalizado. Añadidos REALES: ${itemsAdded.length}`);
     res.json({ success: true, itemsAdded });
 
   } catch (error) {
@@ -166,5 +200,5 @@ app.post('/sync-mercadona', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Bachan Robot v2.12.11 escuchando en puerto ${port}`);
+  console.log(`🚀 Bachan Robot v2.12.12 escuchando en puerto ${port}`);
 });
