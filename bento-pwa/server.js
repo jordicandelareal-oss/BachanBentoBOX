@@ -29,7 +29,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 // ── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
-  res.send('🤖 Servidor Robot Bachan Activo (v2.12.9)');
+  res.send('🤖 Servidor Robot Bachan Activo (v2.12.10)');
 });
 
 app.post('/sync-mercadona', async (req, res) => {
@@ -40,7 +40,7 @@ app.post('/sync-mercadona', async (req, res) => {
     return res.status(400).json({ success: false, error: 'SKUs no válidos' });
   }
 
-  console.log(`\n[ROBOT] 🚀 Iniciando v2.12.9 (Rastreo Universal) para ${skus.length} productos...`);
+  console.log(`\n[ROBOT] 🚀 Iniciando v2.12.10 (Modo Tanque) para ${skus.length} productos...`);
 
   let browser = null;
   try {
@@ -57,12 +57,37 @@ app.post('/sync-mercadona', async (req, res) => {
     // User-Agent de Incógnito (Chrome Windows actualizado)
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
-    // 1. Identificación
-    console.log('[ROBOT] 1/3 Identificando sesión...');
+    // 1. Zona de Venta y Cookies (CRÍTICO)
+    console.log('[ROBOT] 1/4 Estableciendo Zona de Venta...');
+    await page.goto('https://tienda.mercadona.es/', { waitUntil: 'networkidle2' });
+    await wait(2000);
+
+    // Aceptar Cookies a lo bruto
+    await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('button'));
+      const acceptBtn = btns.find(b => 
+        b.innerText.match(/Aceptar|Permitir/i) || 
+        b.getAttribute('data-testid') === 'cookie-policy-accept'
+      );
+      if (acceptBtn) acceptBtn.click();
+    });
+    await wait(1000);
+
+    // Introducir Código Postal
+    const cpInput = await page.$('input[name="postalCode"]');
+    if (cpInput) {
+      await page.type('input[name="postalCode"]', '03005', { delay: 100 });
+      await page.keyboard.press('Enter');
+      await wait(3000);
+      console.log('[ROBOT] ✅ Zona de Venta establecida (03005).');
+    }
+
+    // 2. Identificación
+    console.log('[ROBOT] 2/4 Identificando sesión...');
     await page.goto('https://tienda.mercadona.es/?authenticate-user=', { waitUntil: 'load' });
-    await wait(5000);
+    await wait(4000);
     
-    // Limpieza a ciegas de overlays
+    // Limpieza de overlays
     await page.mouse.click(10, 10);
     await page.keyboard.press('Escape');
     await wait(1000);
@@ -84,8 +109,8 @@ app.post('/sync-mercadona', async (req, res) => {
       }
     }
 
-    // 2. Rastreo Universal de Botones
-    console.log('[ROBOT] 2/3 Sincronizando productos...');
+    // 3. Rastreo Universal de Botones
+    console.log('[ROBOT] 3/4 Sincronizando productos...');
     const itemsAdded = [];
 
     for (const sku of skus) {
@@ -99,14 +124,16 @@ app.post('/sync-mercadona', async (req, res) => {
         // Click en (10, 10) para limpiar banners por si acaso
         await page.mouse.click(10, 10);
 
-        // Script de Rastreo Universal
+        // Script de Rastreo Universal (Modo Tanque)
         const scanResult = await page.evaluate(() => {
           const botones = Array.from(document.querySelectorAll('button'));
           const btnCompra = botones.find(b => 
             b.innerText.includes('Añadir') || 
             b.innerHTML.includes('cart') ||
             b.className.includes('add-button') ||
-            b.getAttribute('aria-label')?.includes('Añadir')
+            b.className.includes('main-button') ||
+            b.className.includes('button--primary') ||
+            b.getAttribute('data-testid') === 'product-format-selection-add-button'
           );
           
           if (btnCompra && !btnCompra.disabled) {
@@ -120,13 +147,11 @@ app.post('/sync-mercadona', async (req, res) => {
         console.log(`[DEBUG] Botones encontrados en página: ${scanResult.count}`);
 
         if (scanResult.success) {
-          console.log(`[OK] Producto ${sku} añadido (Botón: "${scanResult.text}")`);
+          console.log(`[OK] Producto ${sku} añadido (Botón detectado: "${scanResult.text}")`);
           itemsAdded.push(sku);
           await wait(2000);
         } else {
           console.log(`[ERROR] No se detectó botón de compra para SKU: ${sku}`);
-          const html = await page.content();
-          console.log('[DEBUG] Fragmento HTML:', html.substring(0, 300));
         }
       } catch (err) {
         console.warn(`[SKIP SKU ${sku}] Error: ${err.message}`);
@@ -134,7 +159,7 @@ app.post('/sync-mercadona', async (req, res) => {
     }
 
     await browser.close();
-    console.log(`[ROBOT] 3/3 ✨ Finalizado. Total añadidos: ${itemsAdded.length}`);
+    console.log(`[ROBOT] 4/4 ✨ Finalizado. Total añadidos: ${itemsAdded.length}`);
     res.json({ success: true, itemsAdded });
 
   } catch (error) {
@@ -145,5 +170,5 @@ app.post('/sync-mercadona', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Bachan Robot v2.12.9 escuchando en puerto ${port}`);
+  console.log(`🚀 Bachan Robot v2.12.10 escuchando en puerto ${port}`);
 });
