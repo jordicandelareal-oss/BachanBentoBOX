@@ -26,6 +26,12 @@ app.use(express.json());
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
+async function humanType(page, selector, text) {
+  for (const char of text) {
+    await page.type(selector, char, { delay: Math.floor(Math.random() * 100) + 100 });
+  }
+}
+
 // ── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
@@ -92,12 +98,12 @@ app.post('/sync-mercadona', async (req, res) => {
 
     const emailIn = await page.$('input[name="email"]');
     if (emailIn) {
-      await page.type('input[name="email"]', process.env.MERCADONA_USER || 'jordicocinab@gmail.com', { delay: 50 });
+      await humanType(page, 'input[name="email"]', process.env.MERCADONA_USER || 'jordicocinab@gmail.com');
       await page.keyboard.press('Enter');
       await wait(1500);
       const passIn = await page.$('input[name="password"]');
       if (passIn) {
-        await page.type('input[name="password"]', process.env.MERCADONA_PASS || 'soccersmart123', { delay: 50 });
+        await humanType(page, 'input[name="password"]', process.env.MERCADONA_PASS || 'soccersmart123');
         await Promise.all([
           page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
           page.keyboard.press('Enter')
@@ -106,15 +112,29 @@ app.post('/sync-mercadona', async (req, res) => {
       }
     }
 
-    // Verificación de que "Jordi" aparece en la página (sesión consolidada)
-    const isSessionOk = await page.evaluate(() => {
-      return document.body.innerText.toLowerCase().includes('jordi');
+    // Verificación Relajada de Sesión
+    const sessionValidation = await page.evaluate(() => {
+      const bodyText = document.body.innerText.toLowerCase();
+      const isOk = bodyText.includes('jordi') || 
+                   bodyText.includes('cerrar sesión') || 
+                   bodyText.includes('mi cuenta') ||
+                   bodyText.includes('mis pedidos') ||
+                   bodyText.includes('mis datos');
+      
+      if (!isOk) {
+         // Capturar contexto visual (primeros botones) para entender qué ve el robot
+         const btns = Array.from(document.querySelectorAll('button')).slice(0, 5).map(b => b.innerText.trim() || b.className);
+         return { success: false, buttons: btns, sampleText: bodyText.substring(0, 150) };
+      }
+      return { success: true };
     });
 
-    if (!isSessionOk) {
-      console.error('[ROBOT FATAL ERROR] [FALLO DE SESIÓN] No se detectó el nombre del usuario en la web. Cookies o login bloqueados.');
+    if (!sessionValidation.success) {
+      console.error('[ROBOT FATAL ERROR] [FALLO DE SESIÓN] No se detectó inicio de sesión exitoso.');
+      console.error(`[DEBUG VIRTUAL] Botones visibles: ${JSON.stringify(sessionValidation.buttons)}`);
+      console.error(`[DEBUG VIRTUAL] Texto inicial web: ${sessionValidation.sampleText}`);
       await browser.close();
-      return res.status(500).json({ success: false, error: 'Fallo de Sesión: Mercadona bloqueó el login.' });
+      return res.status(500).json({ success: false, error: 'Fallo de Sesión: Mercadona bloqueó el login (Posible Captcha o Cambio de Interfaz).' });
     }
     console.log('[ROBOT] ✅ Sesión verificada y mantenida para el usuario.');
 
