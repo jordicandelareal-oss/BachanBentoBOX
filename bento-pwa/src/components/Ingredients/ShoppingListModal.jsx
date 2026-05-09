@@ -72,28 +72,43 @@ export default function ShoppingListModal({ selectedItems, ingredients, provider
 
     setSyncingId(group.provider.id);
 
+    // En Vercel usamos la API serverless; en local el servidor puente
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const endpoint = isLocal
+      ? 'http://localhost:3001/sync-mercadona'
+      : '/api/sync-mercadona';
+
     try {
-      console.log('🔄 Enviando petición de sincronización al Servidor Puente...');
-      const response = await fetch('http://localhost:3001/sync-mercadona', {
+      console.log(`🔄 Enviando petición a: ${endpoint}`);
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ skus })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error en el servidor puente');
+      const data = await response.json();
+
+      if (response.status === 403 && data.blocked) {
+        alert(`🚫 IP BLOQUEADA POR MERCADONA\n\nVercel usa IPs de datacenter que Mercadona bloquea.\n\nSolución: usa el servidor local (node server.js) con ngrok para acceder desde el móvil.`);
+        setSyncingId(null);
+        return;
       }
 
-      const data = await response.json();
-      
+      if (!response.ok) {
+        throw new Error(data.error || 'Error en el servidor');
+      }
+
       if (data.success) {
-        // En un PoC no cerramos el ID inmediatamente para dar feedback visual
-        setTimeout(() => setSyncingId(null), 1000);
+        console.log('✅ Carrito actualizado:', data.results);
+        setTimeout(() => setSyncingId(null), 2000);
       }
     } catch (error) {
       console.error("❌ Error de sincronización:", error);
-      alert(`⚠️ ERROR DE CONEXIÓN: No se pudo contactar con el Servidor Puente.\n\nPasos para solucionar:\n1. Abre una terminal en la carpeta del proyecto.\n2. Ejecuta: node server.mjs\n3. Asegúrate de que el servidor diga "ACTIVO" en el puerto 3001.`);
+      if (isLocal) {
+        alert(`⚠️ ERROR DE CONEXIÓN: No se pudo contactar con el Servidor Puente.\n\nPasos para solucionar:\n1. Abre una terminal en la carpeta del proyecto.\n2. Ejecuta: node server.js\n3. Asegúrate de que el servidor diga "ACTIVO" en el puerto 3001.`);
+      } else {
+        alert(`⚠️ Error al sincronizar con Mercadona: ${error.message}`);
+      }
       setSyncingId(null);
     }
   };
@@ -157,10 +172,28 @@ export default function ShoppingListModal({ selectedItems, ingredients, provider
                       <button 
                         onClick={() => syncWithMercadona(group)}
                         className={`sync-mercadona-btn ${syncingId === group.provider.id ? 'active' : ''}`}
-                        title="Copiar comando de sincronización"
+                        disabled={syncingId === group.provider.id}
+                        title="Sincronizar con Mercadona"
                       >
-                        {syncingId === group.provider.id ? <Truck size={16} /> : <ShoppingCart size={16} />}
-                        {syncingId === group.provider.id ? 'COMANDO LISTO' : 'SINCRONIZAR'}
+                        {syncingId === group.provider.id ? (
+                          <>
+                            <span style={{
+                              display: 'inline-block',
+                              width: '14px',
+                              height: '14px',
+                              border: '2px solid rgba(255,255,255,0.4)',
+                              borderTopColor: '#fff',
+                              borderRadius: '50%',
+                              animation: 'spin 0.7s linear infinite'
+                            }} />
+                            PROCESANDO...
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart size={16} />
+                            SINCRONIZAR
+                          </>
+                        )}
                       </button>
                     )}
                   </div>

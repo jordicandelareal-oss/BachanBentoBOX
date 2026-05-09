@@ -1,7 +1,7 @@
 {
   "name": "bachan-bento-box",
   "private": true,
-  "version": "2.10.0",
+  "version": "2.10.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -13,6 +13,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@sparticuz/chromium": "^148.0.0",
     "@supabase/supabase-js": "^2.99.1",
     "@vitejs/plugin-react": "^4.3.4",
     "cors": "^2.8.5",
@@ -21,6 +22,7 @@
     "express": "^4.19.2",
     "lucide-react": "^0.577.0",
     "puppeteer": "^22.0.0",
+    "puppeteer-core": "^24.43.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "^19.2.4",
