@@ -61,8 +61,8 @@ app.post('/sync-mercadona', async (req, res) => {
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(60000);
 
-    // User-Agent de Chrome real
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+    // User-Agent de Chrome Premium (Evita bloqueos)
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
 
     // 1. Zona de Venta y Cookies
     console.log('[ROBOT] 1/4 Estableciendo Zona de Venta...');
@@ -98,12 +98,14 @@ app.post('/sync-mercadona', async (req, res) => {
     // Click en Identifícate
     const button = await page.waitForSelector('xpath/.//button[contains(., "Identifícate")]', { timeout: 10000 }).catch(() => null);
     if (button) {
-        await button.click();
+        await page.evaluate(b => b.click(), button);
+        console.log('[DEBUG] Clic forzado en botón "Identifícate" via DOM.');
     } else {
         // Intento de respaldo por si el texto está en minúsculas o es un enlace
         const link = await page.waitForSelector('xpath/.//span[contains(text(), "identifícate")]', { timeout: 5000 }).catch(() => null);
         if (link) {
-            await link.click();
+            await page.evaluate(l => l.click(), link);
+            console.log('[DEBUG] Clic forzado en span "identifícate" via DOM.');
         } else {
             const texts = await page.evaluate(() => Array.from(document.querySelectorAll('button')).map(b => b.innerText));
             console.log('Textos de botones encontrados:', texts);
@@ -111,10 +113,21 @@ app.post('/sync-mercadona', async (req, res) => {
     }
 
     // Esperar al Formulario
-    await page.waitForSelector('input[name="email"]', { visible: true, timeout: 10000 });
+    const emailSelector = 'input[type="email"], input[name="email"], #email';
+    try {
+        await page.waitForSelector(emailSelector, { visible: true, timeout: 20000 });
+    } catch (e) {
+        const inputs = await page.evaluate(() => Array.from(document.querySelectorAll('input')).map(i => i.name || i.id || i.type));
+        console.log('Inputs encontrados:', inputs);
+        throw e;
+    }
+
+    // Click de Seguridad antes de escribir
+    await page.click(emailSelector);
+    await wait(500);
 
     // Login Secuencial con delay
-    await page.type('input[name="email"]', process.env.MERCADONA_USER || 'jordicocinab@gmail.com', { delay: 150 });
+    await page.type(emailSelector, process.env.MERCADONA_USER || 'jordicocinab@gmail.com', { delay: 150 });
     await wait(1000);
     
     await page.type('input[name="password"]', process.env.MERCADONA_PASS || 'soccersmart123', { delay: 150 });
