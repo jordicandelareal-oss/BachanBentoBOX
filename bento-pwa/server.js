@@ -88,38 +88,58 @@ app.post('/sync-mercadona', async (req, res) => {
     }
 
     // 2. Identificación Forzada y Verificación de Usuario
-    console.log('[ROBOT] 2/4 Iniciando flujo de Login explícito...');
-    await page.goto('https://tienda.mercadona.es/', { waitUntil: 'domcontentloaded' });
+    console.log('[ROBOT] 2/4 Navegando a página de login directa...');
+    await page.goto('https://tienda.mercadona.es/login/', { waitUntil: 'domcontentloaded' });
     await wait(3000);
     
-    // Espera de Carga Real
-    await wait(4000);
+    // Aceptar cookies de nuevo por si bloquean la vista
+    await page.evaluate(() => {
+        const btns = Array.from(document.querySelectorAll('button'));
+        const acceptBtn = btns.find(b => 
+            b.innerText.match(/Aceptar|Permitir/i) || 
+            b.getAttribute('data-testid') === 'cookie-policy-accept'
+        );
+        if (acceptBtn) acceptBtn.click();
+    });
+    await wait(1000);
 
-    // Click en Identifícate
-    const button = await page.waitForSelector('xpath/.//button[contains(., "Identifícate")]', { timeout: 10000 }).catch(() => null);
-    if (button) {
-        await page.evaluate(b => b.click(), button);
-        console.log('[DEBUG] Clic forzado en botón "Identifícate" via DOM.');
-    } else {
-        // Intento de respaldo por si el texto está en minúsculas o es un enlace
-        const link = await page.waitForSelector('xpath/.//span[contains(text(), "identifícate")]', { timeout: 5000 }).catch(() => null);
-        if (link) {
-            await page.evaluate(l => l.click(), link);
-            console.log('[DEBUG] Clic forzado en span "identifícate" via DOM.');
-        } else {
-            const texts = await page.evaluate(() => Array.from(document.querySelectorAll('button')).map(b => b.innerText));
-            console.log('Textos de botones encontrados:', texts);
-        }
-    }
-
-    // Esperar al Formulario
-    const emailSelector = 'input[type="email"], input[name="email"], #email';
+    // Esperar al Formulario con Fuerza Bruta
+    let emailInputFound = false;
+    let emailSelector = 'input[type="email"], input[name="email"], #email';
+    
     try {
-        await page.waitForSelector(emailSelector, { visible: true, timeout: 20000 });
+        await page.waitForSelector(emailSelector, { visible: true, timeout: 10000 });
+        emailInputFound = true;
     } catch (e) {
-        const inputs = await page.evaluate(() => Array.from(document.querySelectorAll('input')).map(i => i.name || i.id || i.type));
-        console.log('Inputs encontrados:', inputs);
-        throw e;
+        console.log('[INFO] No se encontró el email a la primera, refrescando...');
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await wait(5000);
+        
+        try {
+            await page.waitForSelector(emailSelector, { visible: true, timeout: 10000 });
+            emailInputFound = true;
+        } catch (e2) {
+            console.log('[INFO] Refresco fallido, intentando buscar cualquier input visible por fuerza bruta...');
+            const inputs = await page.$$('input');
+            for (let input of inputs) {
+                const type = await page.evaluate(el => el.type, input);
+                const name = await page.evaluate(el => el.name, input);
+                if (type !== 'search' && name !== 'search') {
+                    // Asumimos que el primer input visible que no es de búsqueda es el de login
+                    const isVisible = await page.evaluate(el => el.offsetParent !== null, input);
+                    if (isVisible) {
+                        emailSelector = input; // Puppeteer permite pasar un ElementHandle directamente a `type` y `click`
+                        emailInputFound = true;
+                        break;
+                    }
+                }
+            }
+            if (!emailInputFound) {
+                const allInputs = await page.evaluate(() => Array.from(document.querySelectorAll('input')).map(i => i.name || i.id || i.type));
+                console.log('Inputs encontrados tras fuerza bruta:', allInputs);
+                throw new Error('No se encontró campo de email ni por selector ni por fuerza bruta.');
+            }
+        }
     }
 
     // Click de Seguridad antes de escribir
