@@ -96,12 +96,12 @@ app.post('/sync-mercadona', async (req, res) => {
     await wait(4000);
 
     // Click en Identifícate
-    const [button] = await page.$x("//button[contains(., 'Identifícate')]");
+    const button = await page.waitForSelector('xpath/.//button[contains(., "Identifícate")]', { timeout: 10000 }).catch(() => null);
     if (button) {
         await button.click();
     } else {
         // Intento de respaldo por si el texto está en minúsculas o es un enlace
-        const [link] = await page.$x("//span[contains(text(), 'identifícate')]");
+        const link = await page.waitForSelector('xpath/.//span[contains(text(), "identifícate")]', { timeout: 5000 }).catch(() => null);
         if (link) {
             await link.click();
         } else {
