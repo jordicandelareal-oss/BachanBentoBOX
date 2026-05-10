@@ -263,18 +263,47 @@ app.post('/sync-mercadona', async (req, res) => {
           console.log(`[DEBUG] Click detectado en botón: "${scanResult.text}". Procediendo a verificación en carrito...`);
           await wait(2000);
 
-          // NAVEGACIÓN Y SINCRONIZACIÓN FINAL
+          // NAVEGACIÓN Y SINCRONIZACIÓN FINAL (FUERZA BRUTA)
           try {
-            console.log('[INFO] Producto añadido, sincronizando con el servidor...');
+            console.log('[INFO] Producto añadido, forzando sincronización agresiva con el servidor...');
+            
+            // 1. Ir al carrito
+            console.log('[INFO] Paso 1: Visitando /cart/ ...');
             await page.goto('https://tienda.mercadona.es/cart/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+            await wait(3000);
             
-            // Pausa de 10 segundos obligatoria en el carrito para asentar backend
-            await wait(10000);
+            // Simular Movimiento (Scroll) para despertar a Mercadona
+            await page.evaluate(() => {
+                window.scrollBy(0, 500);
+                setTimeout(() => window.scrollBy(0, -300), 1000);
+            });
+            await wait(2000);
             
-            console.log(`[OK] AÑADIDO: Producto ${sku} consolidado en el carrito.`);
+            // Captura de Pantalla Final
+            const screenshotPath = `/tmp/mercadona_cart_${sku}.png`;
+            await page.screenshot({ path: screenshotPath });
+            const cartText = await page.evaluate(() => document.body.innerText.toLowerCase());
+            console.log(`[DEBUG] Captura de pantalla del carrito guardada en: ${screenshotPath}`);
+            if (cartText.includes('tu cesta está vacía') || cartText.includes('carro vacío') || cartText.match(/0 productos/i)) {
+                console.log(`[WARNING] La pantalla muestra que el carrito está VACÍO para el SKU ${sku}.`);
+            } else {
+                console.log(`[OK] La pantalla confirma que hay PRODUCTOS en el carrito para el SKU ${sku}.`);
+            }
+            
+            // 2. Ir a checkout/delivery-slots
+            console.log('[INFO] Paso 2: Visitando /checkout/delivery-slots para consolidar sesión...');
+            await page.goto('https://tienda.mercadona.es/checkout/delivery-slots', { waitUntil: 'domcontentloaded', timeout: 20000 });
+            await wait(3000);
+            
+            // 3. Volver a la Home
+            console.log('[INFO] Paso 3: Volviendo a la Home...');
+            await page.goto('https://tienda.mercadona.es/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+            await wait(3000);
+            
+            console.log(`[OK] AÑADIDO: Producto ${sku} consolidado a la fuerza en el carrito.`);
             itemsAdded.push(sku);
           } catch (validationErr) {
-            console.log(`[INFO] Producto añadido, sincronizando con el servidor... (Aviso: ${validationErr.message})`);
+            console.log(`[INFO] Producto añadido, terminando sincronización con aviso: ${validationErr.message}`);
             itemsAdded.push(sku);
           }
 
