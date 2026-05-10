@@ -279,12 +279,21 @@ app.post('/sync-mercadona', async (req, res) => {
             });
             await wait(2000);
             
-            // Captura de Pantalla Final
-            const screenshotPath = `/tmp/mercadona_cart_${sku}.png`;
-            await page.screenshot({ path: screenshotPath });
-            const cartText = await page.evaluate(() => document.body.innerText.toLowerCase());
-            console.log(`[DEBUG] Captura de pantalla del carrito guardada en: ${screenshotPath}`);
-            if (cartText.includes('tu cesta está vacía') || cartText.includes('carro vacío') || cartText.match(/0 productos/i)) {
+            // Captura de Pantalla Final y Verificación de Usuario
+            const buffer = await page.screenshot();
+            console.log('CAPTURA_CARRITO_BASE64: ' + buffer.toString('base64'));
+            
+            const cartData = await page.evaluate(() => {
+                const text = document.body.innerText.toLowerCase();
+                // Buscar el saludo del usuario (ej: "Hola, Jordi")
+                const userElement = Array.from(document.querySelectorAll('*')).find(el => el.children.length === 0 && (el.innerText.match(/^hola, /i) || el.innerText.match(/jordi/i)));
+                const userName = userElement ? userElement.innerText.trim() : 'No encontrado (posible bloqueo o layout diferente)';
+                return { text, userName };
+            });
+            
+            console.log('Usuario detectado en carrito: ' + cartData.userName);
+            
+            if (cartData.text.includes('tu cesta está vacía') || cartData.text.includes('carro vacío') || cartData.text.match(/0 productos/i)) {
                 console.log(`[WARNING] La pantalla muestra que el carrito está VACÍO para el SKU ${sku}.`);
             } else {
                 console.log(`[OK] La pantalla confirma que hay PRODUCTOS en el carrito para el SKU ${sku}.`);
