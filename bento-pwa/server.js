@@ -69,17 +69,6 @@ app.post('/sync-mercadona', async (req, res) => {
       Object.defineProperty(navigator, 'webdriver', { get: () => false });
     });
 
-    // Login vía Cookies (Plan B)
-    if (process.env.MERCADONA_COOKIES) {
-        try {
-            console.log('[ROBOT] 🚀 Inyectando cookies de sesión directa (Plan B)...');
-            const cookies = JSON.parse(process.env.MERCADONA_COOKIES);
-            await page.setCookie(...cookies);
-        } catch (e) {
-            console.warn('[ROBOT] ⚠️ Error parseando MERCADONA_COOKIES, usando login normal.');
-        }
-    }
-
     // 1. Zona de Venta y Cookies
     console.log('[ROBOT] 1/4 Estableciendo Zona de Venta...');
     await page.goto('https://tienda.mercadona.es/', { waitUntil: 'domcontentloaded' });
@@ -104,7 +93,23 @@ app.post('/sync-mercadona', async (req, res) => {
     }
 
     // 2. Identificación Forzada y Verificación de Usuario
-    console.log('[ROBOT] 2/4 Navegando a página de login directa...');
+    let usingCookies = false;
+    if (process.env.MERCADONA_COOKIES) {
+        try {
+            console.log('[ROBOT] 🚀 Inyectando cookies de sesión directa (Plan B)...');
+            const cookies = JSON.parse(process.env.MERCADONA_COOKIES);
+            await page.setCookie(...cookies);
+            usingCookies = true;
+            console.log('[ROBOT] 🔑 Sesión cargada mediante cookies externas. Saltando formulario.');
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            await wait(3000);
+        } catch (e) {
+            console.warn('[ROBOT] ⚠️ Error parseando MERCADONA_COOKIES, usando login normal.');
+        }
+    }
+
+    if (!usingCookies) {
+        console.log('[ROBOT] 2/4 Navegando a página de login directa...');
     await page.goto('https://tienda.mercadona.es/login/', { waitUntil: 'domcontentloaded' });
     await wait(3000);
     
@@ -217,6 +222,9 @@ app.post('/sync-mercadona', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Fallo de Sesión: Mercadona bloqueó el login (Posible Captcha o Cambio de Interfaz).' });
     }
     console.log('[ROBOT] ✅ Sesión verificada y mantenida para el usuario.');
+    } else {
+        console.log('[ROBOT] 2/4 Saltando login (Sesión inyectada mediante cookies).');
+    }
 
     // 3. Sincronización y Verificación Post-Click en /cart/
     console.log('[ROBOT] 3/4 Sincronizando y verificando carrito...');
