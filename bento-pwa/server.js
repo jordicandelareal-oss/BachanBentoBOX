@@ -92,8 +92,23 @@ app.post('/sync-mercadona', async (req, res) => {
     await page.goto('https://tienda.mercadona.es/', { waitUntil: 'domcontentloaded' });
     await wait(3000);
     
+    // Espera de Carga Real
+    await wait(4000);
+
     // Click en Identifícate
-    await page.click('button.header__user-button, .header__user-button--login');
+    const [button] = await page.$x("//button[contains(., 'Identifícate')]");
+    if (button) {
+        await button.click();
+    } else {
+        // Intento de respaldo por si el texto está en minúsculas o es un enlace
+        const [link] = await page.$x("//span[contains(text(), 'identifícate')]");
+        if (link) {
+            await link.click();
+        } else {
+            const texts = await page.evaluate(() => Array.from(document.querySelectorAll('button')).map(b => b.innerText));
+            console.log('Textos de botones encontrados:', texts);
+        }
+    }
 
     // Esperar al Formulario
     await page.waitForSelector('input[name="email"]', { visible: true, timeout: 10000 });
