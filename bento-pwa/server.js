@@ -61,8 +61,8 @@ app.post('/sync-mercadona', async (req, res) => {
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(60000);
 
-    // User-Agent de Chrome Premium (Evita bloqueos)
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+    // User-Agent Real (Evita bloqueos)
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36');
 
     // Huella Digital Humana (Evitar detección WebDriver)
     await page.evaluateOnNewDocument(() => {
@@ -238,6 +238,28 @@ app.post('/sync-mercadona', async (req, res) => {
         await page.goto(productUrl, { waitUntil: 'domcontentloaded' });
         await wait(4000);
 
+        // Consolidación de Zona
+        const cpIsCorrect = await page.evaluate(() => {
+           return document.body.innerText.includes('03005');
+        });
+        if (!cpIsCorrect) {
+            console.log('[INFO] Código postal 03005 no detectado, forzando...');
+            try {
+                // Intentar buscar el botón del código postal por atributos comunes o texto
+                await page.evaluate(() => {
+                    const btns = Array.from(document.querySelectorAll('button, a'));
+                    const cpBtn = btns.find(b => b.innerText.match(/\d{5}/) || (b.getAttribute('aria-label') || '').includes('postal'));
+                    if (cpBtn) cpBtn.click();
+                });
+                await wait(2000);
+                await page.type('input[name="postalCode"]', '03005', { delay: 50 });
+                await page.keyboard.press('Enter');
+                await wait(3000);
+            } catch (e) {
+                console.log('[INFO] No se pudo re-forzar el CP:', e.message);
+            }
+        }
+
         await page.mouse.click(10, 10);
 
         const scanResult = await page.evaluate(() => {
@@ -283,21 +305,20 @@ app.post('/sync-mercadona', async (req, res) => {
             const buffer = await page.screenshot();
             console.log('CAPTURA_CARRITO_BASE64: ' + buffer.toString('base64'));
             
-            const cartData = await page.evaluate(() => {
-                const text = document.body.innerText.toLowerCase();
-                // Buscar el saludo del usuario (ej: "Hola, Jordi")
-                const userElement = Array.from(document.querySelectorAll('*')).find(el => el.children.length === 0 && (el.innerText.match(/^hola, /i) || el.innerText.match(/jordi/i)));
-                const userName = userElement ? userElement.innerText.trim() : 'No encontrado (posible bloqueo o layout diferente)';
-                return { text, userName };
+            // Acción de 'Mover' (+ y luego -) para forzar guardado en BD de Mercadona
+            console.log('[INFO] Moviendo cantidades (+ y -) para asentar BD de Mercadona...');
+            await page.evaluate(() => {
+                const plusBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText === '+' || (b.getAttribute('aria-label') || '').includes('Añadir') || b.className.includes('plus'));
+                if (plusBtn) plusBtn.click();
             });
-            
-            console.log('Usuario detectado en carrito: ' + cartData.userName);
-            
-            if (cartData.text.includes('tu cesta está vacía') || cartData.text.includes('carro vacío') || cartData.text.match(/0 productos/i)) {
-                console.log(`[WARNING] La pantalla muestra que el carrito está VACÍO para el SKU ${sku}.`);
-            } else {
-                console.log(`[OK] La pantalla confirma que hay PRODUCTOS en el carrito para el SKU ${sku}.`);
-            }
+            await wait(3000);
+            await page.evaluate(() => {
+                const minusBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText === '-' || (b.getAttribute('aria-label') || '').includes('Quitar') || b.className.includes('minus'));
+                if (minusBtn) minusBtn.click();
+            });
+            await wait(3000);
+
+            console.log('[DEBUG] URL final antes de cerrar: ' + page.url());
             
             // 2. Ir a checkout/delivery-slots
             console.log('[INFO] Paso 2: Visitando /checkout/delivery-slots para consolidar sesión...');
