@@ -92,59 +92,58 @@ app.post('/sync-mercadona', async (req, res) => {
     await page.goto('https://tienda.mercadona.es/', { waitUntil: 'domcontentloaded' });
     await wait(3000);
     
-    // Detección de Pantalla de Inicio y click en "Entrar" o "Identifícate"
+    // Click en Identifícate
+    await page.click('button.header__user-button, .header__user-button--login');
+
+    // Esperar al Formulario
+    await page.waitForSelector('input[name="email"]', { visible: true, timeout: 10000 });
+
+    // Login Secuencial con delay
+    await page.type('input[name="email"]', process.env.MERCADONA_USER || 'jordicocinab@gmail.com', { delay: 150 });
+    await wait(1000);
+    
+    await page.type('input[name="password"]', process.env.MERCADONA_PASS || 'soccersmart123', { delay: 150 });
+    await wait(1000);
+    
+    // Click en el botón de Login (Identificarse)
     await page.evaluate(() => {
-        const els = Array.from(document.querySelectorAll('a, button, span'));
-        const loginBtn = els.find(e => e.innerText.match(/identifícate|entrar/i));
-        if (loginBtn) loginBtn.click();
+        const btns = Array.from(document.querySelectorAll('button'));
+        const submitBtn = btns.find(b => b.innerText.match(/iniciar sesión|identificarse|entrar/i)) || document.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.click();
     });
-    await wait(3000);
 
-    const emailIn = await page.$('input[name="email"]');
-    if (emailIn) {
-      // Escritura Humana estricta a 150ms (petición de usuario)
-      await page.type('input[name="email"]', process.env.MERCADONA_USER || 'jordicocinab@gmail.com', { delay: 150 });
-      await wait(1000);
-      
-      const passIn = await page.$('input[name="password"]');
-      if (passIn) {
-        await page.type('input[name="password"]', process.env.MERCADONA_PASS || 'soccersmart123', { delay: 150 });
-        await wait(1000);
-        
-        // Click en el botón de Login (Identificarse)
-        await page.evaluate(() => {
-            const btns = Array.from(document.querySelectorAll('button'));
-            const submitBtn = btns.find(b => b.innerText.match(/iniciar sesión|identificarse|entrar/i)) || document.querySelector('button[type="submit"]');
-            if (submitBtn) submitBtn.click();
-        });
-
-        // Espera de Navegación obligatoria para asentar sesión
-        try {
-            console.log('[DEBUG] Esperando navegación de red post-login (networkidle2)...');
-            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });
-        } catch (e) {
-            console.log('[INFO] Espera de navegación finalizada por tiempo, verificando DOM...');
-            await wait(4000);
-        }
-      }
+    // Espera de Navegación obligatoria para asentar sesión
+    try {
+        console.log('[DEBUG] Esperando navegación de red post-login (networkidle2)...');
+        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });
+    } catch (e) {
+        console.log('[INFO] Espera de navegación finalizada por tiempo, verificando DOM...');
+        await wait(4000);
     }
 
-    // Verificación Relajada de Sesión
-    const sessionValidation = await page.evaluate(() => {
-      const bodyText = document.body.innerText.toLowerCase();
-      const isOk = bodyText.includes('jordi') || 
-                   bodyText.includes('cerrar sesión') || 
-                   bodyText.includes('mi cuenta') ||
-                   bodyText.includes('mis pedidos') ||
-                   bodyText.includes('mis datos');
+    // Verificación post-login
+    let sessionValidation = { success: false };
+    console.log('[INFO] Intentando encontrar "Jordi" (o equivalente) por al menos 5 segundos...');
+    for (let i = 0; i < 5; i++) {
+      sessionValidation = await page.evaluate(() => {
+        const bodyText = document.body.innerText.toLowerCase();
+        const isOk = bodyText.includes('jordi') || 
+                     bodyText.includes('cerrar sesión') || 
+                     bodyText.includes('mi cuenta') ||
+                     bodyText.includes('mis pedidos') ||
+                     bodyText.includes('mis datos');
+        
+        if (!isOk) {
+           // Capturar contexto visual (primeros botones) para entender qué ve el robot
+           const btns = Array.from(document.querySelectorAll('button')).slice(0, 5).map(b => b.innerText.trim() || b.className);
+           return { success: false, buttons: btns, sampleText: bodyText.substring(0, 150) };
+        }
+        return { success: true };
+      });
       
-      if (!isOk) {
-         // Capturar contexto visual (primeros botones) para entender qué ve el robot
-         const btns = Array.from(document.querySelectorAll('button')).slice(0, 5).map(b => b.innerText.trim() || b.className);
-         return { success: false, buttons: btns, sampleText: bodyText.substring(0, 150) };
-      }
-      return { success: true };
-    });
+      if (sessionValidation.success) break;
+      await wait(1000);
+    }
 
     if (!sessionValidation.success) {
       console.error('[ROBOT FATAL ERROR] [FALLO DE SESIÓN] No se detectó inicio de sesión exitoso.');
