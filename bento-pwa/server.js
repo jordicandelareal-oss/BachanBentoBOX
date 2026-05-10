@@ -64,6 +64,22 @@ app.post('/sync-mercadona', async (req, res) => {
     // User-Agent de Chrome Premium (Evita bloqueos)
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
 
+    // Huella Digital Humana (Evitar detección WebDriver)
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    });
+
+    // Login vía Cookies (Plan B)
+    if (process.env.MERCADONA_COOKIES) {
+        try {
+            console.log('[ROBOT] 🚀 Inyectando cookies de sesión directa (Plan B)...');
+            const cookies = JSON.parse(process.env.MERCADONA_COOKIES);
+            await page.setCookie(...cookies);
+        } catch (e) {
+            console.warn('[ROBOT] ⚠️ Error parseando MERCADONA_COOKIES, usando login normal.');
+        }
+    }
+
     // 1. Zona de Venta y Cookies
     console.log('[ROBOT] 1/4 Estableciendo Zona de Venta...');
     await page.goto('https://tienda.mercadona.es/', { waitUntil: 'domcontentloaded' });
