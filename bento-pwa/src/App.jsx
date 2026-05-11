@@ -86,7 +86,7 @@ function App() {
       if (adminToken) localStorage.setItem('bachan_admin_token', adminToken);
       
       localStorage.setItem(CLEANUP_KEY, 'done');
-      localStorage.setItem('bachan_app_version', '2.4.0');
+      localStorage.setItem('bachan_app_version', '2.13.0');
       
       // No automatic reload here to avoid loops. Let the user refresh once.
       console.log('✅ Cleanup finished. Please refresh if needed.');

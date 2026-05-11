@@ -187,7 +187,7 @@ export default function Layout() {
             width: '320px'
           }}>
             <h3 style={{ margin: '0 0 10px 0', color: '#1a1a1a' }}>Información de Versión</h3>
-            <p style={{ margin: '0 0 20px 0', color: '#666' }}>Versión: v{pkg.version} - Test de Despliegue</p>
+            <p style={{ margin: '0 0 20px 0', color: '#666' }}>Versión: v{pkg.version}</p>
             <button 
               onClick={() => setIsVersionModalOpen(false)}
               style={{
