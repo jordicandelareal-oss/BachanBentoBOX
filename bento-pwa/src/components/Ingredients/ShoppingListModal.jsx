@@ -60,58 +60,31 @@ export default function ShoppingListModal({ selectedItems, ingredients, provider
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const syncWithMercadona = async (group) => {
-    const skus = group.items
-      .filter(ing => ing.provider_product_code && (quantities[ing.id] || 0) > 0)
-      .map(ing => ing.provider_product_code);
-    
-    if (skus.length === 0) {
-      alert("⚠️ No hay productos con SKU (Ref. Proveedor) configurado para sincronizar.");
+  const handleMercadonaOrder = (group) => {
+    const itemsText = group.items
+      .filter(ing => (quantities[ing.id] || 0) > 0)
+      .map(ing => {
+        const qty = quantities[ing.id] || 0;
+        const unit = ing.calculation_type === 'peso' ? (qty >= 1 ? 'kg' : 'g') : 'ud';
+        const displayQty = ing.calculation_type === 'peso' && qty < 1 ? qty * 1000 : qty;
+        return `${displayQty}${unit} ${ing.name}`;
+      })
+      .join('\n');
+
+    if (!itemsText) {
+      alert("⚠️ No hay productos seleccionados para copiar.");
       return;
     }
 
+    // Copiar al portapapeles
+    navigator.clipboard.writeText(itemsText);
+    
+    // Abrir la cesta de Mercadona
+    window.open('https://tienda.mercadona.es/cart/', '_blank');
+    
+    // Feedback visual temporal
     setSyncingId(group.provider.id);
-
-    // En producción usamos Railway para el robot (evita timeouts de Vercel)
-    // En local usamos el puerto 3001
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const endpoint = isLocal
-      ? 'http://localhost:3001/sync-mercadona'
-      : (import.meta.env.VITE_ROBOT_URL || 'https://bachan-robot-production.up.railway.app/sync-mercadona');
-
-    try {
-      console.log(`🔄 Enviando petición a: ${endpoint}`);
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ skus })
-      });
-
-      const data = await response.json();
-
-      if (response.status === 403 && data.blocked) {
-        alert(`🚫 IP BLOQUEADA POR MERCADONA\n\nVercel usa IPs de datacenter que Mercadona bloquea.\n\nSolución: usa el servidor local (node server.js) con ngrok para acceder desde el móvil.`);
-        setSyncingId(null);
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Error en el servidor');
-      }
-
-      if (data.success) {
-        console.log('✅ Carrito actualizado:', data.results);
-        setTimeout(() => setSyncingId(null), 2000);
-      }
-    } catch (error) {
-      console.error("❌ Error de sincronización:", error);
-      if (isLocal) {
-        alert(`⚠️ ERROR DE CONEXIÓN: No se pudo contactar con el Servidor Puente.\n\nPasos para solucionar:\n1. Abre una terminal en la carpeta del proyecto.\n2. Ejecuta: node server.js\n3. Asegúrate de que el servidor diga "ACTIVO" en el puerto 3001.`);
-      } else {
-        alert(`⚠️ Error al sincronizar con Mercadona: ${error.message}`);
-      }
-      setSyncingId(null);
-    }
+    setTimeout(() => setSyncingId(null), 3000);
   };
 
   return (
@@ -171,28 +144,19 @@ export default function ShoppingListModal({ selectedItems, ingredients, provider
 
                     {group.provider.name?.toLowerCase().includes('mercadona') && (
                       <button 
-                        onClick={() => syncWithMercadona(group)}
+                        onClick={() => handleMercadonaOrder(group)}
                         className={`sync-mercadona-btn ${syncingId === group.provider.id ? 'active' : ''}`}
-                        disabled={syncingId === group.provider.id}
-                        title="Sincronizar con Mercadona"
+                        title="Copiar lista y abrir Mercadona"
                       >
                         {syncingId === group.provider.id ? (
                           <>
-                            <span style={{
-                              display: 'inline-block',
-                              width: '14px',
-                              height: '14px',
-                              border: '2px solid rgba(255,255,255,0.4)',
-                              borderTopColor: '#fff',
-                              borderRadius: '50%',
-                              animation: 'spin 0.7s linear infinite'
-                            }} />
-                            PROCESANDO...
+                            <ClipboardCheck size={16} />
+                            ¡COPIADO!
                           </>
                         ) : (
                           <>
-                            <ShoppingCart size={16} />
-                            SINCRONIZAR
+                            <Copy size={16} />
+                            LISTA Y TIENDA
                           </>
                         )}
                       </button>
