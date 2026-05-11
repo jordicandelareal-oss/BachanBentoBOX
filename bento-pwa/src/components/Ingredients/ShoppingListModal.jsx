@@ -60,31 +60,48 @@ export default function ShoppingListModal({ selectedItems, ingredients, provider
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleMercadonaOrder = (group) => {
-    const itemsText = group.items
+  const [toast, setToast] = useState(null);
+  
+  const handleWebOrder = (group) => {
+    const { provider, items } = group;
+    const itemsText = items
       .filter(ing => (quantities[ing.id] || 0) > 0)
       .map(ing => {
         const qty = quantities[ing.id] || 0;
         const unit = ing.calculation_type === 'peso' ? (qty >= 1 ? 'kg' : 'g') : 'ud';
         const displayQty = ing.calculation_type === 'peso' && qty < 1 ? qty * 1000 : qty;
-        return `${displayQty}${unit} ${ing.name}`;
+        return `${displayQty}x ${ing.name}`;
       })
-      .join('\n');
+      .join(', ');
 
     if (!itemsText) {
       alert("⚠️ No hay productos seleccionados para copiar.");
       return;
     }
 
+    const fullText = `LISTA DE PEDIDO: ${itemsText}`;
+
     // Copiar al portapapeles
-    navigator.clipboard.writeText(itemsText);
+    navigator.clipboard.writeText(fullText);
     
-    // Abrir la cesta de Mercadona
-    window.open('https://tienda.mercadona.es/cart/', '_blank');
+    // Feedback visual
+    setToast("Lista copiada. Redirigiendo a la web del proveedor...");
+    setSyncingId(provider.id);
+
+    // Determinar URL final
+    let finalUrl = provider.website;
+    if (!finalUrl.startsWith('http')) finalUrl = `https://${finalUrl}`;
     
-    // Feedback visual temporal
-    setSyncingId(group.provider.id);
-    setTimeout(() => setSyncingId(null), 3000);
+    // Caso especial Mercadona
+    if (provider.name?.toLowerCase().includes('mercadona') && !finalUrl.includes('/cart')) {
+      finalUrl = 'https://tienda.mercadona.es/cart/';
+    }
+    
+    setTimeout(() => {
+      window.open(finalUrl, '_blank');
+      setToast(null);
+      setSyncingId(null);
+    }, 2000);
   };
 
   return (
@@ -134,19 +151,11 @@ export default function ShoppingListModal({ selectedItems, ingredients, provider
                         </div>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => copyToWhatsApp(pId, group)}
-                      className={`whatsapp-btn ${isCopied ? 'copied' : ''}`}
-                    >
-                      {isCopied ? <ClipboardCheck size={16} /> : <MessageCircle size={16} />}
-                      {isCopied ? '¡COPIADO!' : 'WHATSAPP'}
-                    </button>
-
-                    {group.provider.name?.toLowerCase().includes('mercadona') && (
+                    {group.provider.website ? (
                       <button 
-                        onClick={() => handleMercadonaOrder(group)}
+                        onClick={() => handleWebOrder(group)}
                         className={`sync-mercadona-btn ${syncingId === group.provider.id ? 'active' : ''}`}
-                        title="Copiar lista y abrir Mercadona"
+                        title="Finalizar Pedido en Web"
                       >
                         {syncingId === group.provider.id ? (
                           <>
@@ -156,9 +165,17 @@ export default function ShoppingListModal({ selectedItems, ingredients, provider
                         ) : (
                           <>
                             <Copy size={16} />
-                            LISTA Y TIENDA
+                            FINALIZAR EN WEB
                           </>
                         )}
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => copyToWhatsApp(pId, group)}
+                        className={`whatsapp-btn ${isCopied ? 'copied' : ''}`}
+                      >
+                        {isCopied ? <ClipboardCheck size={16} /> : <MessageCircle size={16} />}
+                        {isCopied ? '¡COPIADO!' : 'WHATSAPP'}
                       </button>
                     )}
                   </div>
@@ -216,6 +233,29 @@ export default function ShoppingListModal({ selectedItems, ingredients, provider
 
         {/* Footer Summary */}
         <div className="shopping-drawer-footer">
+          {toast && (
+            <div style={{
+              position: 'fixed',
+              bottom: '100px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: '#0f172a',
+              color: 'white',
+              padding: '12px 24px',
+              borderRadius: '100px',
+              fontSize: '12px',
+              fontWeight: '900',
+              zIndex: 10000,
+              boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              animation: 'fadeInUp 0.3s ease forwards'
+            }}>
+              <CheckCircle2 size={16} color="#10b981" />
+              {toast}
+            </div>
+          )}
           <div className="shopping-drawer-summary">
             <div>
               <p className="summary-label">Inversión Total</p>
