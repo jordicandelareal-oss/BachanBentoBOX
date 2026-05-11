@@ -26,7 +26,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 // ── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
-  res.send('🤖 Servidor Robot Bachan Activo (v2.16.0 - Cookie Robusto)');
+  res.send('🤖 Servidor Robot Bachan Activo (v2.17.0 - Fuerza Bruta Cookie)');
 });
 
 app.post('/sync-mercadona', async (req, res) => {
@@ -37,7 +37,7 @@ app.post('/sync-mercadona', async (req, res) => {
     return res.status(400).json({ success: false, error: 'SKUs no válidos' });
   }
 
-  console.log(`\n[ROBOT] 🚀 Iniciando v2.16.0 (Cookie Robusto) para ${skus.length} productos...`);
+  console.log(`\n[ROBOT] 🚀 Iniciando v2.17.0 (Fuerza Bruta Cookie) para ${skus.length} productos...`);
 
   let browser = null;
   try {
@@ -105,45 +105,53 @@ app.post('/sync-mercadona', async (req, res) => {
     let usingCookies = false;
     if (process.env.MERCADONA_COOKIES) {
       try {
-        console.log('[ROBOT] 🚀 Cargador de Cookies Robusto v2.16.0...');
+        console.log('[ROBOT] 🚀 Cargador de Cookies v2.17.0 (Fuerza Bruta de Dominio)...');
         const rawCookies = JSON.parse(process.env.MERCADONA_COOKIES);
 
-        // ── LIMPIEZA Y NORMALIZACIÓN DE COOKIES ─────────────────────────────
-        const cookies = rawCookies.map(c => {
+        // ── DETECCIÓN DE SESIÓN REAL: log de los nombres CRUDOS del JSON ──────
+        console.log(`[DEBUG RAW] Total cookies en MERCADONA_COOKIES: ${rawCookies.length}`);
+        console.log(`[DEBUG RAW] Nombres de cookies en el JSON: ${rawCookies.map(c => c.name).join(', ')}`);
+        const sessionInRaw = rawCookies.find(c => 
+          c.name === 'p_s' || 
+          c.name.toLowerCase().includes('session') || 
+          c.name.toLowerCase().includes('token') || 
+          c.name.toLowerCase().includes('auth')
+        );
+        console.log(`[DEBUG RAW] Cookie de sesión en JSON: ${sessionInRaw ? sessionInRaw.name + ' (dominio: ' + sessionInRaw.domain + ')' : 'NO ENCONTRADA ⚠️'}`);
+
+        // ── LIMPIEZA Y NORMALIZACIÓN ────────────────────────────────────────────
+        const cleanCookie = (c, domainOverride) => {
           const cleaned = { ...c };
-          // 1. Limpiar punto inicial del dominio (ej: .mercadona.es → mercadona.es)
-          if (cleaned.domain && cleaned.domain.startsWith('.')) {
-            cleaned.domain = cleaned.domain.slice(1);
-          }
-          // 2. Forzar dominio correcto por si acaso
-          if (!cleaned.domain || !cleaned.domain.includes('mercadona')) {
-            cleaned.domain = 'tienda.mercadona.es';
-          }
-          // 3. Forzar secure y sameSite
-          cleaned.secure = true;
-          if (!cleaned.sameSite) cleaned.sameSite = 'Lax';
-          // 4. Eliminar campos que Puppeteer no acepta
+          // Limpiar campos que Puppeteer no acepta
           delete cleaned.hostOnly;
           delete cleaned.storeId;
           delete cleaned.session;
+          // Dominio explícito
+          cleaned.domain = domainOverride;
+          // Forzar secure y sameSite
+          cleaned.secure = true;
+          if (!cleaned.sameSite) cleaned.sameSite = 'Lax';
           return cleaned;
-        });
+        };
 
-        // ── LOG DE DIAGNÓSTICO PRE-INYECCIÓN ────────────────────────────────
-        console.log(`[DEBUG] Total cookies a inyectar: ${cookies.length}`);
-        console.log(`[DEBUG] Nombres de cookies: ${cookies.map(c => c.name).join(', ')}`);
-        console.log(`[DEBUG] Dominios tras limpieza: ${[...new Set(cookies.map(c => c.domain))].join(', ')}`);
+        // ── FUERZA BRUTA DE DOMINIO: inyectar para AMBOS dominios ─────────
+        const cookiesFor_tienda = rawCookies.map(c => cleanCookie(c, 'tienda.mercadona.es'));
+        const cookiesFor_dot   = rawCookies.map(c => cleanCookie(c, '.mercadona.es'));
+        const allCookies = [...cookiesFor_tienda, ...cookiesFor_dot];
 
-        await page.setCookie(...cookies);
+        console.log(`[DEBUG] Inyectando ${allCookies.length} cookies (${rawCookies.length} × 2 dominios)...`);
+        console.log(`[DEBUG] Dominios: tienda.mercadona.es + .mercadona.es`);
+
+        await page.setCookie(...allCookies);
         usingCookies = true;
-        console.log(`[ROBOT] 🔑 Total cookies cargadas en el navegador: ${cookies.length}`);
+        console.log(`[ROBOT] 🔑 Total cookies cargadas en el navegador: ${allCookies.length}`);
 
         // Recargar para aplicar la sesión
         await page.reload({ waitUntil: 'domcontentloaded' });
         await wait(4000);
 
-        // ── VERIFICACIÓN DE SESIÓN POST-COOKIES ──────────────────────────────
-        console.log('[ROBOT] 🔍 Verificando que las cookies son válidas...');
+        // ── VERIFICACIÓN DE SESIÓN (SOLO INFORMATIVA, NO BLOQUEA) ───────
+        console.log('[ROBOT] 🔍 Comprobando estado de la página post-cookies...');
         const cookieSessionCheck = await page.evaluate(() => {
           const bodyText = document.body.innerText.toLowerCase();
           const isLoggedIn = bodyText.includes('jordi') ||
@@ -162,24 +170,23 @@ app.post('/sync-mercadona', async (req, res) => {
         console.log(`[DEBUG] Texto inicial: ${cookieSessionCheck.sampleText.substring(0, 150)}`);
 
         if (cookieSessionCheck.isBlocked && !cookieSessionCheck.isLoggedIn) {
-          // ── PRUEBA DE FUEGO: qué cookies ve realmente el navegador ─────────
-          console.error('[ROBOT FATAL] Se detectó "Identifícate". Cookies caducadas o inválidas.');
+          // Log de prueba de fuego SIN DETENER EL ROBOT
+          console.warn('[ROBOT WARN] Detectado "Identifícate" — el robot continuará de todos modos (Salto de Validación).');
           const browserCookies = await page.cookies();
-          console.error(`[DEBUG FUEGO] Cookies que VE el navegador (${browserCookies.length} total): ${browserCookies.map(c => c.name).join(', ')}`);
-          const sessionCookie = browserCookies.find(c => c.name.toLowerCase().includes('session') || c.name.toLowerCase().includes('token') || c.name.toLowerCase().includes('auth'));
-          console.error(`[DEBUG FUEGO] Cookie de sesión encontrada: ${sessionCookie ? JSON.stringify({ name: sessionCookie.name, domain: sessionCookie.domain, expires: sessionCookie.expires }) : 'NINGUNA'}`);
-          await browser.close();
-          return res.status(401).json({ success: false, error: 'Error: Cookies no válidas o caducadas. Renueva MERCADONA_COOKIES.' });
+          console.warn(`[DEBUG FUEGO] Cookies que VE el navegador (${browserCookies.length}): ${browserCookies.map(c => c.name).join(', ')}`);
+          const sessionCookie = browserCookies.find(c => c.name.toLowerCase().includes('session') || c.name.toLowerCase().includes('token') || c.name.toLowerCase().includes('auth') || c.name === 'p_s');
+          console.warn(`[DEBUG FUEGO] Cookie de sesión en navegador: ${sessionCookie ? JSON.stringify({ name: sessionCookie.name, domain: sessionCookie.domain }) : 'NINGUNA ⚠️'}`);
+          // NO abortamos — intentamos el click igualmente
         }
 
         if (cookieSessionCheck.isLoggedIn) {
-          console.log('[ROBOT] ✅ Sesión confirmada por cookies. CP de Jordi respetado (sin forzar zona).');
+          console.log('[ROBOT] ✅ Sesión confirmada. CP de Jordi respetado.');
         } else {
-          console.log('[ROBOT] ⚠️ Sesión no confirmada aún, continuando...');
+          console.log('[ROBOT] ⚠️ Sesión no visible en DOM, pero continuando con fuerza bruta...');
         }
 
       } catch (e) {
-        console.warn('[ROBOT] ⚠️ Error en Cargador de Cookies Robusto, usando login normal.', e.message);
+        console.warn('[ROBOT] ⚠️ Error en Cargador de Cookies v2.17.0, usando login normal.', e.message);
       }
     }
 
@@ -393,5 +400,5 @@ app.post('/sync-mercadona', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Bachan Robot v2.16.0 (Cookie Robusto) escuchando en puerto ${port}`);
+  console.log(`🚀 Bachan Robot v2.17.0 (Fuerza Bruta Cookie) escuchando en puerto ${port}`);
 });
