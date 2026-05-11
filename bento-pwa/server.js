@@ -26,7 +26,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 // ── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
-  res.send('🤖 Servidor Robot Bachan Activo (v2.14.0 - Anti-Fingerprint)');
+  res.send('🤖 Servidor Robot Bachan Activo (v2.15.0 - Zero Conflict)');
 });
 
 app.post('/sync-mercadona', async (req, res) => {
@@ -37,7 +37,7 @@ app.post('/sync-mercadona', async (req, res) => {
     return res.status(400).json({ success: false, error: 'SKUs no válidos' });
   }
 
-  console.log(`\n[ROBOT] 🚀 Iniciando v2.14.0 (Anti-Fingerprint + Home Warmup) para ${skus.length} productos...`);
+  console.log(`\n[ROBOT] 🚀 Iniciando v2.15.0 (Zero Conflict) para ${skus.length} productos...`);
 
   let browser = null;
   try {
@@ -101,29 +101,65 @@ app.post('/sync-mercadona', async (req, res) => {
     await wait(800);
     console.log('[ROBOT] ✅ Calentamiento en Home completado.');
 
-    // Establecer zona de venta si aparece el input de CP
-    const cpInput = await page.$('input[name="postalCode"]');
-    if (cpInput) {
-      await page.type('input[name="postalCode"]', '03005', { delay: 50 });
-      await page.keyboard.press('Enter');
-      await wait(3000);
-      console.log('[ROBOT] ✅ Zona de Venta establecida (03005).');
-    }
-
     // 2. Identificación
     let usingCookies = false;
     if (process.env.MERCADONA_COOKIES) {
       try {
-        console.log('[ROBOT] 🚀 Inyectando cookies de sesión directa (Plan B)...');
+        console.log('[ROBOT] 🚀 Inyectando cookies de sesión directa (Zero Conflict)...');
         const cookies = JSON.parse(process.env.MERCADONA_COOKIES);
         await page.setCookie(...cookies);
         usingCookies = true;
-        console.log('[ROBOT] 🔑 Sesión cargada mediante cookies externas. Saltando formulario.');
+        console.log('[ROBOT] 🔑 Cookies inyectadas. Recargando para aplicar sesión...');
         await page.reload({ waitUntil: 'domcontentloaded' });
-        await wait(3000);
+        await wait(4000);
+
+        // ── VERIFICACIÓN DE SESIÓN POST-COOKIES ──────────────────────────────
+        console.log('[ROBOT] 🔍 Verificando que las cookies son válidas...');
+        const cookieSessionCheck = await page.evaluate(() => {
+          const bodyText = document.body.innerText.toLowerCase();
+          const isLoggedIn = bodyText.includes('jordi') ||
+            bodyText.includes('cerrar sesión') ||
+            bodyText.includes('mi cuenta') ||
+            bodyText.includes('mis pedidos') ||
+            bodyText.includes('mis datos');
+          const isBlocked = bodyText.includes('identifícate') ||
+            bodyText.includes('inicia sesión') ||
+            bodyText.includes('iniciar sesión');
+          const btns = Array.from(document.querySelectorAll('button')).slice(0, 8).map(b => b.innerText.trim()).filter(Boolean);
+          return { isLoggedIn, isBlocked, btns, sampleText: bodyText.substring(0, 200) };
+        });
+
+        console.log(`[DEBUG] Botones visibles post-cookie: ${JSON.stringify(cookieSessionCheck.btns)}`);
+        console.log(`[DEBUG] Texto inicial: ${cookieSessionCheck.sampleText.substring(0, 100)}`);
+
+        if (cookieSessionCheck.isBlocked && !cookieSessionCheck.isLoggedIn) {
+          console.error('[ROBOT FATAL] Se detectó "Identifícate". Las cookies están caducadas o son inválidas.');
+          await browser.close();
+          return res.status(401).json({ success: false, error: 'Error: Cookies no válidas o caducadas. Renueva MERCADONA_COOKIES.' });
+        }
+
+        if (cookieSessionCheck.isLoggedIn) {
+          console.log('[ROBOT] ✅ Sesión confirmada por cookies. CP de Jordi respetado (sin forzar zona).');
+        } else {
+          console.log('[ROBOT] ⚠️ Sesión no confirmada aún, pero continuando (puede que el CP requiera selección).');
+        }
+
       } catch (e) {
-        console.warn('[ROBOT] ⚠️ Error parseando MERCADONA_COOKIES, usando login normal.');
+        console.warn('[ROBOT] ⚠️ Error parseando MERCADONA_COOKIES, usando login normal.', e.message);
       }
+    }
+
+    // Solo forzar CP si NO estamos usando cookies (login normal)
+    if (!usingCookies) {
+      const cpInput = await page.$('input[name="postalCode"]');
+      if (cpInput) {
+        await page.type('input[name="postalCode"]', '03005', { delay: 50 });
+        await page.keyboard.press('Enter');
+        await wait(3000);
+        console.log('[ROBOT] ✅ Zona de Venta establecida (03005).');
+      }
+    } else {
+      console.log('[ROBOT] ℹ️  CP no forzado — usando zona de entrega de las cookies de Jordi.');
     }
 
     if (!usingCookies) {
@@ -238,8 +274,8 @@ app.post('/sync-mercadona', async (req, res) => {
       console.log('[ROBOT] 2/4 Saltando login (Sesión inyectada por cookies).');
     }
 
-    // 3. Añadir productos — Estrategia "Clic y Calma"
-    console.log('[ROBOT] 3/4 Añadiendo productos (Estrategia: Clic y Calma)...');
+    // 3. Añadir productos — Estrategia "Zero Conflict"
+    console.log('[ROBOT] 3/4 Añadiendo productos (Estrategia: Zero Conflict)...');
     const itemsAdded = [];
 
     for (const sku of skus) {
@@ -250,24 +286,13 @@ app.post('/sync-mercadona', async (req, res) => {
         await page.goto(productUrl, { waitUntil: 'domcontentloaded' });
         await wait(4000);
 
-        // Verificar zona de entrega
-        const cpIsCorrect = await page.evaluate(() => document.body.innerText.includes('03005'));
-        if (!cpIsCorrect) {
-          console.log('[INFO] CP 03005 no detectado, intentando re-forzar...');
-          try {
-            await page.evaluate(() => {
-              const btns = Array.from(document.querySelectorAll('button, a'));
-              const cpBtn = btns.find(b => b.innerText.match(/\d{5}/) || (b.getAttribute('aria-label') || '').includes('postal'));
-              if (cpBtn) cpBtn.click();
-            });
-            await wait(2000);
-            await page.type('input[name="postalCode"]', '03005', { delay: 50 });
-            await page.keyboard.press('Enter');
-            await wait(3000);
-          } catch (e) {
-            console.log('[INFO] No se pudo re-forzar el CP:', e.message);
-          }
-        }
+        // CP: solo logear qué zona detecta el robot, sin forzar nada
+        const cpDetected = await page.evaluate(() => {
+          const m = document.body.innerText.match(/\d{5}/);
+          return m ? m[0] : 'no-detectado';
+        });
+        console.log(`[DEBUG] CP detectado en ficha de producto: ${cpDetected}`);
+
 
         // Click en "Añadir al carro"
         const scanResult = await page.evaluate(() => {
@@ -292,10 +317,26 @@ app.post('/sync-mercadona', async (req, res) => {
         if (scanResult.success) {
           console.log(`[OK] Click en "Añadir al carro" para SKU ${sku}. Esperando 20 segundos en calma...`);
 
-          // ⏳ ESPERA PASIVA — sin navegar a ningún sitio
+          // ⏳ ESPERA PASIVA
           await wait(20000);
 
-          console.log(`[OK] Calma completada para SKU ${sku}. Producto en cesta.`);
+          // ── NAVEGACIÓN POST-AÑADIDO: ir al carrito y verificar ───────────────
+          console.log(`[OK] Calma completada. Navegando al carrito para confirmar SKU ${sku}...`);
+          await page.goto('https://tienda.mercadona.es/cart/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+          await wait(3000);
+
+          // Log de la URL real del carrito (detecta parámetros extraños o redirecciones)
+          const cartUrl = page.url();
+          console.log(`[DEBUG] URL real del carrito tras navegación: ${cartUrl}`);
+
+          // Log del contenido visible del carrito
+          const cartContent = await page.evaluate(() => {
+            return document.body.innerText.substring(0, 300);
+          });
+          console.log(`[DEBUG] Contenido del carrito (primeros 300 chars): ${cartContent}`);
+
+          await wait(10000);
+          console.log(`[OK] SKU ${sku} procesado. Cerrando carrito.`);
           itemsAdded.push(sku);
         } else {
           console.log(`[ERROR] No se encontró botón interactivo para SKU: ${sku}`);
@@ -305,13 +346,9 @@ app.post('/sync-mercadona', async (req, res) => {
       }
     }
 
-    // 4. Cierre Real — un solo reload para confirmar estado de la cesta
-    console.log('[ROBOT] 4/4 Recargando página para confirmar cesta. Esperando 5 segundos...');
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await wait(5000);
-
+    // 4. Cierre limpio
+    console.log(`[ROBOT] 4/4 ✨ Finalizado. Añadidos: ${itemsAdded.length}`);
     await browser.close();
-    console.log(`[ROBOT] ✨ Finalizado. Añadidos: ${itemsAdded.length}`);
     res.json({ success: true, itemsAdded });
 
   } catch (error) {
@@ -322,5 +359,5 @@ app.post('/sync-mercadona', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Bachan Robot v2.14.0 (Anti-Fingerprint + Home Warmup) escuchando en puerto ${port}`);
+  console.log(`🚀 Bachan Robot v2.15.0 (Zero Conflict) escuchando en puerto ${port}`);
 });
