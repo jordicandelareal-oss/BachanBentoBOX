@@ -26,7 +26,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 // ── ENDPOINTS ───────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
-  res.send('🤖 Servidor Robot Bachan Activo (v2.13.0 - Clic y Calma)');
+  res.send('🤖 Servidor Robot Bachan Activo (v2.14.0 - Anti-Fingerprint)');
 });
 
 app.post('/sync-mercadona', async (req, res) => {
@@ -37,36 +37,45 @@ app.post('/sync-mercadona', async (req, res) => {
     return res.status(400).json({ success: false, error: 'SKUs no válidos' });
   }
 
-  console.log(`\n[ROBOT] 🚀 Iniciando v2.13.0 (Clic y Calma) para ${skus.length} productos...`);
+  console.log(`\n[ROBOT] 🚀 Iniciando v2.14.0 (Anti-Fingerprint + Home Warmup) para ${skus.length} productos...`);
 
   let browser = null;
   try {
     const args = '&--no-sandbox&--disable-setuid-sandbox&--disable-dev-shm-usage&--disable-accelerated-2d-canvas&--no-first-run&--no-zygote&--single-process';
-    const browserWSEndpoint = `wss://chrome.browserless.io?token=${token}&--window-size=390,844${args}`;
+    const browserWSEndpoint = `wss://chrome.browserless.io?token=${token}&--window-size=1920,1080${args}`;
 
     browser = await puppeteerExtra.connect({
       browserWSEndpoint,
-      defaultViewport: { width: 390, height: 844 }
+      defaultViewport: { width: 1920, height: 1080 }
     });
 
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(60000);
 
-    // User-Agent iPhone 15 Pro (iOS 17) — parece la App móvil de Jordi
+    // User-Agent Chrome 124 Windows — navegador humano real
     await page.setUserAgent(
-      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
     );
 
-    // Huella Digital Humana (Evitar detección WebDriver)
+    // Viewport humano explícito (1920x1080)
+    await page.setViewport({ width: 1920, height: 1080 });
+
+    // ── ANTI-FINGERPRINT: Eliminar todas las huellas de headless ──────────────
     await page.evaluateOnNewDocument(() => {
+      // 1. Ocultar webdriver
       Object.defineProperty(navigator, 'webdriver', { get: () => false });
+      // 2. Simular objeto chrome real (presente en Chrome no-headless)
+      window.chrome = { runtime: {} };
+      // 3. Idioma español (como un usuario español real)
+      Object.defineProperty(navigator, 'languages', { get: () => ['es-ES', 'es'] });
     });
 
-    // 1. Zona de Venta y Cookies
-    console.log('[ROBOT] 1/4 Estableciendo Zona de Venta...');
+    // 1. Zona de Venta, Cookies y Calentamiento en Home
+    console.log('[ROBOT] 1/4 Aterrizando en la Home (calentamiento humano)...');
     await page.goto('https://tienda.mercadona.es/', { waitUntil: 'domcontentloaded' });
     await wait(3000);
 
+    // Aceptar cookies
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('button'));
       const acceptBtn = btns.find(b =>
@@ -77,6 +86,22 @@ app.post('/sync-mercadona', async (req, res) => {
     });
     await wait(1500);
 
+    // ── TRUCO DE LA HOME: 5 segundos de movimientos de ratón aleatorios ───────
+    console.log('[ROBOT] 🖱️  Simulando exploración humana en la Home (5 segundos)...');
+    for (let i = 0; i < 8; i++) {
+      const x = Math.floor(Math.random() * 1600) + 100;
+      const y = Math.floor(Math.random() * 700) + 100;
+      await page.mouse.move(x, y, { steps: 10 });
+      await wait(Math.floor(Math.random() * 500) + 300);
+    }
+    // Scroll suave hacia abajo y vuelve, como un humano curioso
+    await page.evaluate(() => window.scrollBy({ top: 400, behavior: 'smooth' }));
+    await wait(1200);
+    await page.evaluate(() => window.scrollBy({ top: -200, behavior: 'smooth' }));
+    await wait(800);
+    console.log('[ROBOT] ✅ Calentamiento en Home completado.');
+
+    // Establecer zona de venta si aparece el input de CP
     const cpInput = await page.$('input[name="postalCode"]');
     if (cpInput) {
       await page.type('input[name="postalCode"]', '03005', { delay: 50 });
@@ -297,5 +322,5 @@ app.post('/sync-mercadona', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Bachan Robot v2.13.0 (Clic y Calma) escuchando en puerto ${port}`);
+  console.log(`🚀 Bachan Robot v2.14.0 (Anti-Fingerprint + Home Warmup) escuchando en puerto ${port}`);
 });
