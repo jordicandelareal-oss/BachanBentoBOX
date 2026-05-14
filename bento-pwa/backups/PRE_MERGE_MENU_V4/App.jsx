@@ -6,6 +6,7 @@ import Layout          from './components/Layout'
 import Home            from './pages/Home'
 import Ingredients     from './pages/Ingredients'
 import Recipes         from './pages/Recipes'
+import BentoPage       from './pages/BentoPage'
 import Preparations    from './pages/Preparations'
 import CatalogSettings from './pages/CatalogSettings'
 import POS             from './pages/POS'
@@ -113,8 +114,7 @@ function App() {
                 <Route path="analytics"    element={<BusinessAnalytics />} />
                 <Route path="preparations" element={<Preparations />} />
                 <Route path="recipes"      element={<Recipes />} />
-                {/* Legacy: redirect /bento-maker → /preparations */}
-                <Route path="bento-maker"  element={<Navigate to="/preparations" replace />} />
+                <Route path="bento-maker"  element={<BentoPage />} />
                 <Route path="providers"    element={<Providers />} />
                 <Route path="settings"     element={<CatalogSettings />} />
               </Route>

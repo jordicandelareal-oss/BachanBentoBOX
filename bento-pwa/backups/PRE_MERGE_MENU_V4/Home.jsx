@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import AIActionSheet from '../components/Nana/AIActionSheet';
 import './Home.css';
-import { CookingPot, Carrot, Sparkles, ShoppingBag, TrendingUp, Settings } from 'lucide-react';
+import { CookingPot, Carrot, Sparkles, ShoppingBag, TrendingUp, BookOpen, Settings } from 'lucide-react';
 
 // ─── Iconos ──────────────────────────────────────────────────────────────────
+const BentoIcon       = () => <BookOpen   size={42} strokeWidth={1.2} />;
 const ChefIcon        = () => <CookingPot size={42} strokeWidth={1.2} />;
 const IngredientsIcon = () => <Carrot     size={42} strokeWidth={1.2} />;
 const SparkleAIIcon   = () => <Sparkles   size={24} color="var(--color-accent)" strokeWidth={1.5} />;
@@ -20,7 +21,8 @@ const ArrowIcon = () => (
 const MENU_ITEMS = [
   { id: 'pos',          title: 'TPV / Caja',   desc: 'Cobro rápido y gestión de pedidos',          icon: <ShoppingBag    size={42} strokeWidth={1.2} />, path: '/pos' },
   { id: 'analytics',   title: 'Analítica',     desc: 'Dashboard y análisis histórico',             icon: <TrendingUp     size={42} strokeWidth={1.2} />, path: '/analytics' },
-  { id: 'preparations',title: 'Elaboraciones', desc: 'Mise en place, recetas y gestión TPV',       icon: <ChefIcon />,                                   path: '/preparations' },
+  { id: 'bentos',      title: 'Menú',          desc: 'Catálogo de productos finales y categorías', icon: <BentoIcon />,                                  path: '/bento-maker' },
+  { id: 'preparations',title: 'Elaboraciones', desc: 'Mise en place y recetas base de cocina',     icon: <ChefIcon />,                                   path: '/preparations' },
   { id: 'ingredients', title: 'Insumos',       desc: 'Control de stock y precios de mercado',      icon: <IngredientsIcon />,                            path: '/ingredients' },
   { id: 'settings',    title: 'Ajustes',       desc: 'Configuración general del sistema',          icon: <Settings       size={42} strokeWidth={1.2} />, path: '/settings' },
 ];

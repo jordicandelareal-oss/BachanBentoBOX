@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Settings, Folder, Tag, ChefHat, Plus, 
   Trash2, Edit2, Check, X, Loader2, ArrowLeft,
-  ChevronRight, BookOpen, ChevronUp, ChevronDown
+  ChevronRight, BookOpen
 } from 'lucide-react';
 
 import { useCatalogSettings } from '../hooks/useCatalogSettings';
@@ -31,8 +31,7 @@ export default function CatalogSettings() {
     loading: menuLoading,
     addCategory: addMenuCategory,
     updateCategory: updateMenuCategory,
-    deleteCategory: deleteMenuCategory,
-    reorderCategories: reorderMenuCategories
+    deleteCategory: deleteMenuCategory
   } = useMenuCategories();
   
   const [activeTab, setActiveTab] = useState('cats');
@@ -105,22 +104,6 @@ export default function CatalogSettings() {
       await deleteItem(confirmDelete.table, confirmDelete.id);
     }
     setConfirmDelete(null);
-    setIsActionLoading(false);
-  };
-
-  const handleMoveMenuCategory = async (index, direction) => {
-    if (activeTab !== 'menu') return;
-    const cats = [...menuCategories];
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= cats.length) return;
-    
-    // Swap
-    const temp = cats[index];
-    cats[index] = cats[newIndex];
-    cats[newIndex] = temp;
-
-    setIsActionLoading(true);
-    await reorderMenuCategories(cats);
     setIsActionLoading(false);
   };
 
@@ -216,27 +199,7 @@ export default function CatalogSettings() {
                           <span className="text-[10px] font-black uppercase bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full ml-3 tracking-widest leading-none flex items-center h-5">Orden: {item.sort_order}</span>
                         )}
                       </div>
-                      <div className="flex gap-1 items-center">
-                        {activeTab === 'menu' && (
-                          <div className="flex flex-col mr-2 bg-slate-50 rounded-lg overflow-hidden border border-slate-100">
-                            <button 
-                              type="button" 
-                              onClick={() => handleMoveMenuCategory(getItems().indexOf(item), -1)}
-                              disabled={getItems().indexOf(item) === 0}
-                              className="px-1.5 py-0.5 text-slate-400 hover:text-emerald-500 hover:bg-slate-100 disabled:opacity-30"
-                            >
-                              <ChevronUp size={14} />
-                            </button>
-                            <button 
-                              type="button" 
-                              onClick={() => handleMoveMenuCategory(getItems().indexOf(item), 1)}
-                              disabled={getItems().indexOf(item) === getItems().length - 1}
-                              className="px-1.5 py-0.5 text-slate-400 hover:text-emerald-500 hover:bg-slate-100 disabled:opacity-30"
-                            >
-                              <ChevronDown size={14} />
-                            </button>
-                          </div>
-                        )}
+                      <div className="flex gap-1">
                         <button 
                           type="button"
                           onClick={() => { setEditingId(item.id); setEditValue(item.name || item.Name); }}

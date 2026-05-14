@@ -91,18 +91,14 @@ export function useRecipes(type = null) {
   }, [fetchRecipes])
 
   // Toggle public visibility
-  // menuCategoryId: optional, persisted to recipes.menu_category_id when publishing
-  async function togglePublish(recipeId, currentStatus, salePrice = null, menuCategoryId = undefined) {
+  async function togglePublish(recipeId, currentStatus, salePrice = null) {
     try {
       const newStatus = !currentStatus;
       
-      // 1. Build update payload for recipes table
+      // 1. Update recipe table
       const updateData = { is_published: newStatus };
       if (salePrice !== null) {
         updateData.sale_price = Number(salePrice);
-      }
-      if (menuCategoryId !== undefined) {
-        updateData.menu_category_id = menuCategoryId || null;
       }
       
       const { error: recipeError } = await supabase
@@ -114,7 +110,7 @@ export function useRecipes(type = null) {
 
       // 2. Sync with menu_items
       if (newStatus) {
-        // Fetch fresh copy to ensure all fields are current (after our update)
+        // Fetch fresh copy to ensure all fields are current
         const { data: recipe, error: fetchErr } = await supabase
           .from('recipes')
           .select('*')
@@ -140,18 +136,20 @@ export function useRecipes(type = null) {
             image_url: recipe.image_url || '',
             recipe_id: recipeId,
             menu_category_id: recipe.menu_category_id || null,
-            quantity_multiplier: 1,
+            quantity_multiplier: 1, // Default base item
             active: true
           };
 
           if (existing) {
+            // Update existing base item
             await supabase.from('menu_items').update(menuItem).eq('id', existing.id);
           } else {
+            // Create new base item
             await supabase.from('menu_items').insert([menuItem]);
           }
         }
       } else {
-        // Unpublish: remove ALL variants from menu_items
+        // Remove ALL variants of this recipe from menu_items if unpublished
         const { error: deleteErr } = await supabase.from('menu_items').delete().eq('recipe_id', recipeId);
         if (deleteErr) throw deleteErr;
       }

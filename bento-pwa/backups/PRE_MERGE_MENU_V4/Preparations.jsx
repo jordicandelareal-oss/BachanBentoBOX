@@ -4,8 +4,7 @@ import useBentoMaker, { normalizeUnit } from '../hooks/useBentoMaker';
 import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { usePrepCategories } from '../hooks/usePrepCategories';
-import { useMenuCategories } from '../hooks/useMenuCategories';
-import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search, AlertCircle, ChefHat, CheckCircle2, Camera, CookingPot, Loader2, Store, TrendingUp, TrendingDown, Tag } from 'lucide-react';
+import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search, AlertCircle, ChefHat, CheckCircle2, Camera, CookingPot, Loader2, Store } from 'lucide-react';
 import SequentialSelector from '../components/Common/SequentialSelector';
 import PhotoSelector from '../components/Common/PhotoSelector';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
@@ -20,15 +19,12 @@ import './Preparations.css';
 export function Preparations() {
   const { recipes, loading, deleteRecipe, fetchRecipes, togglePublish } = useRecipes(['elaboracion', 'bento']);
   const { categories: prepCats } = usePrepCategories();
-  const { categories: menuCats } = useMenuCategories();
   const [editingRecipe, setEditingRecipe] = useState(null);
   const [activeTabId, setActiveTabId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [lightbox, setLightbox] = useState({ isOpen: false, imageUrl: '', title: '' });
-  // publishAction: { id, price, cost, name, menuCategoryId }
-  const [publishAction, setPublishAction] = useState(null);
+  const [publishAction, setPublishAction] = useState(null); // { id, price }
   const [saving, setSaving] = useState(false);
-  const [pvpModalOpen, setPvpModalOpen] = useState(false);
   
   const activeTabName = useMemo(() => 
     prepCats.find(c => c.id === activeTabId)?.Name || '',
@@ -76,34 +72,15 @@ export function Preparations() {
     setConfirmDelete(null);
   }, [confirmDelete, deleteRecipe]);
 
-  const handleToggleStore = async (recipe) => {
-    if (!recipe.is_published) {
-      // Open rich PVP modal before publishing
-      setPublishAction({
-        id: recipe.id,
-        price: recipe.sale_price?.toString() || '0',
-        cost: recipe.cost_per_portion || 0,
-        name: recipe.name,
-        menuCategoryId: recipe.menu_category_id || ''
-      });
-      setPvpModalOpen(true);
+  const handleToggleStore = async (id, currentStatus, currentPrice) => {
+    if (!currentStatus) {
+      setPublishAction({ id, price: currentPrice?.toString() || '0' });
     } else {
-      // Unpublish directly
       setSaving(true);
-      const res = await togglePublish(recipe.id, true, recipe.sale_price);
+      const res = await togglePublish(id, true, currentPrice);
       setSaving(false);
       if (!res.success) alert(res.error);
     }
-  };
-
-  const handleConfirmPublish = async () => {
-    if (!publishAction) return;
-    setSaving(true);
-    const res = await togglePublish(publishAction.id, false, publishAction.price, publishAction.menuCategoryId);
-    setSaving(false);
-    setPvpModalOpen(false);
-    setPublishAction(null);
-    if (!res.success) alert(res.error);
   };
 
   if (editingRecipe) {
@@ -138,9 +115,13 @@ export function Preparations() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Elaboraciones</h1>
-          <p className="page-subtitle">Gestiona la mise en place, recetas base y precios de venta (TPV)</p>
+          <p className="page-subtitle">Gestiona la mise en place y recetas base</p>
         </div>
         <div className="flex gap-4 items-center">
+          <button onClick={() => window.location.href='/dashboard'} className="btn-dashboard">
+            <LayoutGrid size={18}/>
+            <span>Dashboard</span>
+          </button>
           <button className="btn-icon-main" onClick={() => handleOpenEditor()}>
             <Plus size={24} />
           </button>
@@ -196,66 +177,50 @@ export function Preparations() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
-                {/* Cost + Margin display */}
+              <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <div className="card-meta" style={{ fontSize: '10px' }}>Coste</div>
+                  <div className="card-meta" style={{ fontSize: '10px' }}>
+                    Coste
+                  </div>
                   <div className="price-display">
                     {recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}
                     <span className="text-[10px] opacity-60 ml-1 font-bold lowercase">
                       {recipe?.yield_scenario === 'weight' ? '/ kg' : '/ ud'}
                     </span>
                   </div>
-                  {recipe.is_published && recipe.sale_price > 0 && (() => {
-                    const margin = ((recipe.sale_price - recipe.cost_per_portion) / recipe.sale_price) * 100;
-                    const good = margin >= 70;
-                    return (
-                      <div className={`flex items-center justify-end gap-1 mt-1 text-[10px] font-black ${ good ? 'text-emerald-500' : 'text-amber-500'}`}>
-                        {good ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}
-                        {margin.toFixed(1)}% · {Number(recipe.sale_price).toFixed(2)}€ PVP
-                      </div>
-                    );
-                  })()}
                 </div>
-                <div className="card-actions-subtle">
-                  {/* TPV Store Toggle — central control */}
-                  <button 
-                    className={`p-2 rounded-full transition-all ${
-                      recipe.is_published 
-                        ? 'bg-emerald-500 text-white shadow-md hover:bg-emerald-600' 
-                        : 'text-slate-300 bg-slate-100 hover:bg-slate-200'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleStore(recipe);
-                    }}
-                    title={recipe.is_published ? `Publicado en TPV · PVP ${Number(recipe.sale_price||0).toFixed(2)}€ — Click para despublicar` : "Publicar en TPV (configura PVP)"}
-                  >
-                    {saving && publishAction?.id === recipe.id 
-                      ? <Loader2 size={18} className="animate-spin" /> 
-                      : <Store size={18} />}
-                  </button>
-                  {recipe?.image_url && (
+                  <div className="card-actions-subtle">
                     <button 
-                      className="p-2 text-sky-500 hover:bg-sky-50 rounded-full transition-colors"
+                      className={`p-2 rounded-full transition-all ${recipe.is_published ? 'btn-published-blue' : 'text-slate-300 bg-slate-100 hover:bg-slate-200'}`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setLightbox({ isOpen: true, imageUrl: recipe.image_url, title: recipe.name });
+                        handleToggleStore(recipe.id, recipe.is_published, recipe.sale_price);
+                      }}
+                      title={recipe.is_published ? "Quitar de la tienda" : "Enviar a la tienda"}
+                    >
+                      {saving && publishAction?.id === recipe.id ? <Loader2 size={18} className="animate-spin" /> : <Store size={18} />}
+                    </button>
+                    {recipe?.image_url && (
+                      <button 
+                        className="p-2 text-sky-500 hover:bg-sky-50 rounded-full transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLightbox({ isOpen: true, imageUrl: recipe.image_url, title: recipe.name });
+                        }}
+                      >
+                        <Camera size={20} />
+                      </button>
+                    )}
+                    <button 
+                      className="delete-btn-subtle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDelete(recipe?.id);
                       }}
                     >
-                      <Camera size={20} />
+                      <Trash2 size={18} />
                     </button>
-                  )}
-                  <button 
-                    className="delete-btn-subtle"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setConfirmDelete(recipe?.id);
-                    }}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+                  </div>
                 <ChevronRight size={18} className="text-slate-300" />
               </div>
             </div>
@@ -287,16 +252,18 @@ export function Preparations() {
         title={lightbox.title}
         onClose={() => setLightbox({ ...lightbox, isOpen: false })}
       />
-
-      {/* ── PVP / TPV Modal ───────────────────────────────────────── */}
-      {pvpModalOpen && publishAction && (
-        <PvpPublishModal
-          item={publishAction}
-          menuCats={menuCats}
-          saving={saving}
-          onChange={(patch) => setPublishAction(prev => ({ ...prev, ...patch }))}
-          onClose={() => { setPvpModalOpen(false); setPublishAction(null); }}
-          onConfirm={handleConfirmPublish}
+      {publishAction && (
+        <NumPad
+          label="Precio de Venta (PVP)"
+          value={publishAction.price}
+          onChange={(val) => setPublishAction(prev => ({ ...prev, price: val }))}
+          onClose={async () => {
+            setSaving(true);
+            const res = await togglePublish(publishAction.id, false, publishAction.price);
+            setSaving(false);
+            setPublishAction(null);
+            if (!res.success) alert(res.error);
+          }}
         />
       )}
     </div>
@@ -803,145 +770,4 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
   );
 }
 
-// ─── PVP Publish Modal ────────────────────────────────────────────────────────
-function PvpPublishModal({ item, menuCats, saving, onChange, onClose, onConfirm }) {
-  const pvp = parseFloat(item.price) || 0;
-  const cost = parseFloat(item.cost) || 0;
-  const margin = pvp > 0 ? ((pvp - cost) / pvp) * 100 : 0;
-  const isGood = margin >= 70;
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div
-        className="modal-card"
-        onClick={e => e.stopPropagation()}
-        style={{ paddingTop: '2rem', maxWidth: '420px' }}
-      >
-        {/* Header */}
-        <div className="modal-header border-b-0 pb-2">
-          <div className="flex flex-col w-full pr-8">
-            <h3 className="modal-title flex items-center gap-2">
-              <Store size={18} className="text-emerald-500" />
-              Publicar en TPV
-            </h3>
-            <p className="text-sm font-bold text-slate-800 mt-1">{item.name}</p>
-          </div>
-          <button className="modal-close-btn" onClick={onClose}><X size={20} /></button>
-        </div>
-
-        <div className="modal-form pt-4 space-y-5">
-
-          {/* Cost reference */}
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coste de Insumos</span>
-            <span className="font-black text-slate-700">{cost.toFixed(2)}€</span>
-          </div>
-
-          {/* PVP Input */}
-          <div className="form-group">
-            <label className="form-label text-slate-500 font-bold mb-2 block">Precio de Venta (PVP) <span className="text-rose-500">*</span></label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={item.price}
-                onChange={e => onChange({ price: e.target.value })}
-                className="form-input-premium text-2xl font-black text-emerald-600 text-center"
-                placeholder="0.00"
-                style={{ maxWidth: '140px' }}
-              />
-              <span className="text-2xl font-black text-slate-400">€</span>
-            </div>
-          </div>
-
-          {/* Real-time Margin Badge */}
-          <div
-            className={`p-4 rounded-2xl border flex justify-between items-center transition-all ${
-              pvp === 0
-                ? 'bg-slate-50 border-slate-100'
-                : isGood
-                ? 'bg-emerald-50 border-emerald-100'
-                : margin > 0
-                ? 'bg-amber-50 border-amber-100'
-                : 'bg-rose-50 border-rose-100'
-            }`}
-          >
-            <div>
-              <span className={`text-[10px] font-black uppercase tracking-widest block ${isGood ? 'text-emerald-600' : margin > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
-                Margen Estimado
-              </span>
-              <span className="text-xs text-slate-400 font-bold">
-                PVP {pvp.toFixed(2)}€ − Coste {cost.toFixed(2)}€ = {(pvp - cost).toFixed(2)}€
-              </span>
-            </div>
-            <div className={`flex items-center gap-2 text-2xl font-black ${isGood ? 'text-emerald-600' : margin > 0 ? 'text-amber-600' : 'text-rose-500'}`}>
-              {pvp > 0 ? (isGood ? <TrendingUp size={20}/> : <TrendingDown size={20}/>) : null}
-              {pvp > 0 ? `${margin.toFixed(1)}%` : '—'}
-            </div>
-          </div>
-
-          {/* Menu Category */}
-          {menuCats && menuCats.length > 0 && (
-            <div className="form-group">
-              <label className="form-label text-slate-500 font-bold mb-2 block">
-                <Tag size={12} className="inline mr-1" />Categoría de Carta (TPV)
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                    !item.menuCategoryId
-                      ? 'bg-slate-900 text-white border-slate-900'
-                      : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
-                  }`}
-                  onClick={() => onChange({ menuCategoryId: '' })}
-                >
-                  Sin categoría
-                </button>
-                {menuCats.map(cat => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                      item.menuCategoryId === cat.id
-                        ? 'bg-emerald-500 text-white border-emerald-500'
-                        : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
-                    }`}
-                    onClick={() => onChange({ menuCategoryId: cat.id })}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <button
-              className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black active:scale-95 transition-all"
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancelar
-            </button>
-            <button
-              className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-              onClick={onConfirm}
-              disabled={saving || pvp <= 0}
-            >
-              {saving
-                ? <><Loader2 size={20} className="animate-spin" /> Publicando...</>
-                : <><Store size={18} /> Publicar en TPV</>
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default Preparations;
-

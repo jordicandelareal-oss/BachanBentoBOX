@@ -849,9 +849,9 @@ export default function Ingredients() {
           <p className="page-subtitle">Gestiona tus ingredientes y precios base de compra</p>
         </div>
         <div className="flex gap-4 items-center">
-          <button onClick={() => window.location.href='/dashboard'} className="btn-dashboard">
+          <button onClick={() => window.location.href='/'} className="btn-dashboard">
             <LayoutGrid size={18}/>
-            <span>Dashboard</span>
+            <span>Inicio</span>
           </button>
           <button className="btn-icon-main" onClick={openAdd}>
             <Plus size={24} />

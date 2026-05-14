@@ -5,7 +5,7 @@ import { useIngredients } from '../hooks/useIngredients'
 import { useRecipes } from '../hooks/useRecipes'
 import { useOrderNotifications } from '../hooks/useOrderNotifications'
 import { processCommand } from '../lib/geminiClient'
-import { CookingPot, Carrot, Sparkles, Settings, BarChart3, LayoutGrid, ShoppingBag, Truck } from 'lucide-react'
+import { BookOpen, CookingPot, Carrot, Sparkles, Settings, BarChart3, LayoutGrid, ShoppingBag, Truck } from 'lucide-react'
 import pkg from '../../package.json'
 import NanaOverlay from './Nana/NanaOverlay'
 import AIActionSheet from './Nana/AIActionSheet'
@@ -214,6 +214,7 @@ export default function Layout() {
               <div className="desktop-nav">
                 <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Inicio</NavLink>
                 <NavLink to="/pos" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>TPV</NavLink>
+                <NavLink to="/bento-maker" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Menú</NavLink>
                 <NavLink to="/preparations" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Elaboraciones</NavLink>
                 <NavLink to="/ingredients" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Insumos</NavLink>
                 <NavLink to="/providers"   className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Proveedores</NavLink>
@@ -231,6 +232,10 @@ export default function Layout() {
               <NavLink to="/pos" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
                 <ShoppingBag size={22} />
                 <span>TPV</span>
+              </NavLink>
+              <NavLink to="/bento-maker" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
+                <BookOpen size={22} />
+                <span>Menú</span>
               </NavLink>
               <NavLink to="/preparations" className={({isActive}) => isActive ? "mobile-nav-item active" : "mobile-nav-item"}>
                 <CookingPot size={22} />
