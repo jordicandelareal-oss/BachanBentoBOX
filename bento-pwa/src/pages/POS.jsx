@@ -139,6 +139,7 @@ export default function POS() {
   const [discountType, setDiscountType] = useState('percent');
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   // Delivery / Envío
   const [deliveryCost, setDeliveryCost] = useState(3.00);
@@ -610,7 +611,7 @@ export default function POS() {
              </div>
           </div>
           <nav className="pos-category-nav">
-             <div className="pos-category-tabs">
+             <div className="pos-category-tabs hidden-mobile">
                {categories.filter(c => c.is_active).map(cat => (
                  <button
                    key={cat.id}
@@ -620,6 +621,35 @@ export default function POS() {
                     {cat.name}
                  </button>
                ))}
+             </div>
+             
+             {/* Dropdown Mobile */}
+             <div className="pos-category-dropdown-mobile visible-mobile">
+                <button 
+                  className={`pos-category-tab active pos-dropdown-trigger`}
+                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                >
+                  <span className="truncate" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {categories.find(c => String(c.id) === String(activeCategory))?.name || 'Categorías'}
+                  </span>
+                  <ChevronDown size={18} />
+                </button>
+                {showCategoryDropdown && (
+                  <>
+                    <div className="pos-dropdown-backdrop" onClick={() => setShowCategoryDropdown(false)}></div>
+                    <div className="pos-dropdown-menu">
+                      {categories.filter(c => c.is_active).map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => { setActiveCategory(cat.id); setShowCategoryDropdown(false); }}
+                          className={`pos-dropdown-item ${activeCategory === cat.id ? 'active' : ''}`}
+                        >
+                           {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
              </div>
              <button 
                onClick={handleOpenOrdersClick} 
