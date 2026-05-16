@@ -727,14 +727,14 @@ export default function POS() {
                 <div className="pos-ticket-number">Ticket #{String(ticketSeq + 1).padStart(4, '0')}</div>
              </div>
              <div className="flex items-center gap-3">
-               {/* Botón Volver (Móvil) */}
+               {/* Botón Volver (Móvil) - Diseño Premium */}
                <button 
                  onClick={() => setShowMobileCart(false)} 
-                 className="flex md:hidden items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-xs font-bold transition-colors"
+                 className="flex md:hidden items-center justify-center gap-1.5 px-4 h-[40px] border border-slate-200 bg-transparent text-slate-400 rounded-full text-[10px] uppercase font-[900] tracking-[0.1em] transition-all hover:bg-slate-50 hover:text-slate-600"
                >
-                 <ArrowLeft size={16} /> Productos
+                 <ArrowLeft size={16} strokeWidth={2.5} /> PRODUCTOS
                </button>
-               <button onClick={() => setCart([])} className="pos-icon-btn" style={{ color: '#ef4444' }}><Trash2 size={24}/></button>
+               <button onClick={() => setCart([])} className="pos-icon-btn flex items-center justify-center h-[40px] w-[40px] p-0" style={{ color: '#ef4444' }}><Trash2 size={22}/></button>
              </div>
          </header>
 
