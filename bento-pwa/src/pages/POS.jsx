@@ -727,10 +727,10 @@ export default function POS() {
                 <div className="pos-ticket-number">Ticket #{String(ticketSeq + 1).padStart(4, '0')}</div>
              </div>
              <div className="flex items-center gap-3">
-               {/* Botón Volver (Móvil) - Diseño Premium */}
+               {/* Botón Volver (Móvil) - Estilo clonado de MARCHAR */}
                <button 
                  onClick={() => setShowMobileCart(false)} 
-                 className="flex md:hidden items-center justify-center gap-1.5 px-4 h-[40px] border border-slate-200 bg-transparent text-slate-400 rounded-full text-[10px] uppercase font-[900] tracking-[0.1em] transition-all hover:bg-slate-50 hover:text-slate-600"
+                 className="flex md:hidden items-center justify-center gap-2 px-4 h-[40px] bg-slate-100 text-slate-600 border border-slate-200 rounded-[14px] text-[11px] uppercase font-black tracking-[0.1em] transition-colors hover:bg-slate-200"
                >
                  <ArrowLeft size={16} strokeWidth={2.5} /> PRODUCTOS
                </button>
