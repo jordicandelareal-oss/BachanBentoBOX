@@ -721,20 +721,21 @@ export default function POS() {
 
       {/* 2. SECCIÓN DERECHA: TICKET (ESCRITORIO) / MODAL (MÓVIL) */}
       <aside className={`pos-sidebar ${showMobileCart ? 'mobile-visible' : ''}`}>
-          {/* Botón Cerrar (Solo visible en Móvil v2.1.1) */}
-          <button 
-            onClick={() => setShowMobileCart(false)} 
-            className="pos-sidebar-close-mobile"
-          >
-            <X size={28}/>
-          </button>
-
          <header className="pos-sidebar-header">
              <div>
                 <h2 className="pos-ticket-title">Venta Actual</h2>
                 <div className="pos-ticket-number">Ticket #{String(ticketSeq + 1).padStart(4, '0')}</div>
              </div>
-            <button onClick={() => setCart([])} className="pos-icon-btn" style={{ color: '#ef4444' }}><Trash2 size={24}/></button>
+             <div className="flex items-center gap-3">
+               {/* Botón Volver (Móvil) */}
+               <button 
+                 onClick={() => setShowMobileCart(false)} 
+                 className="flex md:hidden items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-xs font-bold transition-colors"
+               >
+                 <ArrowLeft size={16} /> Productos
+               </button>
+               <button onClick={() => setCart([])} className="pos-icon-btn" style={{ color: '#ef4444' }}><Trash2 size={24}/></button>
+             </div>
          </header>
 
          {/* INPUTS CLIENTE/MESA */}

@@ -444,30 +444,32 @@
   .pos-sidebar {
     position: fixed;
     right: 0;
-    top: 0;
+    top: 120px;
     bottom: 0;
     width: 100%;
     z-index: 1000;
     transform: translateX(100%);
     visibility: hidden;
-    height: 100%;
+    /* Height and box-sizing handled implicitly by top/bottom */
   }
 
   .pos-sidebar.mobile-visible {
     transform: translateX(0);
     visibility: visible;
     background: white;
-    /* Shock Fix v2.2.8: Padding extra para evitar solapamiento con la barra de estado (Notch/Bateria) */
-    padding-top: env(safe-area-inset-top, 175px) !important;
-    margin-top: 10px;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
   }
 
   .pos-sidebar-header {
-    padding: 12px 24px !important;
+    padding: 16px 24px !important;
     height: auto !important;
     border-bottom: 2px solid #f1f5f9;
     flex-shrink: 0;
-    margin-top: 80px !important; /* Desplazamiento extra solicitado (v2.2.9.1) */
+    margin-top: 0 !important;
   }
 
   .pos-cart-item {
