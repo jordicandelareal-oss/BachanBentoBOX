@@ -26,6 +26,9 @@
   background-color: white;
   border-right: 1px solid #e2e8f0;
   overflow: hidden;
+  height: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 1024px) {
@@ -189,6 +192,13 @@
     padding: 0 16px;
     color: #1e293b;
     border-bottom: none !important;
+  }
+
+  .pos-btn-volver {
+    display: flex;
+    height: 32px;
+    font-size: 11px;
+    padding: 0 12px;
   }
 
   .pos-dropdown-backdrop {
@@ -430,6 +440,8 @@
   flex: 0 0 30%;
   width: 30%;
   max-width: 450px;
+  height: 100%;
+  max-height: 100%;
   background-color: white;
   border-left: 1px solid #f1f5f9;
   display: flex !important;
@@ -438,6 +450,7 @@
   z-index: 50;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 @media (max-width: 1024px) {
@@ -744,11 +757,20 @@
 }
 
 .pos-btn-volver {
-  flex: none;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 12px;
-  gap: 6px;
+  display: none !important;
+}
+
+@media (max-width: 1024px) {
+  .pos-btn-volver {
+    display: flex !important;
+    flex: none;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 10px;
+    gap: 6px;
+    font-size: 10px !important;
+    font-weight: 800;
+  }
 }
 
 .pos-btn-cobrar {
