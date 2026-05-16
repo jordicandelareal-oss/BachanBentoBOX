@@ -19,7 +19,7 @@ loadEnv('.env'); loadEnv('.env.local');
 const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
 
 async function run() {
-  const { data, error } = await supabase.from('menu_items').select('*').limit(2);
-  console.log('MenuItems:', data, error);
+  const { data, error } = await supabase.from('ingredients').select('*').limit(1);
+  console.log('Ingredients:', data, error);
 }
 run();
