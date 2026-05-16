@@ -165,10 +165,8 @@ function StockTab() {
   const { providers } = useProviders();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('Todos');
-  const [activeSubcategory, setActiveSubcategory] = useState('Todos');
   const [activeProvider, setActiveProvider] = useState('Todos');
   const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
 
   useEffect(() => {
     async function load() {
@@ -178,30 +176,11 @@ function StockTab() {
     load();
   }, []);
 
-  useEffect(() => {
-    if (activeCategory === 'Todos') {
-      setSubcategories([]);
-      setActiveSubcategory('Todos');
-      return;
-    }
-    async function load() {
-      const { data } = await supabase
-        .from('subcategories')
-        .select('id, name')
-        .eq('category_id', activeCategory)
-        .order('name');
-      setSubcategories(data || []);
-      setActiveSubcategory('Todos');
-    }
-    load();
-  }, [activeCategory]);
-
   const filteredIngredients = ingredients.filter(ing => {
     const matchesSearch = ing.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = activeCategory === 'Todos' || ing.category_id === activeCategory;
-    const matchesSubcategory = activeSubcategory === 'Todos' || ing.subcategory_id === activeSubcategory;
     const matchesProvider = activeProvider === 'Todos' || ing.provider_id === activeProvider;
-    return matchesSearch && matchesCategory && matchesSubcategory && matchesProvider;
+    return matchesSearch && matchesCategory && matchesProvider;
   });
 
   const presentLetters = [...new Set(filteredIngredients.map(ing => (ing.name || "")[0]?.toUpperCase()))].filter(Boolean);
@@ -263,28 +242,6 @@ function StockTab() {
           ))}
         </div>
       </div>
-
-      {subcategories.length > 0 && (
-        <div className="category-tabs-wrapper mb-6" style={{ marginTop: '-12px' }}>
-          <div className="category-tabs">
-            <button 
-              className={`category-tab sub ${activeSubcategory === 'Todos' ? 'active' : ''}`}
-              onClick={() => setActiveSubcategory('Todos')}
-            >
-              Cualquier subcategoría
-            </button>
-            {subcategories.map(sub => (
-              <button 
-                key={sub.id} 
-                className={`category-tab sub ${activeSubcategory === sub.id ? 'active' : ''}`}
-                onClick={() => setActiveSubcategory(sub.id)}
-              >
-                {sub.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Layout Abecedario + Grid */}
       <div className="insumos-layout-wrapper">
@@ -390,10 +347,6 @@ function ComprasTab() {
       const list = [];
       ingredients.forEach(ing => {
         const needFromOrders = neededQty[ing.id] || 0;
-        
-        // REQUISITO CRÍTICO: Solo sugerir compras para los ingredientes demandados por los platos pendientes.
-        if (needFromOrders <= 0) return;
-
         const currentStock = parseFloat(ing.stock || 0);
         const minStock = parseFloat(ing.min_stock || 0);
         
