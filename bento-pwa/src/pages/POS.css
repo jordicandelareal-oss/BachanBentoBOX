@@ -20,8 +20,7 @@
 /* 1. LEFT SIDE: CATALOG */
 .pos-catalog-container {
   width: 70%;
-  height: 100%;
-  flex: 0 0 70%;
+  flex: 1; /* Absorbe el espacio si el sidebar topa con max-width */
   display: flex;
   flex-direction: column;
   background-color: white;
@@ -428,7 +427,9 @@
 
 /* 2. RIGHT SIDE: TICKET */
 .pos-sidebar {
-  width: 440px;
+  flex: 0 0 30%;
+  width: 30%;
+  max-width: 450px;
   background-color: white;
   border-left: 1px solid #f1f5f9;
   display: flex !important;
@@ -573,6 +574,7 @@
 }
 
 .pos-cart-item {
+  width: 100%;
   background-color: white;
   border: 1px solid #f1f5f9;
   border-radius: 12px;
