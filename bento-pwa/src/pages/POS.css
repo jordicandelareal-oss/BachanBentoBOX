@@ -471,12 +471,11 @@
     position: fixed;
     right: 0;
     top: 120px;
-    bottom: 0;
+    bottom: env(safe-area-inset-bottom, 20px);
     width: 100%;
     z-index: 1000;
     transform: translateX(100%);
     visibility: hidden;
-    /* Height and box-sizing handled implicitly by top/bottom */
   }
 
   .pos-sidebar.mobile-visible {
@@ -694,6 +693,15 @@
     right: 0;
     z-index: 10;
     box-shadow: 0 -10px 20px rgba(0,0,0,0.05);
+    padding: 16px 20px !important; /* Reduced padding on mobile */
+  }
+
+  .pos-total-amount {
+    font-size: 1.75rem !important; /* Smaller total on mobile */
+  }
+
+  .pos-actions {
+    margin-top: 16px !important; /* Less gap to actions */
   }
 }
 
