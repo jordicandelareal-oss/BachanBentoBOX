@@ -436,6 +436,7 @@
   position: relative;
   z-index: 50;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 
 @media (max-width: 1024px) {
@@ -492,6 +493,7 @@
   justify-content: space-between;
   background-color: white;
   border-bottom: 1px solid #e2e8f0;
+  box-sizing: border-box;
 }
 
 .pos-ticket-title {
@@ -518,6 +520,7 @@
   border-bottom: 1px solid #f1f5f9;
   display: flex;
   gap: 12px;
+  box-sizing: border-box;
 }
 
 .pos-input-group {
@@ -553,8 +556,9 @@
 
 .pos-cart-list {
   flex: 1;
-  padding: 16px;
+  padding: 16px 24px 16px 16px; /* Added extra right padding */
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .pos-cart-empty {
@@ -572,12 +576,13 @@
   background-color: white;
   border: 1px solid #f1f5f9;
   border-radius: 12px;
-  padding: 12px;
+  padding: 12px 16px 12px 12px; /* Increased right padding for breathing room */
   margin-bottom: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  box-sizing: border-box;
 }
 
 .pos-item-info {
@@ -647,7 +652,8 @@
 .pos-sidebar-footer {
   background-color: white;
   border-top: 1px solid #e2e8f0;
-  padding: 24px;
+  padding: 24px 32px 24px 24px; /* Increased right padding to prevent cut off */
+  box-sizing: border-box;
 }
 
 @media (max-width: 1024px) {
@@ -670,6 +676,7 @@
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  padding-right: 4px; /* Breathing room */
 }
 
 .pos-summary-total {
