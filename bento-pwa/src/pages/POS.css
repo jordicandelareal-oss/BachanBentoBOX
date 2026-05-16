@@ -743,6 +743,14 @@
   background-color: #e2e8f0;
 }
 
+.pos-btn-volver {
+  flex: none;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  gap: 6px;
+}
+
 .pos-btn-cobrar {
   flex: 2;
   background-color: #2563eb;
