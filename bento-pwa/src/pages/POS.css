@@ -6,9 +6,22 @@
   height: 100vh !important;
   overflow: hidden !important;
   width: 100% !important;
-  background-color: #f8fafc;
+  background-color: #f1f5f9;
   line-height: normal;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@media (min-width: 1025px) {
+  .pos-app {
+    height: 820px !important;
+    max-height: 92vh !important;
+    width: 96% !important;
+    max-width: 1600px !important;
+    margin: 4vh auto !important;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e2e8f0;
+  }
 }
 
 @media (max-width: 1024px) {
