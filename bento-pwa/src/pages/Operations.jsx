@@ -90,27 +90,15 @@ function StockCard({ ingredient, updateIngredient }) {
   };
 
   const isLow = stock < minStock;
-  const unit = ingredient.units?.name || (ingredient.calculation_type === 'unidad' ? 'UD' : 'KG');
+  // SIEMPRE GRAMOS EN EL UI
+  const unit = 'g';
   const providerName = ingredient.providers?.name || ingredient.provider || 'S/M';
   const categoryName = ingredient.category_name || ingredient.categories?.name || 'General';
 
   return (
-    <div className="insumo-card relative" style={{ overflow: 'visible', paddingTop: '28px' }}>
+    <div className="insumo-card relative" style={{ gridTemplateColumns: '36px 1fr auto', padding: '12px', alignItems: 'center' }}>
       
-      {/* Badge de Estado Absoluto */}
-      <div className="absolute top-0 right-3 -translate-y-1/2 z-10 shadow-md">
-        {isLow ? (
-          <div className="px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-black uppercase flex items-center gap-1.5 backdrop-blur-sm">
-            <AlertTriangle size={12} strokeWidth={3} /> REPOSICIÓN
-          </div>
-        ) : (
-          <div className="px-3 py-1 rounded-full bg-green-500/20 border border-green-500/40 text-green-400 text-[10px] font-black uppercase flex items-center gap-1.5 backdrop-blur-sm">
-            <CheckCircle2 size={12} strokeWidth={3} /> OK
-          </div>
-        )}
-      </div>
-
-      <div className="card-avatar mt-1">
+      <div className="card-avatar">
         {ingredient.image_url ? (
           <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" />
         ) : (
@@ -120,38 +108,52 @@ function StockCard({ ingredient, updateIngredient }) {
         )}
       </div>
 
-      <div className="card-info-center">
-        <h3 className="card-name-bold">{ingredient.name}</h3>
-        <p className="card-subtext">
+      <div className="card-info-center flex flex-col justify-center">
+        <div className="flex items-center gap-2">
+          <h3 className="card-name-bold text-sm truncate">{ingredient.name}</h3>
+          {/* Badge de Estado Inline o posicionado limpiamente */}
+          {isLow ? (
+            <div className="px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-black uppercase flex items-center gap-1">
+              <AlertTriangle size={10} strokeWidth={3} /> REPOSICIÓN
+            </div>
+          ) : (
+            <div className="px-2 py-0.5 rounded-md bg-green-500/10 border border-green-500/20 text-green-500 text-[9px] font-black uppercase flex items-center gap-1">
+              <CheckCircle2 size={10} strokeWidth={3} /> OK
+            </div>
+          )}
+        </div>
+        <p className="card-subtext truncate">
           {categoryName} · {providerName}
         </p>
       </div>
 
-      <div className="flex flex-col items-end gap-2 ml-auto">
+      <div className="flex items-center gap-3 ml-auto" style={{ gap: '12px' }}>
         {/* Input Stock Mínimo */}
-        <div className="flex items-center bg-slate-900/60 rounded-lg p-1 border border-slate-700/80 focus-within:border-slate-500 transition-colors w-36 shadow-inner">
-          <span className="text-[10px] text-slate-500 font-bold px-2 uppercase tracking-wider flex-1">Mín:</span>
+        <div className="flex items-center bg-slate-900 rounded-lg py-1.5 px-2 border border-slate-700/80 focus-within:border-slate-500 transition-colors shadow-inner" style={{ minWidth: '110px' }}>
+          <span className="text-[10px] text-slate-500 font-bold pr-2 uppercase tracking-wider">Mín:</span>
           <input 
             type="number"
             value={minStock}
             onChange={e => setMinStock(e.target.value)}
             onBlur={e => handleBlur('min_stock', e.target.value)}
-            className="bg-transparent border-none outline-none text-white w-12 text-right font-bold text-sm"
+            className="bg-transparent border-none outline-none text-white w-full text-right font-bold text-sm hide-arrows"
+            style={{ appearance: 'textfield', WebkitAppearance: 'none' }}
           />
-          <span className="text-[10px] text-slate-400 pr-2 pl-1 font-semibold">{unit}</span>
+          <span className="text-[10px] text-slate-400 pl-1 font-semibold">{unit}</span>
         </div>
 
         {/* Input Stock Disponible */}
-        <div className={`flex items-center rounded-lg p-1 border transition-colors w-36 shadow-inner ${isLow ? 'bg-red-500/10 border-red-500/40 focus-within:border-red-400' : 'bg-slate-900/80 border-accent/40 focus-within:border-accent'}`}>
-          <span className="text-[10px] text-slate-500 font-bold px-2 uppercase tracking-wider flex-1">Disp:</span>
+        <div className={`flex items-center rounded-lg py-1.5 px-2 border transition-colors shadow-inner ${isLow ? 'bg-red-950/20 border-red-500/40 focus-within:border-red-400' : 'bg-slate-900 border-slate-700/80 focus-within:border-accent'}`} style={{ minWidth: '110px' }}>
+          <span className="text-[10px] text-slate-500 font-bold pr-2 uppercase tracking-wider">Disp:</span>
           <input 
             type="number"
             value={stock}
             onChange={e => setStock(e.target.value)}
             onBlur={e => handleBlur('stock', e.target.value)}
-            className={`bg-transparent border-none outline-none w-12 text-right font-bold text-sm ${isLow ? 'text-red-400' : 'text-accent'}`}
+            className={`bg-transparent border-none outline-none w-full text-right font-bold text-sm hide-arrows ${isLow ? 'text-red-400' : 'text-accent'}`}
+            style={{ appearance: 'textfield', WebkitAppearance: 'none' }}
           />
-          <span className="text-[10px] text-slate-400 pr-2 pl-1 font-semibold">{unit}</span>
+          <span className="text-[10px] text-slate-400 pl-1 font-semibold">{unit}</span>
         </div>
       </div>
     </div>
@@ -356,7 +358,7 @@ function ComprasTab() {
             id: ing.id,
             name: ing.name,
             providerName: ing.providers?.name || ing.provider || 'Sin Proveedor',
-            unitName: ing.units?.name || 'Unid.',
+            unitName: ing.calculation_type === 'unidad' ? 'ud' : 'g',
             toBuy: toBuy,
             needFromOrders,
             currentStock,
