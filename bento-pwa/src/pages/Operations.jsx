@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { PackageSearch, ShoppingCart, FileText, Plus, Save, AlertCircle, TrendingUp, TrendingDown, PackageMinus, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, ListOrdered } from 'lucide-react';
+import { useIngredients } from '../hooks/useIngredients';
+import { useProviders } from '../hooks/useProviders';
+import { 
+  PackageSearch, ShoppingCart, FileText, Plus, Search,
+  TrendingUp, PackageMinus, ChevronDown, ChevronUp, 
+  CheckCircle2, AlertTriangle, ListOrdered, Carrot 
+} from 'lucide-react';
 import '../styles/theme.css';
+import '../styles/Common.css';
+import './Ingredients.css';
 
 export default function Operations() {
   const [activeTab, setActiveTab] = useState('stock');
@@ -35,112 +43,241 @@ export default function Operations() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. Stock Tab
+// 1. Stock Tab (Clon de Insumos.jsx)
 // ─────────────────────────────────────────────────────────────────────────────
-function StockTab() {
-  const [ingredients, setIngredients] = useState([]);
-  const [loading, setLoading] = useState(true);
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+function AlphabetSidebar({ scrollToLetter, presentLetters }) {
+  return (
+    <aside className="alphabet-sidebar">
+      {alphabet.map(letter => {
+        const isPresent = presentLetters.includes(letter);
+        return (
+          <button
+            key={letter}
+            className={`alphabet-letter ${isPresent ? 'present' : 'absent'}`}
+            onClick={(e) => {
+              e.preventDefault();
+              if (isPresent && typeof scrollToLetter === 'function') {
+                scrollToLetter(letter);
+              }
+            }}
+            disabled={!isPresent}
+          >
+            {letter}
+          </button>
+        );
+      })}
+    </aside>
+  );
+}
+
+function StockCard({ ingredient, updateIngredient }) {
+  const [minStock, setMinStock] = useState(ingredient.min_stock || 0);
+  const [stock, setStock] = useState(ingredient.stock || 0);
 
   useEffect(() => {
-    fetchStock();
-  }, []);
+    setMinStock(ingredient.min_stock || 0);
+    setStock(ingredient.stock || 0);
+  }, [ingredient.min_stock, ingredient.stock]);
 
-  async function fetchStock() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('ingredients')
-      .select('id, name, stock, min_stock, units:unit_id(name)')
-      .order('name');
-    if (error) console.error(error);
-    else setIngredients(data || []);
-    setLoading(false);
-  }
+  const handleBlur = (field, val) => {
+    let num = parseFloat(val);
+    if (isNaN(num)) num = 0;
+    if (num !== (ingredient[field] || 0)) {
+      updateIngredient(ingredient.id, { [field]: num });
+    }
+  };
 
-  async function updateStock(id, field, value) {
-    const numValue = parseFloat(value) || 0;
-    setIngredients(prev => prev.map(ing => ing.id === id ? { ...ing, [field]: numValue } : ing));
-    await supabase.from('ingredients').update({ [field]: numValue }).eq('id', id);
-  }
-
-  if (loading) return <div className="p-8 text-center text-gray-400">Cargando stock...</div>;
+  const isLow = stock < minStock;
+  const unit = ingredient.units?.name || (ingredient.calculation_type === 'unidad' ? 'UD' : 'KG');
+  const providerName = ingredient.providers?.name || ingredient.provider || 'S/M';
+  const categoryName = ingredient.category_name || ingredient.categories?.name || 'General';
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="card-panel mb-2">
-        <h2 className="panel-title mb-0">Control de Existencias</h2>
+    <div className="insumo-card relative" style={{ overflow: 'visible', paddingTop: '28px' }}>
+      
+      {/* Badge de Estado Absoluto */}
+      <div className="absolute top-0 right-3 -translate-y-1/2 z-10 shadow-md">
+        {isLow ? (
+          <div className="px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-black uppercase flex items-center gap-1.5 backdrop-blur-sm">
+            <AlertTriangle size={12} strokeWidth={3} /> REPOSICIÓN
+          </div>
+        ) : (
+          <div className="px-3 py-1 rounded-full bg-green-500/20 border border-green-500/40 text-green-400 text-[10px] font-black uppercase flex items-center gap-1.5 backdrop-blur-sm">
+            <CheckCircle2 size={12} strokeWidth={3} /> OK
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-col gap-3">
-        {/* Header para Desktop */}
-        <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-2 text-sm font-semibold text-gray-400 border-b border-slate-700/50">
-          <div className="col-span-5">Insumo</div>
-          <div className="col-span-3">Stock Mínimo</div>
-          <div className="col-span-2">En Stock</div>
-          <div className="col-span-2 text-right">Estado</div>
+      <div className="card-avatar mt-1">
+        {ingredient.image_url ? (
+          <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" />
+        ) : (
+          <div className="avatar-initials">
+            {ingredient.name.substring(0, 2).toUpperCase()}
+          </div>
+        )}
+      </div>
+
+      <div className="card-info-center">
+        <h3 className="card-name-bold">{ingredient.name}</h3>
+        <p className="card-subtext">
+          {categoryName} · {providerName}
+        </p>
+      </div>
+
+      <div className="flex flex-col items-end gap-2 ml-auto">
+        {/* Input Stock Mínimo */}
+        <div className="flex items-center bg-slate-900/60 rounded-lg p-1 border border-slate-700/80 focus-within:border-slate-500 transition-colors w-36 shadow-inner">
+          <span className="text-[10px] text-slate-500 font-bold px-2 uppercase tracking-wider flex-1">Mín:</span>
+          <input 
+            type="number"
+            value={minStock}
+            onChange={e => setMinStock(e.target.value)}
+            onBlur={e => handleBlur('min_stock', e.target.value)}
+            className="bg-transparent border-none outline-none text-white w-12 text-right font-bold text-sm"
+          />
+          <span className="text-[10px] text-slate-400 pr-2 pl-1 font-semibold">{unit}</span>
         </div>
 
-        {ingredients.map(ing => {
-          const stock = ing.stock || 0;
-          const minStock = ing.min_stock || 0;
-          const isLow = stock < minStock;
-          const unit = ing.units?.name || 'Unid.';
+        {/* Input Stock Disponible */}
+        <div className={`flex items-center rounded-lg p-1 border transition-colors w-36 shadow-inner ${isLow ? 'bg-red-500/10 border-red-500/40 focus-within:border-red-400' : 'bg-slate-900/80 border-accent/40 focus-within:border-accent'}`}>
+          <span className="text-[10px] text-slate-500 font-bold px-2 uppercase tracking-wider flex-1">Disp:</span>
+          <input 
+            type="number"
+            value={stock}
+            onChange={e => setStock(e.target.value)}
+            onBlur={e => handleBlur('stock', e.target.value)}
+            className={`bg-transparent border-none outline-none w-12 text-right font-bold text-sm ${isLow ? 'text-red-400' : 'text-accent'}`}
+          />
+          <span className="text-[10px] text-slate-400 pr-2 pl-1 font-semibold">{unit}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-          return (
-            <div key={ing.id} className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 md:px-6 md:py-4 transition-all hover:border-slate-600/80 hover:bg-slate-800/60 flex flex-col md:grid md:grid-cols-12 md:items-center gap-4">
-              
-              {/* Insumo */}
-              <div className="md:col-span-5 flex flex-col">
-                <span className="text-white font-medium text-base">{ing.name}</span>
-                <span className="text-xs text-gray-400 md:hidden mt-1">Control de stock</span>
-              </div>
+function StockTab() {
+  const { ingredients, loading, updateIngredient } = useIngredients();
+  const { providers } = useProviders();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeCategory, setActiveCategory] = useState('Todos');
+  const [activeProvider, setActiveProvider] = useState('Todos');
+  const [categories, setCategories] = useState([]);
 
-              {/* Stock Mínimo */}
-              <div className="md:col-span-3 flex items-center justify-between md:justify-start gap-3">
-                <span className="text-sm text-gray-400 md:hidden w-24">Mínimo:</span>
-                <div className="flex items-center gap-2 flex-1 md:flex-none bg-slate-900/50 rounded-lg p-1 border border-slate-700 focus-within:border-accent transition-colors">
-                  <input 
-                    type="number" 
-                    value={minStock}
-                    onChange={(e) => updateStock(ing.id, 'min_stock', e.target.value)}
-                    className="bg-transparent border-none outline-none text-white w-16 text-right font-medium"
-                    min="0" step="0.1"
-                  />
-                  <span className="text-xs text-gray-400 pr-2">{unit}</span>
-                </div>
-              </div>
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase.from('categories').select('id, name').order('name');
+      setCategories(data || []);
+    }
+    load();
+  }, []);
 
-              {/* En Stock */}
-              <div className="md:col-span-2 flex items-center justify-between md:justify-start gap-3">
-                <span className="text-sm text-gray-400 md:hidden w-24">Actual:</span>
-                <div className={`flex items-center gap-2 flex-1 md:flex-none bg-slate-900/50 rounded-lg p-1 border transition-colors ${isLow ? 'border-red-500/50 focus-within:border-red-400' : 'border-slate-700 focus-within:border-accent'}`}>
-                  <input 
-                    type="number" 
-                    value={stock}
-                    onChange={(e) => updateStock(ing.id, 'stock', e.target.value)}
-                    className={`bg-transparent border-none outline-none w-16 text-right font-medium ${isLow ? 'text-red-400' : 'text-white'}`}
-                    min="0" step="0.1"
-                  />
-                  <span className="text-xs text-gray-400 pr-2">{unit}</span>
-                </div>
-              </div>
+  const filteredIngredients = ingredients.filter(ing => {
+    const matchesSearch = ing.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = activeCategory === 'Todos' || ing.category_id === activeCategory;
+    const matchesProvider = activeProvider === 'Todos' || ing.provider_id === activeProvider;
+    return matchesSearch && matchesCategory && matchesProvider;
+  });
 
-              {/* Estado */}
-              <div className="md:col-span-2 flex items-center justify-between md:justify-end border-t border-slate-700/50 md:border-0 pt-3 md:pt-0 mt-1 md:mt-0">
-                <span className="text-sm text-gray-400 md:hidden">Estado:</span>
-                {isLow ? (
-                  <div className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex items-center gap-1.5 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
-                    <AlertTriangle size={14} /> REPOSICIÓN
-                  </div>
-                ) : (
-                  <div className="px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold flex items-center gap-1.5">
-                    <CheckCircle2 size={14} /> OK
-                  </div>
-                )}
-              </div>
+  const presentLetters = [...new Set(filteredIngredients.map(ing => (ing.name || "")[0]?.toUpperCase()))].filter(Boolean);
 
+  const scrollToLetter = (letter) => {
+    const el = document.getElementById(`letter-${letter}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  return (
+    <div className="insumos-container w-full">
+      {/* Buscador y Filtro Proveedor */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="search-wrapper flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} style={{ left: '16px', top: '50%', position: 'absolute', transform: 'translateY(-50%)' }} />
+          <input 
+            type="text" 
+            placeholder="Buscar ingrediente en stock..." 
+            className="search-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="provider-filter-wrapper md:w-64">
+          <div className="provider-filter-premium">
+            <select 
+              value={activeProvider}
+              onChange={(e) => setActiveProvider(e.target.value)}
+            >
+              <option value="Todos">📦 Todos los Proveedores</option>
+              {providers.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Píldoras de Categorías */}
+      <div className="category-tabs-wrapper mb-6">
+        <div className="category-tabs">
+          <button 
+            className={`category-tab ${activeCategory === 'Todos' ? 'active' : ''}`}
+            onClick={() => setActiveCategory('Todos')}
+          >
+            Todos
+          </button>
+          {categories.map(cat => (
+            <button 
+              key={cat.id} 
+              className={`category-tab ${activeCategory === cat.id ? 'active' : ''}`}
+              onClick={() => setActiveCategory(cat.id)}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Layout Abecedario + Grid */}
+      <div className="insumos-layout-wrapper">
+        <AlphabetSidebar scrollToLetter={scrollToLetter} presentLetters={presentLetters} />
+
+        <section className="card-grid-container w-full">
+          {loading && !ingredients.length ? (
+            <div className="insumos-grid">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="h-24 bg-slate-800 rounded-xl animate-pulse border border-slate-700" />
+              ))}
             </div>
-          );
-        })}
+          ) : (
+            <div className="insumos-grid">
+              {filteredIngredients.map((ingredient, idx) => {
+                const firstLetter = (ingredient.name || "")[0]?.toUpperCase() || "#";
+                const isFirstOfLetter = idx === 0 || (filteredIngredients[idx - 1].name || "")[0]?.toUpperCase() !== firstLetter;
+                
+                return (
+                  <React.Fragment key={ingredient.id}>
+                    {isFirstOfLetter && <div id={`letter-${firstLetter}`} className="sr-only"></div>}
+                    <StockCard 
+                      ingredient={ingredient} 
+                      updateIngredient={updateIngredient} 
+                    />
+                  </React.Fragment>
+                );
+              })}
+
+              {!loading && filteredIngredients.length === 0 && (
+                <div className="text-center py-12 col-span-full">
+                  <Carrot className="mx-auto text-slate-600 mb-4" size={48} />
+                  <p className="text-slate-400">No se encontraron insumos en stock</p>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
@@ -158,14 +295,12 @@ function ComprasTab() {
   async function calculatePurchases() {
     setLoading(true);
     try {
-      // 1. Fetch pending orders
       const { data: orders, error: ordersErr } = await supabase
         .from('orders')
         .select('items')
         .eq('status', 'pending');
       if (ordersErr) throw ordersErr;
 
-      // 1.5 Parse Pending Items Summary
       const itemsSummary = {};
       (orders || []).forEach(order => {
         (order.items || []).forEach(item => {
@@ -174,19 +309,16 @@ function ComprasTab() {
       });
       setPendingItemsSummary(Object.entries(itemsSummary).map(([name, qty]) => ({ name, qty })));
 
-      // 2. Fetch all ingredients (for stock, min_stock, provider info)
       const { data: ingredients, error: ingErr } = await supabase
         .from('ingredients')
         .select('*, providers:provider_id(name), units:unit_id(name)');
       if (ingErr) throw ingErr;
 
-      // 3. Fetch all recipe_ingredients to break down recipes
       const { data: recipeIngs, error: recIngErr } = await supabase
         .from('recipe_ingredients')
         .select('*');
       if (recIngErr) throw recIngErr;
 
-      // Map to accumulate needed quantities per ingredient
       const neededQty = {};
 
       const addRecipeNeeds = (recipeId, multiplier) => {
@@ -210,7 +342,6 @@ function ComprasTab() {
         });
       });
 
-      // 4. Compare needed with stock + min_stock
       const list = [];
       ingredients.forEach(ing => {
         const needFromOrders = neededQty[ing.id] || 0;
@@ -234,7 +365,6 @@ function ComprasTab() {
         }
       });
 
-      // Group by provider
       const grouped = list.reduce((acc, curr) => {
         if (!acc[curr.providerName]) acc[curr.providerName] = [];
         acc[curr.providerName].push(curr);
@@ -253,8 +383,6 @@ function ComprasTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      
-      {/* Cabecera / Acciones */}
       <div className="card-panel flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="panel-title mb-1 flex items-center gap-2">
@@ -277,7 +405,6 @@ function ComprasTab() {
         </button>
       </div>
 
-      {/* Resumen de Platos Pendientes (Solo si se ha calculado) */}
       {hasCalculated && (
         <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -300,7 +427,6 @@ function ComprasTab() {
         </div>
       )}
 
-      {/* Estado Vacío */}
       {shoppingList.length === 0 && hasCalculated && (
         <div className="p-12 text-center bg-slate-800/20 rounded-xl border border-dashed border-slate-700/50">
           <CheckCircle2 size={56} className="mx-auto text-green-500/80 mb-4" />
@@ -318,7 +444,6 @@ function ComprasTab() {
         </div>
       )}
 
-      {/* Lista Agrupada por Proveedor (Acordeones/Cards) */}
       {shoppingList.length > 0 && (
         <div className="flex flex-col gap-5">
           <h3 className="text-lg font-bold text-white mb-1 border-b border-slate-700/50 pb-2">Lista de Compra Generada</h3>
@@ -331,13 +456,11 @@ function ComprasTab() {
   );
 }
 
-// Componente Tarjeta Acordeón por Proveedor
 function ProviderPurchaseCard({ provider, items }) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
     <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl overflow-hidden shadow-lg">
-      {/* Header del Proveedor */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="w-full bg-slate-800 hover:bg-slate-700/80 transition-colors px-5 py-4 flex items-center justify-between"
@@ -356,7 +479,6 @@ function ProviderPurchaseCard({ provider, items }) {
         </div>
       </button>
 
-      {/* Contenido (Tabla/Cards) */}
       {isOpen && (
         <div className="p-0 border-t border-slate-700/50">
           <div className="hidden md:block">
@@ -386,7 +508,6 @@ function ProviderPurchaseCard({ provider, items }) {
             </table>
           </div>
 
-          {/* Vista Móvil */}
           <div className="md:hidden flex flex-col divide-y divide-slate-700/30">
             {items.map(item => (
               <div key={item.id} className="p-4 flex flex-col gap-3">
@@ -526,7 +647,6 @@ function FacturasTab() {
         </div>
       )}
 
-      {/* Facturas Mobile View */}
       {!loading && (
         <div className="md:hidden flex flex-col gap-3">
           {invoices.length === 0 && (
@@ -559,7 +679,6 @@ function FacturasTab() {
         </div>
       )}
 
-      {/* Modal Nueva Factura */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content max-w-md w-full !bg-slate-900 !border-slate-700" onClick={e => e.stopPropagation()}>
