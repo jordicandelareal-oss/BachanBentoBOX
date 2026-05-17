@@ -187,13 +187,11 @@ export default function BentoMaker({ recipe = null, onClose }) {
           <div className="analysis-pill-column">
             <div className="bento-analysis-label-row">
               <span className="text-[10px] text-white/50">Factor Tiempo</span>
-              <Clock size={12} className="opacity-50" />
-            </div>
-            <div className="flex items-center gap-1.5 mt-1.5">
               <select
                 value={prepTime}
                 onChange={(e) => setPrepTime(Number(e.target.value))}
-                className="bento-prep-time-select-horizontal"
+                className="bento-prep-time-select-horizontal text-[9px] font-bold"
+                style={{ padding: '2px 4px', minWidth: '60px', height: '18px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', color: '#fff' }}
               >
                 <option value={5}>5 min</option>
                 <option value={10}>10 min</option>
@@ -204,8 +202,9 @@ export default function BentoMaker({ recipe = null, onClose }) {
                 <option value={45}>45 min</option>
                 <option value={60}>60 min</option>
               </select>
-              <span className="text-[11px] text-white/30">/</span>
-              <span className="text-[13px] text-sky-400 font-extrabold">{(prepTime * 0.10).toFixed(2)}€</span>
+            </div>
+            <div className="bento-analysis-value-large mt-1 text-slate-300">
+              {(prepTime * 0.10).toFixed(2)}<span>€</span>
             </div>
           </div>
 
