@@ -10,6 +10,7 @@ import { useIngredients } from '../../hooks/useIngredients';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useUnits } from '../../hooks/useUnits';
 import { compressImage, uploadImage } from '../../lib/imageUtils';
+import './BentoMaker.css';
 
 export default function BentoMaker({ recipe = null, onClose }) {
   const { 
@@ -265,49 +266,50 @@ export default function BentoMaker({ recipe = null, onClose }) {
               ) : (
                 <div className="space-y-4">
                   {items.map(item => (
-                    <div key={item._key} className="bento-item-card">
-                      <div className="bento-item-grid">
-                        {/* COL 1: Icon + Name */}
-                        <div className="bento-item-info">
-                          <div className="bento-item-icon-wrapper">
+                    <div key={item._key} className="bento-component-card">
+                      <div className="bento-component-grid">
+                        {/* COL 1 (Izquierda): Icono + Nombre */}
+                        <div className="bento-component-left">
+                          <div className="bento-component-icon-container">
                             {item.type === 'ingredient' ? <Carrot size={18} /> : <CookingPot size={18} />}
                           </div>
                           <div className="min-w-0">
-                            <div className="bento-item-name">{item.name}</div>
+                            <span className="bento-component-name">{item.name}</span>
                             {item.category_name && (
-                              <div className="bento-item-cat">
+                              <span className="bento-component-category">
                                 {item.category_name}
-                              </div>
+                              </span>
                             )}
                           </div>
                         </div>
 
-                        {/* COL 2: Quantity Pill (Clickable trigger, acts like stylized input) */}
-                        <div 
-                          className="bento-qty-pill"
-                          onClick={() => openNumPad(item._key, `${item.name} (${item.unit || 'g/ml'})`)}
-                        >
-                          <span className="bento-qty-value">
-                            {item.quantity !== undefined && item.quantity !== '' ? Number(item.quantity).toLocaleString('es-ES', { maximumFractionDigits: 2 }) : '0'}
-                          </span>
-                          <span className="bento-qty-unit">{item.unit === 'ud' ? 'uds' : (item.unit || 'g')}</span>
-                        </div>
-
-                        {/* COL 3: Prices */}
-                        <div className="bento-item-price-wrapper">
-                          <div className="bento-item-total-cost">
-                            {((item.unit === 'g' || item.unit === 'ml' ? item.costPerUnit / 1000 : item.costPerUnit) * (item.quantity || 0)).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
-                          </div>
-                          <div className="bento-item-unit-cost">
-                            {item.costPerUnit.toFixed(3)}€/{(item.unit === 'g' || item.unit === 'ml') ? 'kg·l' : 'ud'}
+                        {/* COL 2 (Centro): Cantidad Pill trigger (looks like styled input) */}
+                        <div className="bento-component-center">
+                          <div className="bento-qty-input-wrapper" onClick={() => openNumPad(item._key, `${item.name} (${item.unit || 'g/ml'})`)}>
+                            <input 
+                              type="text" 
+                              readOnly 
+                              value={item.quantity !== undefined && item.quantity !== '' ? Number(item.quantity).toLocaleString('es-ES', { maximumFractionDigits: 2 }) : '0'} 
+                              className="bento-qty-input"
+                            />
+                            <span className="bento-qty-unit-label">{item.unit === 'ud' ? 'uds' : (item.unit || 'g')}</span>
                           </div>
                         </div>
 
-                        {/* COL 4: Delete Action */}
-                        <div>
+                        {/* COL 3 (Derecha): Desglose de precios y papelera */}
+                        <div className="bento-component-right">
+                          <div className="bento-component-pricing">
+                            <span className="bento-component-total-price">
+                              {((item.unit === 'g' || item.unit === 'ml' ? item.costPerUnit / 1000 : item.costPerUnit) * (item.quantity || 0)).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
+                            </span>
+                            <span className="bento-component-unit-price">
+                              {item.costPerUnit.toFixed(3)}€/{(item.unit === 'g' || item.unit === 'ml') ? 'kg·l' : 'ud'}
+                            </span>
+                          </div>
                           <button 
+                            type="button"
                             onClick={() => removeItem(item._key)} 
-                            className="bento-item-delete-btn" 
+                            className="bento-component-delete-btn" 
                             title="Eliminar componente"
                           >
                             <Trash2 size={18} />
