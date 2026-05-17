@@ -371,22 +371,20 @@ export default function BentoMaker({ recipe = null, onClose }) {
                 </div>
               </div>
 
-              <div className="pt-4 mt-2">
-                <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl">
-                  <div>
-                    <div className="flex items-center gap-1.5 text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">
-                      <span>Margen Real</span>
-                      <span className="info-icon cursor-pointer">
-                        <Info size={11} className="text-sky-400/85 hover:text-sky-400 transition-colors" />
-                        <span className="tooltip-text">
-                          Para BaChan, el éxito está en un margen del 70%. Ajusta tus precios o recetas para optimizar el beneficio.
-                        </span>
-                      </span>
-                    </div>
-                    <div className="text-4xl font-black text-white">{totals.margin.toFixed(1)}<span className="text-xl ml-0.5 opacity-30">%</span></div>
-                  </div>
+              <div className="bento-analysis-group">
+                <div className="bento-analysis-label-row">
+                  <span>Margen Real</span>
+                  <span className="bento-info-icon cursor-pointer">
+                    <Info size={12} className="text-sky-400/80 hover:text-sky-400 transition-colors" />
+                    <span className="bento-tooltip-text">
+                      Para BaChan, el éxito está en un margen del 70%. Ajusta tus precios o recetas para optimizar el beneficio.
+                    </span>
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <div className="bento-analysis-value-large">{totals.margin.toFixed(1)}<span>%</span></div>
                   <div className={`margin-indicator ${totals.margin >= 70 ? 'good' : 'warning'}`}>
-                    {totals.margin >= 70 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
+                    {totals.margin >= 70 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                   </div>
                 </div>
               </div>
