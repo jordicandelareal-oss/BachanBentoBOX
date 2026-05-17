@@ -380,24 +380,6 @@
   color: #0ea5e9;
 }
 
-.financial-pill.published-margin-good {
-  background-color: rgba(16, 185, 129, 0.07);
-  border-color: rgba(16, 185, 129, 0.15);
-  color: #059669;
-}
-.financial-pill.published-margin-good .pill-label {
-  color: #10b981;
-}
-
-.financial-pill.published-margin-warn {
-  background-color: rgba(245, 158, 11, 0.07);
-  border-color: rgba(245, 158, 11, 0.15);
-  color: #d97706;
-}
-.financial-pill.published-margin-warn .pill-label {
-  color: #f59e0b;
-}
-
 .financial-pill.unpublished {
   color: #94a3b8;
 }

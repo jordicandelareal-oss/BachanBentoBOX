@@ -201,9 +201,7 @@ export function Preparations() {
               {(() => {
                 const cost = Number(recipe?.cost_per_portion || 0);
                 const pvp = Number(recipe?.sale_price || 0);
-                const margin = pvp > 0 ? ((pvp - cost) / pvp) * 100 : 0;
                 const isPublished = recipe?.is_published;
-                const marginGood = margin >= 70;
                 
                 return (
                   <div className="elaboracion-card-right-container">
@@ -219,16 +217,6 @@ export function Preparations() {
                       <div className={`financial-pill ${isPublished ? 'published-pvp' : 'unpublished'}`}>
                         <span className="pill-label">P:</span>
                         <span>{isPublished && pvp > 0 ? `${pvp.toFixed(2)}€` : '—'}</span>
-                      </div>
-
-                      {/* Margin Pill */}
-                      <div className={`financial-pill ${
-                        isPublished && pvp > 0 
-                          ? (marginGood ? 'published-margin-good' : 'published-margin-warn') 
-                          : 'unpublished'
-                      }`}>
-                        <span className="pill-label">M:</span>
-                        <span>{isPublished && pvp > 0 ? `${margin.toFixed(0)}%` : '—'}</span>
                       </div>
                     </div>
 
