@@ -35,6 +35,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
   const { recipes } = useRecipes('elaboracion');
   const [numPad, setNumPad] = useState(null); // { field: 'salePrice' | 'portions' | itemKey, label: string }
   const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
+  const [prepTime, setPrepTime] = useState(15);
 
   const openNumPad = (field, label) => setNumPad({ field, label });
   const closeNumPad = () => setNumPad(null);
@@ -350,10 +351,23 @@ export default function BentoMaker({ recipe = null, onClose }) {
                   <span>Factor Tiempo / Elaboración</span>
                   <Clock size={12} className="opacity-50" />
                 </div>
-                <div className="bento-analysis-value-medium flex items-baseline gap-2">
-                  <span>15 min</span>
+                <div className="flex items-center gap-3 mt-2">
+                  <select
+                    value={prepTime}
+                    onChange={(e) => setPrepTime(Number(e.target.value))}
+                    className="bento-prep-time-select"
+                  >
+                    <option value={5}>5 min</option>
+                    <option value={10}>10 min</option>
+                    <option value={15}>15 min</option>
+                    <option value={20}>20 min</option>
+                    <option value={25}>25 min</option>
+                    <option value={30}>30 min</option>
+                    <option value={45}>45 min</option>
+                    <option value={60}>60 min</option>
+                  </select>
                   <span className="text-[12px] text-white/40">/</span>
-                  <span className="text-[16px] text-sky-400 font-extrabold">1.50€</span>
+                  <span className="text-[16px] text-sky-400 font-extrabold">{(prepTime * 0.10).toFixed(2)}€</span>
                 </div>
               </div>
 
@@ -362,13 +376,12 @@ export default function BentoMaker({ recipe = null, onClose }) {
                   <div>
                     <div className="flex items-center gap-1.5 text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">
                       <span>Margen Real</span>
-                      <div className="group relative cursor-pointer inline-flex items-center justify-center">
+                      <span className="info-icon cursor-pointer">
                         <Info size={11} className="text-sky-400/85 hover:text-sky-400 transition-colors" />
-                        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-slate-800 border border-slate-700 text-white text-[9px] font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50 text-center leading-normal normal-case tracking-normal">
+                        <span className="tooltip-text">
                           Para BaChan, el éxito está en un margen del 70%. Ajusta tus precios o recetas para optimizar el beneficio.
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
-                        </div>
-                      </div>
+                        </span>
+                      </span>
                     </div>
                     <div className="text-4xl font-black text-white">{totals.margin.toFixed(1)}<span className="text-xl ml-0.5 opacity-30">%</span></div>
                   </div>
