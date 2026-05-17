@@ -171,7 +171,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
           <Calculator size={18} /> Análisis de Costes
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+        <div className="bento-analysis-row-horizontal">
           <div className="bento-analysis-group-horizontal">
             <div className="bento-analysis-label-row">
               <span>Inversión Materia Prima</span>

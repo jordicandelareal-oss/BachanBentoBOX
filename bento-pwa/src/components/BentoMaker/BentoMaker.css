@@ -703,6 +703,7 @@
   padding: 16px 20px;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   box-sizing: border-box;
 }
 
@@ -718,7 +719,18 @@
   gap: 8px;
 }
 
+.bento-analysis-row-horizontal {
+  display: flex;
+  flex-direction: row; /* Fuerza una sola fila */
+  justify-content: space-between; /* Distribuye el espacio equitativamente */
+  align-items: stretch;
+  gap: 16px; /* Separación limpia entre las columnas */
+  width: 100%;
+}
+
 .bento-analysis-group-horizontal {
+  flex: 1; /* Hace que las 3 columnas midan exactamente lo mismo */
+  min-width: 0;
   padding: 12px 16px;
   background-color: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.04);
