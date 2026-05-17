@@ -810,7 +810,7 @@
   box-sizing: border-box;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .bento-split-layout {
     grid-template-columns: 1fr 1fr;
   }
@@ -849,4 +849,25 @@
 .analysis-pill-column .bento-analysis-value-large {
   font-size: 20px !important;
   font-weight: 900;
+}
+
+/* MOBILE RESPONSIVE TWEAKS (< 768px) */
+@media (max-width: 767px) {
+  .analysis-pills-container {
+    flex-wrap: wrap !important;
+    gap: 12px;
+  }
+  .analysis-pill-column {
+    flex: 1 1 calc(50% - 12px) !important;
+    padding: 12px 10px;
+  }
+  .analysis-pill-column:last-child {
+    flex: 1 1 100% !important; /* Última tarjeta ancho completo */
+  }
+  .analysis-pill-column .bento-analysis-value-large {
+    font-size: 18px !important; /* Ligeramente más pequeño para evitar cortes */
+  }
+  .bento-analysis-label-row {
+    font-size: 9px;
+  }
 }

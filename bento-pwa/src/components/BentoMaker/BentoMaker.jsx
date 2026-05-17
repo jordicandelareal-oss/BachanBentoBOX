@@ -256,7 +256,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
         </div>
       </div>
 
-      <div className="bento-split-layout grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start">
+      <div className="bento-split-layout">
         {/* Columna Izquierda (50%): Emplatado Final */}
         <div className="bento-left-column premium-form-card">
           <h3 className="section-title mb-4">
@@ -434,20 +434,20 @@ export default function BentoMaker({ recipe = null, onClose }) {
         />
       )}
 
-      {/* FOOTER ACCIÓN FLOTANTE (MÓVIL) */}
-      <div className="floating-save-container md:hidden" style={{ bottom: numPad ? '340px' : '90px', transition: 'bottom 0.3s ease' }}>
+      {/* BOTÓN GUARDAR ESTÁTICO (MÓVIL) */}
+      <div className="mt-8 mb-24 md:hidden flex justify-center w-full">
         <button 
           disabled={isSaving || isSaved}
           onClick={handleSave}
-          className={`floating-save-btn ${isSaved ? 'saved' : ''}`}
+          className={`w-full bento-save-btn-top py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-brand text-white hover:bg-brand/90'}`}
           style={{ opacity: (isSaving || isSaved) ? 0.8 : 1 }}
         >
           {isSaving ? (
-            <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={20} /> Guardando...</span>
+            <><Loader2 className="animate-spin" size={20} /> Guardando...</>
           ) : isSaved ? (
-            <span className="flex items-center gap-2"><CheckCircle2 size={20} /> ¡Guardado!</span>
+            <><CheckCircle2 size={20} /> ¡Guardado!</>
           ) : (
-            <span className="flex items-center gap-2"><Save size={20} /> Guardar Producto</span>
+            <><Save size={20} /> Guardar Producto</>
           )}
         </button>
       </div>
