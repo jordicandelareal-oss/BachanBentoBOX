@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Plus, Save, ChevronRight, ChevronDown, LayoutGrid, Trash2, TrendingUp, TrendingDown, DollarSign, Target, Info, Carrot, CookingPot, CheckCircle2, Loader2, Clock } from 'lucide-react';
+import { Package, Plus, Save, ChevronRight, ChevronDown, LayoutGrid, Trash2, TrendingUp, TrendingDown, DollarSign, Target, Info, Carrot, CookingPot, CheckCircle2, Loader2, Clock, Calculator } from 'lucide-react';
 import PhotoSelector from '../Common/PhotoSelector';
 import SequentialSelector from '../Common/SequentialSelector';
 import NumPad from '../Common/NumPad';
@@ -166,56 +166,62 @@ export default function BentoMaker({ recipe = null, onClose }) {
       )}
 
       {/* Dynamic top-level horizontal Análisis de Costes bar */}
-      <div className="bento-horizontal-analysis flex flex-col md:flex-row gap-4 mb-6 w-full justify-between items-stretch">
-        <div className="bento-analysis-group-horizontal flex-1">
-          <div className="bento-analysis-label-row">
-            <span>Inversión Materia Prima</span>
-            <DollarSign size={12} className="opacity-50" />
+      <div className="bento-horizontal-analysis mb-6">
+        <h3 className="section-title mb-4 flex items-center gap-2">
+          <Calculator size={18} /> Análisis de Costes
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+          <div className="bento-analysis-group-horizontal">
+            <div className="bento-analysis-label-row">
+              <span>Inversión Materia Prima</span>
+              <DollarSign size={12} className="opacity-50" />
+            </div>
+            <div className="bento-analysis-value-large mt-1">
+              {totals.totalCost.toFixed(2)}<span>€</span>
+            </div>
           </div>
-          <div className="bento-analysis-value-large mt-1">
-            {totals.totalCost.toFixed(2)}<span>€</span>
-          </div>
-        </div>
 
-        <div className="bento-analysis-group-horizontal flex-1">
-          <div className="bento-analysis-label-row">
-            <span>Factor Tiempo / Elaboración</span>
-            <Clock size={12} className="opacity-50" />
+          <div className="bento-analysis-group-horizontal">
+            <div className="bento-analysis-label-row">
+              <span>Factor Tiempo / Elaboración</span>
+              <Clock size={12} className="opacity-50" />
+            </div>
+            <div className="flex items-center gap-3 mt-1.5">
+              <select
+                value={prepTime}
+                onChange={(e) => setPrepTime(Number(e.target.value))}
+                className="bento-prep-time-select-horizontal"
+              >
+                <option value={5}>5 min</option>
+                <option value={10}>10 min</option>
+                <option value={15}>15 min</option>
+                <option value={20}>20 min</option>
+                <option value={25}>25 min</option>
+                <option value={30}>30 min</option>
+                <option value={45}>45 min</option>
+                <option value={60}>60 min</option>
+              </select>
+              <span className="text-[12px] text-white/40">/</span>
+              <span className="text-[16px] text-sky-400 font-extrabold">{(prepTime * 0.10).toFixed(2)}€</span>
+            </div>
           </div>
-          <div className="flex items-center gap-3 mt-1.5">
-            <select
-              value={prepTime}
-              onChange={(e) => setPrepTime(Number(e.target.value))}
-              className="bento-prep-time-select-horizontal"
-            >
-              <option value={5}>5 min</option>
-              <option value={10}>10 min</option>
-              <option value={15}>15 min</option>
-              <option value={20}>20 min</option>
-              <option value={25}>25 min</option>
-              <option value={30}>30 min</option>
-              <option value={45}>45 min</option>
-              <option value={60}>60 min</option>
-            </select>
-            <span className="text-[12px] text-white/40">/</span>
-            <span className="text-[16px] text-sky-400 font-extrabold">{(prepTime * 0.10).toFixed(2)}€</span>
-          </div>
-        </div>
 
-        <div className="bento-analysis-group-horizontal flex-1">
-          <div className="bento-analysis-label-row">
-            <span>Margen Real</span>
-            <span className="bento-info-icon cursor-pointer">
-              <Info size={12} className="text-sky-400/80 hover:text-sky-400 transition-colors" />
-              <span className="bento-tooltip-text">
-                Para BaChan, el éxito está en un margen del 70%. Ajusta tus precios o recetas para optimizar el beneficio.
+          <div className="bento-analysis-group-horizontal">
+            <div className="bento-analysis-label-row">
+              <span>Margen Real</span>
+              <span className="bento-info-icon cursor-pointer">
+                <Info size={12} className="text-sky-400/80 hover:text-sky-400 transition-colors" />
+                <span className="bento-tooltip-text">
+                  Para BaChan, el éxito está en un margen del 70%. Ajusta tus precios o recetas para optimizar el beneficio.
+                </span>
               </span>
-            </span>
-          </div>
-          <div className="flex justify-between items-center mt-1">
-            <div className="bento-analysis-value-large">{totals.margin.toFixed(1)}<span>%</span></div>
-            <div className={`margin-indicator-horizontal ${totals.margin >= 70 ? 'good' : 'warning'}`}>
-              {totals.margin >= 70 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+            </div>
+            <div className="flex justify-between items-center mt-1">
+              <div className="bento-analysis-value-large">{totals.margin.toFixed(1)}<span>%</span></div>
+              <div className={`margin-indicator-horizontal ${totals.margin >= 70 ? 'good' : 'warning'}`}>
+                {totals.margin >= 70 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+              </div>
             </div>
           </div>
         </div>
