@@ -705,6 +705,7 @@
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-sizing: border-box;
+  margin-bottom: 32px !important;
 }
 
 .bento-horizontal-analysis .section-title {
