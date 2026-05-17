@@ -873,15 +873,31 @@
     font-size: 9px;
   }
 
-  /* Corrección del selector de Factor Tiempo en móvil (Opción A) */
+  /* Corrección del selector de Factor Tiempo en móvil (Ajustes de texto y centrado) */
+  .analysis-pill-column:nth-child(2) {
+    align-items: center;
+    text-align: center;
+    gap: 2px;
+    padding: 8px 6px !important; /* Ligeramente más compacto */
+  }
   .analysis-pill-column:nth-child(2) .bento-analysis-label-row {
     flex-wrap: wrap;
-    gap: 6px;
+    justify-content: center;
+    gap: 2px;
+    margin-bottom: 2px;
   }
   .bento-prep-time-select-horizontal {
     width: 100% !important;
+    min-width: 70px !important;
     flex-shrink: 0;
-    margin-top: 2px;
+    font-size: 11px !important;
+    padding: 0 2px !important;
+    text-align: center;
+  }
+  .analysis-pill-column:nth-child(2) .bento-analysis-value-large,
+  .analysis-pill-column:nth-child(2) .bento-analysis-value-large span {
+    font-size: 11px !important;
+    line-height: 1;
   }
 
   /* 2. Emplatado Final y Componentes en una sola columna */
