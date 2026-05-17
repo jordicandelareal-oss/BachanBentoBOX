@@ -853,21 +853,34 @@
 
 /* MOBILE RESPONSIVE TWEAKS (< 768px) */
 @media (max-width: 767px) {
+  /* 1. Análisis de Costes a 2 columnas */
   .analysis-pills-container {
-    flex-wrap: wrap !important;
-    gap: 12px;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
   }
   .analysis-pill-column {
-    flex: 1 1 calc(50% - 12px) !important;
-    padding: 12px 10px;
+    width: auto !important;
+    padding: 12px 10px !important;
   }
   .analysis-pill-column:last-child {
-    flex: 1 1 100% !important; /* Última tarjeta ancho completo */
+    grid-column: 1 / -1 !important; /* Última tarjeta ancho completo */
   }
   .analysis-pill-column .bento-analysis-value-large {
     font-size: 18px !important; /* Ligeramente más pequeño para evitar cortes */
   }
   .bento-analysis-label-row {
     font-size: 9px;
+  }
+
+  /* 2. Emplatado Final y Componentes en una sola columna */
+  .bento-split-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+  }
+  .bento-left-column,
+  .bento-right-column {
+    width: 100% !important;
   }
 }

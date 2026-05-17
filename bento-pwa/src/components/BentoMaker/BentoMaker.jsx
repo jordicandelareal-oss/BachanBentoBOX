@@ -435,11 +435,11 @@ export default function BentoMaker({ recipe = null, onClose }) {
       )}
 
       {/* BOTÓN GUARDAR ESTÁTICO (MÓVIL) */}
-      <div className="mt-8 mb-24 md:hidden flex justify-center w-full">
+      <div className="mt-8 mb-8 md:hidden flex justify-center w-full" style={{ position: 'relative', zIndex: 1 }}>
         <button 
           disabled={isSaving || isSaved}
           onClick={handleSave}
-          className={`w-full bento-save-btn-top py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-brand text-white hover:bg-brand/90'}`}
+          className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-brand text-white hover:bg-brand/90'}`}
           style={{ opacity: (isSaving || isSaved) ? 0.8 : 1 }}
         >
           {isSaving ? (
