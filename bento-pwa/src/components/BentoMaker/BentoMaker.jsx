@@ -223,7 +223,12 @@ export default function BentoMaker({ recipe = null, onClose }) {
           <div className="analysis-pill-column">
             <div className="bento-analysis-label-row">
               <span className="text-[10px] text-white/50">PVP Recomendado</span>
-              <Target size={12} className="opacity-50" />
+              <span className="bento-info-icon cursor-pointer">
+                <Info size={12} className="text-emerald-400/80 hover:text-emerald-400 transition-colors" />
+                <span className="bento-tooltip-text">
+                  El PVP recomendado se calcula sumando el Costo de la Materia Prima y el Costo del Tiempo de Elaboración, aplicando el multiplicador necesario para garantizar nuestro objetivo de margen comercial del 70%.
+                </span>
+              </span>
             </div>
             <div className="bento-analysis-value-large mt-1 text-emerald-400">
               {((totals.totalCost + (prepTime * 0.10)) / 0.30).toFixed(2)}<span>€</span>
