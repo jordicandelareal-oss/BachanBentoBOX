@@ -819,138 +819,117 @@ function PvpPublishModal({ item, menuCats, saving, onChange, onClose, onConfirm 
   const isGood = margin >= 70;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all" onClick={onClose}>
-      <div
-        className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-white/20 overflow-hidden transform transition-all"
-        onClick={e => e.stopPropagation()}
-      >
+    <div className="tpv-modal-overlay" onClick={onClose}>
+      <div className="tpv-modal-content" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-sky-500 to-sky-600 p-6 text-white relative">
-          <button className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white" onClick={onClose}>
-            <X size={20} />
+        <div className="tpv-modal-header">
+          <button className="tpv-modal-close-btn" onClick={onClose} aria-label="Cerrar modal">
+            <X size={18} />
           </button>
-          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md mb-4 shadow-inner">
-            <Store size={24} className="text-white" />
+          <div className="tpv-modal-header-icon">
+            <Store size={22} className="text-white" />
           </div>
-          <h3 className="text-xl font-black tracking-tight mb-1">Publicar en TPV</h3>
-          <p className="text-sky-100 text-sm font-medium opacity-90 truncate">{item.name}</p>
+          <h3 className="tpv-modal-header-title">Publicar en TPV</h3>
+          <p className="tpv-modal-header-subtitle">{item.name}</p>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="tpv-modal-body">
+          {/* Financial Info Grid */}
+          <div className="tpv-modal-financial-grid">
+            {/* Cost Badge Card */}
+            <div className="tpv-modal-financial-card">
+              <span className="tpv-modal-financial-label">Coste Insumos</span>
+              <span className="tpv-modal-financial-value">{cost.toFixed(2)}€</span>
+              <span className="tpv-modal-financial-meta">Fijo calculado</span>
+            </div>
 
-          {/* Cost reference */}
-          <div className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Coste de Insumos</span>
-            <span className="text-lg font-black text-slate-700">{cost.toFixed(2)}€</span>
+            {/* Gross Benefit Badge Card */}
+            <div className={`tpv-modal-financial-card ${
+              pvp === 0 
+                ? '' 
+                : isGood 
+                  ? 'accent' 
+                  : margin > 0 
+                    ? 'warn' 
+                    : 'danger'
+            }`}>
+              <span className="tpv-modal-financial-label">Beneficio Bruto</span>
+              <span className="tpv-modal-financial-value">
+                {pvp > 0 ? `${(pvp - cost).toFixed(2)}€` : '—'}
+              </span>
+              <span className="tpv-modal-financial-meta">
+                {pvp > 0 ? `${margin.toFixed(1)}% margen` : 'PVP no definido'}
+              </span>
+            </div>
           </div>
 
           {/* PVP Input */}
-          <div className="form-group mb-0">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2 block">Precio de Venta (PVP) <span className="text-rose-500">*</span></label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-2xl font-black text-slate-300">€</span>
-              </div>
+          <div className="tpv-modal-form-group">
+            <label className="tpv-modal-label">Precio de Venta (PVP) <span style={{ color: '#ef4444' }}>*</span></label>
+            <div className="tpv-modal-input-wrapper">
+              <span className="tpv-modal-input-currency">€</span>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={item.price}
                 onChange={e => onChange({ price: e.target.value })}
-                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-3xl font-black text-sky-600 focus:border-sky-500 focus:bg-white focus:outline-none transition-all shadow-inner"
+                className="tpv-modal-input"
                 placeholder="0.00"
+                autoFocus
               />
             </div>
           </div>
 
-          {/* Real-time Margin Badge */}
-          <div
-            className={`p-4 rounded-2xl border transition-all flex items-center justify-between shadow-sm ${
-              pvp === 0
-                ? 'bg-slate-50 border-slate-100'
-                : isGood
-                ? 'bg-emerald-50 border-emerald-200'
-                : margin > 0
-                ? 'bg-amber-50 border-amber-200'
-                : 'bg-rose-50 border-rose-200'
-            }`}
-          >
-            <div>
-              <span className={`text-[10px] font-black uppercase tracking-widest block mb-0.5 ${isGood ? 'text-emerald-700' : margin > 0 ? 'text-amber-700' : 'text-rose-700'}`}>
-                Beneficio Bruto
-              </span>
-              <span className="text-[11px] text-slate-500 font-bold opacity-80">
-                PVP {pvp.toFixed(2)}€ − Coste {cost.toFixed(2)}€
-              </span>
-            </div>
-            <div className="flex flex-col items-end">
-               <div className={`text-xl font-black ${isGood ? 'text-emerald-600' : margin > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
-                 {(pvp - cost).toFixed(2)}€
-               </div>
-               <div className={`flex items-center gap-1 text-xs font-bold ${isGood ? 'text-emerald-500' : margin > 0 ? 'text-amber-500' : 'text-rose-500'}`}>
-                 {pvp > 0 ? (isGood ? <TrendingUp size={12}/> : <TrendingDown size={12}/>) : null}
-                 {pvp > 0 ? `${margin.toFixed(1)}% margen` : '—'}
-               </div>
-            </div>
-          </div>
-
-          {/* Menu Category */}
+          {/* Menu Category Selection */}
           {menuCats && menuCats.length > 0 && (
-            <div className="form-group mb-0">
-               <label className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3 block flex items-center gap-1">
-                 <Tag size={14} /> Categoría de Carta
-               </label>
-               <div className="flex flex-wrap gap-2">
-                 <button
-                   type="button"
-                   className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-                     !item.menuCategoryId
-                       ? 'bg-navy text-white border-navy shadow-md'
-                       : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                   }`}
-                   onClick={() => onChange({ menuCategoryId: '' })}
-                 >
-                   Sin categoría
-                 </button>
-                 {menuCats.map(cat => (
-                   <button
-                     key={cat.id}
-                     type="button"
-                     className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-                       item.menuCategoryId === cat.id
-                         ? 'bg-sky-500 text-white border-sky-500 shadow-md'
-                         : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                     }`}
-                     onClick={() => onChange({ menuCategoryId: cat.id })}
-                   >
-                     {cat.name}
-                   </button>
-                 ))}
-               </div>
+            <div className="tpv-modal-form-group">
+              <label className="tpv-modal-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Tag size={12} /> Categoría de Carta
+              </label>
+              <div className="tpv-modal-categories-grid">
+                <button
+                  type="button"
+                  className={`tpv-modal-category-btn ${!item.menuCategoryId ? 'active' : ''}`}
+                  onClick={() => onChange({ menuCategoryId: '' })}
+                >
+                  Sin categoría
+                </button>
+                {menuCats.map(cat => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className={`tpv-modal-category-btn ${item.menuCategoryId === cat.id ? 'active' : ''}`}
+                    onClick={() => onChange({ menuCategoryId: cat.id })}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Actions - Stylized like Marchar/Cobrar */}
-          <div className="flex gap-3 pt-4 border-t border-slate-100 mt-2">
+          {/* Action Buttons */}
+          <div className="tpv-modal-actions">
             <button
-              className="px-6 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black transition-colors"
+              className="tpv-modal-btn tpv-modal-btn-cancel"
               onClick={onClose}
               disabled={saving}
             >
               Cancelar
             </button>
             <button
-              className="flex-1 py-4 bg-sky-500 hover:bg-sky-600 text-white rounded-2xl font-black shadow-lg shadow-sky-500/30 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2"
+              className="tpv-modal-btn tpv-modal-btn-confirm"
               onClick={onConfirm}
               disabled={saving || pvp <= 0}
             >
-              {saving
-                ? <><Loader2 size={20} className="animate-spin" /> Procesando...</>
-                : <><Store size={20} /> Confirmar PVP</>
-              }
+              {saving ? (
+                <><Loader2 size={16} className="animate-spin" /> Procesando...</>
+              ) : (
+                <><Store size={16} /> Confirmar PVP</>
+              )}
             </button>
           </div>
-
         </div>
       </div>
     </div>
