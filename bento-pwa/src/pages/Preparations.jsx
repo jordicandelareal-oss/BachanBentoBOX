@@ -198,41 +198,81 @@ export function Preparations() {
                 </div>
               </div>
               
-              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3">
-                {/* Cost + Margin display - Ultra Compact Row */}
-                <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                  
-                  {/* Single Line Cost Badge */}
-                  <div className="flex items-center gap-1 bg-slate-50/80 px-2 py-0.5 rounded border border-slate-200/50 text-[10px] shadow-sm">
-                    <span className="font-bold text-slate-400 uppercase">Coste:</span>
-                    <span className="font-black text-navy">{recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}</span>
+              <div className="flex items-center gap-3 shrink-0">
+                {/* Desktop Financial Badges */}
+                <div className="hidden sm:flex items-center gap-3">
+                  {/* Cost Badge */}
+                  <div className="flex flex-col items-end px-3 py-1 bg-slate-50 rounded-xl border border-slate-100 min-w-[85px]">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Costo</span>
+                    <span className="text-xs font-black text-slate-700">{recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}</span>
                   </div>
-                  
-                  {/* Single Line PVP & Margin Badge */}
-                  {recipe.is_published && recipe.sale_price > 0 && (() => {
-                    const margin = ((recipe.sale_price - recipe.cost_per_portion) / recipe.sale_price) * 100;
+
+                  {/* PVP Badge */}
+                  <div className={`flex flex-col items-end px-3 py-1 rounded-xl border min-w-[85px] transition-all ${
+                    recipe.is_published 
+                      ? 'bg-sky-50 border-sky-200 text-sky-700' 
+                      : 'bg-slate-50/50 border-slate-100 text-slate-300'
+                  }`}>
+                    <span className={`text-[9px] font-black uppercase tracking-wider ${recipe.is_published ? 'text-sky-500' : 'text-slate-300'}`}>PVP</span>
+                    <span className="text-xs font-black">
+                      {recipe.is_published && recipe.sale_price > 0 ? `${Number(recipe.sale_price).toFixed(2)}€` : '—'}
+                    </span>
+                  </div>
+
+                  {/* Margin Badge */}
+                  {(() => {
+                    const margin = recipe.sale_price > 0 ? ((recipe.sale_price - recipe.cost_per_portion) / recipe.sale_price) * 100 : 0;
                     const good = margin >= 70;
                     return (
-                      <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] shadow-sm ${good ? 'bg-emerald-50 border-emerald-200/50 text-emerald-700' : 'bg-amber-50 border-amber-200/50 text-amber-700'}`}>
-                        <span className="font-bold opacity-70">PVP:</span>
-                        <span className="font-black">{Number(recipe.sale_price).toFixed(2)}€</span>
-                        <span className="opacity-30">|</span>
-                        <span className="font-bold opacity-70">Margen:</span>
-                        <span className="font-black flex items-center gap-0.5">
-                          {margin.toFixed(0)}%
+                      <div className={`flex flex-col items-end px-3 py-1 rounded-xl border min-w-[85px] transition-all ${
+                        recipe.is_published && recipe.sale_price > 0
+                          ? good 
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
+                            : 'bg-amber-50 border-amber-200 text-amber-700'
+                          : 'bg-slate-50/50 border-slate-100 text-slate-300'
+                      }`}>
+                        <span className={`text-[9px] font-black uppercase tracking-wider ${
+                          recipe.is_published && recipe.sale_price > 0
+                            ? good 
+                              ? 'text-emerald-500' 
+                              : 'text-amber-500'
+                            : 'text-slate-300'
+                        }`}>Margen</span>
+                        <span className="text-xs font-black">
+                          {recipe.is_published && recipe.sale_price > 0 ? `${margin.toFixed(0)}%` : '—'}
                         </span>
                       </div>
                     );
                   })()}
                 </div>
 
-                <div className="card-actions-subtle ml-1 sm:ml-2">
+                {/* Mobile Financial Row */}
+                {(() => {
+                  const costVal = recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€';
+                  const pvpVal = recipe.is_published && recipe.sale_price > 0 ? `${Number(recipe.sale_price).toFixed(2)}€` : '—';
+                  const margin = recipe.sale_price > 0 ? ((recipe.sale_price - recipe.cost_per_portion) / recipe.sale_price) * 100 : 0;
+                  const marginVal = recipe.is_published && recipe.sale_price > 0 ? `${margin.toFixed(0)}%` : '—';
+                  const goodMargin = margin >= 70;
+                  
+                  return (
+                    <div className="sm:hidden text-[10px] text-slate-500 font-medium flex items-center gap-1.5 bg-slate-50/50 border border-slate-100 rounded-lg px-2 py-1">
+                      <span>C: <span className="font-bold text-slate-700">{costVal}</span></span>
+                      <span className="opacity-30">|</span>
+                      <span>P: <span className={`font-bold ${recipe.is_published ? 'text-sky-600' : 'text-slate-400'}`}>{pvpVal}</span></span>
+                      <span className="opacity-30">|</span>
+                      <span>M: <span className={`font-bold ${recipe.is_published ? (goodMargin ? 'text-emerald-600' : 'text-amber-600') : 'text-slate-400'}`}>{marginVal}</span></span>
+                    </div>
+                  );
+                })()}
+
+                {/* Actions container */}
+                <div className="card-actions-subtle ml-1 sm:ml-2" onClick={(e) => e.stopPropagation()}>
                   {/* TPV Store Toggle — central control */}
                   <button 
                     className={`p-1.5 md:p-2 rounded-xl transition-all border ${
                       recipe.is_published 
-                        ? 'text-sky-500 bg-sky-50 border-sky-200 shadow-sm hover:bg-sky-100' 
-                        : 'text-slate-300 bg-slate-50 border-transparent hover:bg-slate-100 hover:text-slate-500'
+                        ? 'text-sky-500 bg-sky-50 border-sky-200 shadow-sm hover:bg-sky-100 hover:text-sky-600' 
+                        : 'text-slate-300 bg-slate-50 border-slate-100 hover:bg-slate-100 hover:text-slate-500'
                     }`}
                     onClick={(e) => {
                       e.stopPropagation();
