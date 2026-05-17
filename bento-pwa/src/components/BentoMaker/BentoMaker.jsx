@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Plus, Save, ChevronRight, LayoutGrid, Trash2, TrendingUp, TrendingDown, DollarSign, Target, Info, Carrot, CookingPot, CheckCircle2, Loader2 } from 'lucide-react';
+import { Package, Plus, Save, ChevronRight, ChevronDown, LayoutGrid, Trash2, TrendingUp, TrendingDown, DollarSign, Target, Info, Carrot, CookingPot, CheckCircle2, Loader2 } from 'lucide-react';
 import PhotoSelector from '../Common/PhotoSelector';
 import SequentialSelector from '../Common/SequentialSelector';
 import NumPad from '../Common/NumPad';
@@ -33,6 +33,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
   const { ingredients } = useIngredients();
   const { recipes } = useRecipes('elaboracion');
   const [numPad, setNumPad] = useState(null); // { field: 'salePrice' | 'portions' | itemKey, label: string }
+  const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
 
   const openNumPad = (field, label) => setNumPad({ field, label });
   const closeNumPad = () => setNumPad(null);
@@ -177,16 +178,37 @@ export default function BentoMaker({ recipe = null, onClose }) {
               </div>
               <div className="md:col-span-6 lg:col-span-3">
                 <label className="form-label">Categoría del Menú</label>
-                <select
-                  value={menuCategoryId}
-                  onChange={e => setMenuCategoryId(e.target.value)}
-                  className="form-input-premium form-select-premium"
-                >
-                  <option value="">Selecciona categoría</option>
-                  {menuCategories.filter(c => c.is_active).map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <div className="custom-dropdown-container">
+                  <button
+                    type="button"
+                    className="custom-dropdown-trigger"
+                    onClick={() => setIsCatDropdownOpen(!isCatDropdownOpen)}
+                  >
+                    <span>
+                      {menuCategories.find(c => c.id === menuCategoryId)?.name || 'Selecciona categoría'}
+                    </span>
+                    <ChevronDown className={`dropdown-arrow ${isCatDropdownOpen ? 'open' : ''}`} size={16} />
+                  </button>
+                  {isCatDropdownOpen && (
+                    <div className="custom-dropdown-menu">
+                      <div 
+                        className={`custom-dropdown-item ${!menuCategoryId ? 'active' : ''}`}
+                        onClick={() => { setMenuCategoryId(''); setIsCatDropdownOpen(false); }}
+                      >
+                        Ninguna
+                      </div>
+                      {menuCategories.filter(c => c.is_active).map(c => (
+                        <div
+                          key={c.id}
+                          className={`custom-dropdown-item ${menuCategoryId === c.id ? 'active' : ''}`}
+                          onClick={() => { setMenuCategoryId(c.id); setIsCatDropdownOpen(false); }}
+                        >
+                          {c.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="md:col-span-6 lg:col-span-3">
                 <label className="form-label">PVP Sugerido</label>
@@ -243,49 +265,49 @@ export default function BentoMaker({ recipe = null, onClose }) {
               ) : (
                 <div className="space-y-4">
                   {items.map(item => (
-                    <div key={item._key} className="bg-white border border-slate-100 rounded-2xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow overflow-hidden mb-3">
-                      <div className="grid grid-cols-[1fr_70px_105px_40px] items-center gap-2">
+                    <div key={item._key} className="bento-item-card">
+                      <div className="bento-item-grid">
                         {/* COL 1: Icon + Name */}
-                        <div className="flex items-center gap-2 md:gap-3 min-w-0">
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 shrink-0">
-                            {item.type === 'ingredient' ? <Carrot size={16} /> : <CookingPot size={16} />}
+                        <div className="bento-item-info">
+                          <div className="bento-item-icon-wrapper">
+                            {item.type === 'ingredient' ? <Carrot size={18} /> : <CookingPot size={18} />}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-[13px] md:text-sm font-bold text-slate-800 truncate">{item.name}</div>
+                            <div className="bento-item-name">{item.name}</div>
                             {item.category_name && (
-                              <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5 truncate overflow-hidden">
+                              <div className="bento-item-cat">
                                 {item.category_name}
                               </div>
                             )}
                           </div>
                         </div>
 
-                        {/* COL 2: Quantity (Blue, Fixed 70px) */}
+                        {/* COL 2: Quantity Pill (Clickable trigger, acts like stylized input) */}
                         <div 
-                          className="text-right cursor-pointer"
+                          className="bento-qty-pill"
                           onClick={() => openNumPad(item._key, `${item.name} (${item.unit || 'g/ml'})`)}
                         >
-                          <span className="text-[14px] font-black text-sky-600 block leading-none">
+                          <span className="bento-qty-value">
                             {item.quantity !== undefined && item.quantity !== '' ? Number(item.quantity).toLocaleString('es-ES', { maximumFractionDigits: 2 }) : '0'}
                           </span>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase italic">{item.unit === 'ud' ? 'pzs' : (item.unit || 'g')}</span>
+                          <span className="bento-qty-unit">{item.unit === 'ud' ? 'uds' : (item.unit || 'g')}</span>
                         </div>
 
-                        {/* COL 3: Prices (Fixed 105px) */}
-                        <div className="text-right">
-                          <div className="text-[12px] md:text-[13px] font-black text-slate-900 leading-none">
+                        {/* COL 3: Prices */}
+                        <div className="bento-item-price-wrapper">
+                          <div className="bento-item-total-cost">
                             {((item.unit === 'g' || item.unit === 'ml' ? item.costPerUnit / 1000 : item.costPerUnit) * (item.quantity || 0)).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
                           </div>
-                          <div className="text-[9px] font-bold text-slate-400 mt-1 whitespace-nowrap overflow-hidden">
+                          <div className="bento-item-unit-cost">
                             {item.costPerUnit.toFixed(3)}€/{(item.unit === 'g' || item.unit === 'ml') ? 'kg·l' : 'ud'}
                           </div>
                         </div>
 
-                        {/* COL 4: Action (Fixed 40px) */}
-                        <div className="flex justify-end">
+                        {/* COL 4: Delete Action */}
+                        <div>
                           <button 
                             onClick={() => removeItem(item._key)} 
-                            className="text-slate-200 hover:text-rose-500 p-1.5 transition-colors" 
+                            className="bento-item-delete-btn" 
                             title="Eliminar componente"
                           >
                             <Trash2 size={18} />
@@ -303,10 +325,10 @@ export default function BentoMaker({ recipe = null, onClose }) {
         <div className="bento-sidebar">
           {/* Rentability Card */}
           <div className="rentability-card shadow-2xl">
-            <h3 className="text-white font-black uppercase tracking-widest text-[10px] mb-8 opacity-40">Análisis de Costes</h3>
+            <h3 className="bento-analysis-title">Análisis de Costes</h3>
             
             {Math.abs(totals.costPerPortion - initialCost) > 0.01 && initialCost > 0 && (
-              <div className="mb-8 p-4 rounded-2xl animate-in fade-in slide-in-from-top-2" style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div className="mb-6 p-4 rounded-2xl animate-in fade-in slide-in-from-top-2" style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
                     <TrendingUp size={14} className="text-amber-400" />
@@ -319,24 +341,24 @@ export default function BentoMaker({ recipe = null, onClose }) {
               </div>
             )}
             
-            <div className="space-y-8">
-              <div className="group">
-                <div className="flex justify-between text-white/40 text-[9px] font-black uppercase tracking-tighter mb-2">
+            <div>
+              <div className="bento-analysis-group">
+                <div className="bento-analysis-label-row">
                   <span>Inversión Materia Prima</span>
                   <DollarSign size={12} className="opacity-50" />
                 </div>
-                <div className="text-4xl font-black text-white group-hover:text-sky-400 transition-colors">{totals.totalCost.toFixed(2)}<span className="text-lg ml-0.5 font-bold opacity-40">€</span></div>
+                <div className="bento-analysis-value-large">{totals.totalCost.toFixed(2)}<span>€</span></div>
               </div>
 
-              <div>
-                <div className="flex justify-between text-white/40 text-[9px] font-black uppercase tracking-tighter mb-2">
+              <div className="bento-analysis-group">
+                <div className="bento-analysis-label-row">
                   <span>Coste unitario (Cálculo)</span>
                   <Target size={12} className="opacity-50" />
                 </div>
-                <div className="text-2xl font-black text-white">{totals.costPerPortion.toFixed(2)}<span className="text-base ml-0.5 font-bold opacity-40">€</span></div>
+                <div className="bento-analysis-value-medium">{totals.costPerPortion.toFixed(2)}<span>€</span></div>
               </div>
 
-              <div className="pt-8 border-t border-white/5">
+              <div className="pt-4 mt-2">
                 <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl">
                   <div>
                     <div className="text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">Margen Real</div>
@@ -349,7 +371,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
               </div>
             </div>
 
-            <div className="mt-8 p-4 bg-white/5 rounded-2xl flex gap-3 items-start border border-white/5">
+            <div className="mt-6 p-4 bg-white/5 rounded-2xl flex gap-3 items-start border border-white/5">
               <Info size={16} className="text-sky-400 mt-0.5 flex-shrink-0" />
               <p className="text-white/40 text-[10px] leading-relaxed font-bold">
                 Para BaChan, el éxito está en un margen del 70%. Ajusta tus precios o recetas para optimizar el beneficio.

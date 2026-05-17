@@ -108,6 +108,7 @@ export default function useBentoMaker(initialRecipe = null, recipeType = 'bento'
       sale_price: recipeType === 'elaboracion' ? 0 : salePrice,
       // FIX DEFINITIVO (I MAYÚSCULA): Sincronización obligatoria con la DB (Línea 109)
       "preparation_category_Id": recipeType === 'bento' ? BENTO_CATEGORY_ID : (prepCategoryId || null),
+      menu_category_id: menuCategoryId || null,
       portions: portions,
       "Unid_Id": unitId || null,
       yield_scenario: yieldScenario,
@@ -281,10 +282,11 @@ export default function useBentoMaker(initialRecipe = null, recipeType = 'bento'
       setNetYield(initialRecipe.net_yield || null);
       setPlatosEstimados(initialRecipe.platos_estimados || 0);
       setImageUrl(initialRecipe.image_url || '');
+      setMenuCategoryId(initialRecipe.menu_category_id || '');
       // Ensure we store the cost from the database for comparison
       setInitialCost(initialRecipe.cost_per_portion || 0)
     }
-  }, [initialRecipe, setYieldScenario, setAdjustmentPercent, setNetYield, setPlatosEstimados, setImageUrl, setInitialCost]);
+  }, [initialRecipe, setYieldScenario, setAdjustmentPercent, setNetYield, setPlatosEstimados, setImageUrl, setInitialCost, setMenuCategoryId]);
 
 
   return {
