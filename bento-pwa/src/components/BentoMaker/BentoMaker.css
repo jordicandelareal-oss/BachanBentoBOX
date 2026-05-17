@@ -1,8 +1,17 @@
+.page-container {
+  max-width: 100vw;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
 .bento-layout {
   display: grid;
   grid-template-columns: 1fr 340px;
   gap: 32px;
   align-items: start;
+  max-width: 100vw;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .bento-sidebar {
@@ -406,6 +415,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   display: block;
+  max-width: 250px;
 }
 
 .bento-component-category {
@@ -525,6 +535,10 @@
   
   .bento-component-left {
     flex: 1 1 45%;
+  }
+
+  .bento-component-name {
+    max-width: 110px;
   }
 
   .bento-component-center {

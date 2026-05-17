@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Plus, Save, ChevronRight, ChevronDown, LayoutGrid, Trash2, TrendingUp, TrendingDown, DollarSign, Target, Info, Carrot, CookingPot, CheckCircle2, Loader2 } from 'lucide-react';
+import { Package, Plus, Save, ChevronRight, ChevronDown, LayoutGrid, Trash2, TrendingUp, TrendingDown, DollarSign, Target, Info, Carrot, CookingPot, CheckCircle2, Loader2, Clock } from 'lucide-react';
 import PhotoSelector from '../Common/PhotoSelector';
 import SequentialSelector from '../Common/SequentialSelector';
 import NumPad from '../Common/NumPad';
@@ -269,7 +269,7 @@ export default function BentoMaker({ recipe = null, onClose }) {
                     <div key={item._key} className="bento-component-row">
                       {/* Lado Izquierdo: Nombre del ingrediente destacado en fuente semibold (text-sm font-semibold) */}
                       <div className="bento-component-left">
-                        <span className="bento-component-name text-sm font-semibold">{item.name}</span>
+                        <span className="bento-component-name text-sm font-semibold" title={item.name}>{item.name}</span>
                         {item.category_name && (
                           <span className="bento-component-category text-xs text-slate-400">
                             {item.category_name}
@@ -347,16 +347,29 @@ export default function BentoMaker({ recipe = null, onClose }) {
 
               <div className="bento-analysis-group">
                 <div className="bento-analysis-label-row">
-                  <span>Coste unitario (Cálculo)</span>
-                  <Target size={12} className="opacity-50" />
+                  <span>Factor Tiempo / Elaboración</span>
+                  <Clock size={12} className="opacity-50" />
                 </div>
-                <div className="bento-analysis-value-medium">{totals.costPerPortion.toFixed(2)}<span>€</span></div>
+                <div className="bento-analysis-value-medium flex items-baseline gap-2">
+                  <span>15 min</span>
+                  <span className="text-[12px] text-white/40">/</span>
+                  <span className="text-[16px] text-sky-400 font-extrabold">1.50€</span>
+                </div>
               </div>
 
               <div className="pt-4 mt-2">
                 <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl">
                   <div>
-                    <div className="text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">Margen Real</div>
+                    <div className="flex items-center gap-1.5 text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">
+                      <span>Margen Real</span>
+                      <div className="group relative cursor-pointer inline-flex items-center justify-center">
+                        <Info size={11} className="text-sky-400/85 hover:text-sky-400 transition-colors" />
+                        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-slate-800 border border-slate-700 text-white text-[9px] font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50 text-center leading-normal normal-case tracking-normal">
+                          Para BaChan, el éxito está en un margen del 70%. Ajusta tus precios o recetas para optimizar el beneficio.
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                        </div>
+                      </div>
+                    </div>
                     <div className="text-4xl font-black text-white">{totals.margin.toFixed(1)}<span className="text-xl ml-0.5 opacity-30">%</span></div>
                   </div>
                   <div className={`margin-indicator ${totals.margin >= 70 ? 'good' : 'warning'}`}>
@@ -364,13 +377,6 @@ export default function BentoMaker({ recipe = null, onClose }) {
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="mt-6 p-4 bg-white/5 rounded-2xl flex gap-3 items-start border border-white/5">
-              <Info size={16} className="text-sky-400 mt-0.5 flex-shrink-0" />
-              <p className="text-white/40 text-[10px] leading-relaxed font-bold">
-                Para BaChan, el éxito está en un margen del 70%. Ajusta tus precios o recetas para optimizar el beneficio.
-              </p>
             </div>
           </div>
         </div>
