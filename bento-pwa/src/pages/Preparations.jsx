@@ -196,34 +196,45 @@ export function Preparations() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 {/* Cost + Margin display */}
-                <div className="text-right">
-                  <div className="card-meta" style={{ fontSize: '10px' }}>Coste</div>
-                  <div className="price-display">
-                    {recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}
-                    <span className="text-[10px] opacity-60 ml-1 font-bold lowercase">
-                      {recipe?.yield_scenario === 'weight' ? '/ kg' : '/ ud'}
+                <div className="flex flex-col items-end gap-1">
+                  
+                  {/* Cost Badge */}
+                  <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">Coste</span>
+                    <span className="text-[11px] font-black text-navy leading-none">
+                      {recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}
+                    </span>
+                    <span className="text-[8px] font-bold text-slate-400 lowercase opacity-80">
+                      {recipe?.yield_scenario === 'weight' ? '/kg' : '/ud'}
                     </span>
                   </div>
+                  
+                  {/* PVP & Margin Badge */}
                   {recipe.is_published && recipe.sale_price > 0 && (() => {
                     const margin = ((recipe.sale_price - recipe.cost_per_portion) / recipe.sale_price) * 100;
                     const good = margin >= 70;
                     return (
-                      <div className={`flex items-center justify-end gap-1 mt-1 text-[10px] font-black ${ good ? 'text-emerald-500' : 'text-amber-500'}`}>
-                        {good ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}
-                        {margin.toFixed(1)}% · {Number(recipe.sale_price).toFixed(2)}€ PVP
+                      <div className={`flex items-center gap-1 px-2 py-1 rounded-md border ${good ? 'bg-emerald-50 border-emerald-100/50 text-emerald-600' : 'bg-amber-50 border-amber-100/50 text-amber-600'}`}>
+                        <span className="text-[9px] font-bold opacity-70 uppercase">PVP</span>
+                        <span className="text-[11px] font-black leading-none">{Number(recipe.sale_price).toFixed(2)}€</span>
+                        <div className="flex items-center ml-1 pl-1 border-l border-current/20">
+                          <span className="opacity-80">{good ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}</span>
+                          <span className="text-[9px] font-black ml-0.5">{margin.toFixed(0)}%</span>
+                        </div>
                       </div>
                     );
                   })()}
                 </div>
-                <div className="card-actions-subtle">
+
+                <div className="card-actions-subtle ml-1">
                   {/* TPV Store Toggle — central control */}
                   <button 
-                    className={`p-2 rounded-full transition-all ${
+                    className={`p-2 rounded-xl transition-all ${
                       recipe.is_published 
-                        ? 'bg-emerald-500 text-white shadow-md hover:bg-emerald-600' 
-                        : 'text-slate-300 bg-slate-100 hover:bg-slate-200'
+                        ? 'bg-sky-500 text-white shadow-sm hover:bg-sky-600' 
+                        : 'text-slate-400 bg-slate-100 hover:bg-slate-200'
                     }`}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -232,18 +243,18 @@ export function Preparations() {
                     title={recipe.is_published ? `Publicado en TPV · PVP ${Number(recipe.sale_price||0).toFixed(2)}€ — Click para despublicar` : "Publicar en TPV (configura PVP)"}
                   >
                     {saving && publishAction?.id === recipe.id 
-                      ? <Loader2 size={18} className="animate-spin" /> 
-                      : <Store size={18} />}
+                      ? <Loader2 size={16} className="animate-spin" /> 
+                      : <Store size={16} />}
                   </button>
                   {recipe?.image_url && (
                     <button 
-                      className="p-2 text-sky-500 hover:bg-sky-50 rounded-full transition-colors"
+                      className="p-2 text-sky-500 hover:bg-sky-50 rounded-xl transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         setLightbox({ isOpen: true, imageUrl: recipe.image_url, title: recipe.name });
                       }}
                     >
-                      <Camera size={20} />
+                      <Camera size={16} />
                     </button>
                   )}
                   <button 
@@ -253,10 +264,10 @@ export function Preparations() {
                       setConfirmDelete(recipe?.id);
                     }}
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
-                <ChevronRight size={18} className="text-slate-300" />
+                <ChevronRight size={16} className="text-slate-300 ml-0 md:ml-2" />
               </div>
             </div>
           ))}
