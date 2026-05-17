@@ -91,6 +91,7 @@ export function Preparations() {
       // Unpublish directly
       setSaving(true);
       const res = await togglePublish(recipe.id, true, recipe.sale_price);
+      await fetchRecipes();
       setSaving(false);
       if (!res.success) alert(res.error);
     }
@@ -100,6 +101,7 @@ export function Preparations() {
     if (!publishAction) return;
     setSaving(true);
     const res = await togglePublish(publishAction.id, false, publishAction.price, publishAction.menuCategoryId);
+    await fetchRecipes();
     setSaving(false);
     setPvpModalOpen(false);
     setPublishAction(null);
@@ -196,45 +198,41 @@ export function Preparations() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                {/* Cost + Margin display */}
-                <div className="flex flex-col items-end gap-1">
+              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3">
+                {/* Cost + Margin display - Ultra Compact Row */}
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
                   
-                  {/* Cost Badge */}
-                  <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Coste</span>
-                    <span className="text-[11px] font-black text-navy leading-none">
-                      {recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}
-                    </span>
-                    <span className="text-[8px] font-bold text-slate-400 lowercase opacity-80">
-                      {recipe?.yield_scenario === 'weight' ? '/kg' : '/ud'}
-                    </span>
+                  {/* Single Line Cost Badge */}
+                  <div className="flex items-center gap-1 bg-slate-50/80 px-2 py-0.5 rounded border border-slate-200/50 text-[10px] shadow-sm">
+                    <span className="font-bold text-slate-400 uppercase">Coste:</span>
+                    <span className="font-black text-navy">{recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}</span>
                   </div>
                   
-                  {/* PVP & Margin Badge */}
+                  {/* Single Line PVP & Margin Badge */}
                   {recipe.is_published && recipe.sale_price > 0 && (() => {
                     const margin = ((recipe.sale_price - recipe.cost_per_portion) / recipe.sale_price) * 100;
                     const good = margin >= 70;
                     return (
-                      <div className={`flex items-center gap-1 px-2 py-1 rounded-md border ${good ? 'bg-emerald-50 border-emerald-100/50 text-emerald-600' : 'bg-amber-50 border-amber-100/50 text-amber-600'}`}>
-                        <span className="text-[9px] font-bold opacity-70 uppercase">PVP</span>
-                        <span className="text-[11px] font-black leading-none">{Number(recipe.sale_price).toFixed(2)}€</span>
-                        <div className="flex items-center ml-1 pl-1 border-l border-current/20">
-                          <span className="opacity-80">{good ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}</span>
-                          <span className="text-[9px] font-black ml-0.5">{margin.toFixed(0)}%</span>
-                        </div>
+                      <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] shadow-sm ${good ? 'bg-emerald-50 border-emerald-200/50 text-emerald-700' : 'bg-amber-50 border-amber-200/50 text-amber-700'}`}>
+                        <span className="font-bold opacity-70">PVP:</span>
+                        <span className="font-black">{Number(recipe.sale_price).toFixed(2)}€</span>
+                        <span className="opacity-30">|</span>
+                        <span className="font-bold opacity-70">Margen:</span>
+                        <span className="font-black flex items-center gap-0.5">
+                          {margin.toFixed(0)}%
+                        </span>
                       </div>
                     );
                   })()}
                 </div>
 
-                <div className="card-actions-subtle ml-1">
+                <div className="card-actions-subtle ml-1 sm:ml-2">
                   {/* TPV Store Toggle — central control */}
                   <button 
-                    className={`p-2 rounded-xl transition-all ${
+                    className={`p-1.5 md:p-2 rounded-xl transition-all border ${
                       recipe.is_published 
-                        ? 'bg-sky-500 text-white shadow-sm hover:bg-sky-600' 
-                        : 'text-slate-400 bg-slate-100 hover:bg-slate-200'
+                        ? 'text-sky-500 bg-sky-50 border-sky-200 shadow-sm hover:bg-sky-100' 
+                        : 'text-slate-300 bg-slate-50 border-transparent hover:bg-slate-100 hover:text-slate-500'
                     }`}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -248,7 +246,7 @@ export function Preparations() {
                   </button>
                   {recipe?.image_url && (
                     <button 
-                      className="p-2 text-sky-500 hover:bg-sky-50 rounded-xl transition-colors"
+                      className="p-1.5 md:p-2 text-sky-500 hover:bg-sky-50 rounded-xl transition-colors border border-transparent"
                       onClick={(e) => {
                         e.stopPropagation();
                         setLightbox({ isOpen: true, imageUrl: recipe.image_url, title: recipe.name });
@@ -267,7 +265,7 @@ export function Preparations() {
                     <Trash2 size={16} />
                   </button>
                 </div>
-                <ChevronRight size={16} className="text-slate-300 ml-0 md:ml-2" />
+                <ChevronRight size={16} className="text-slate-300 hidden sm:block" />
               </div>
             </div>
           ))}
@@ -814,7 +812,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
   );
 }
 
-// ─── PVP Publish Modal ────────────────────────────────────────────────────────
+// ─── PVP Publish Modal
 function PvpPublishModal({ item, menuCats, saving, onChange, onClose, onConfirm }) {
   const pvp = parseFloat(item.price) || 0;
   const cost = parseFloat(item.cost) || 0;
@@ -822,132 +820,138 @@ function PvpPublishModal({ item, menuCats, saving, onChange, onClose, onConfirm 
   const isGood = margin >= 70;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all" onClick={onClose}>
       <div
-        className="modal-card"
+        className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-white/20 overflow-hidden transform transition-all"
         onClick={e => e.stopPropagation()}
-        style={{ paddingTop: '2rem', maxWidth: '420px' }}
       >
         {/* Header */}
-        <div className="modal-header border-b-0 pb-2">
-          <div className="flex flex-col w-full pr-8">
-            <h3 className="modal-title flex items-center gap-2">
-              <Store size={18} className="text-emerald-500" />
-              Publicar en TPV
-            </h3>
-            <p className="text-sm font-bold text-slate-800 mt-1">{item.name}</p>
+        <div className="bg-gradient-to-r from-sky-500 to-sky-600 p-6 text-white relative">
+          <button className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white" onClick={onClose}>
+            <X size={20} />
+          </button>
+          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md mb-4 shadow-inner">
+            <Store size={24} className="text-white" />
           </div>
-          <button className="modal-close-btn" onClick={onClose}><X size={20} /></button>
+          <h3 className="text-xl font-black tracking-tight mb-1">Publicar en TPV</h3>
+          <p className="text-sky-100 text-sm font-medium opacity-90 truncate">{item.name}</p>
         </div>
 
-        <div className="modal-form pt-4 space-y-5">
+        <div className="p-6 space-y-6">
 
           {/* Cost reference */}
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coste de Insumos</span>
-            <span className="font-black text-slate-700">{cost.toFixed(2)}€</span>
+          <div className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Coste de Insumos</span>
+            <span className="text-lg font-black text-slate-700">{cost.toFixed(2)}€</span>
           </div>
 
           {/* PVP Input */}
-          <div className="form-group">
-            <label className="form-label text-slate-500 font-bold mb-2 block">Precio de Venta (PVP) <span className="text-rose-500">*</span></label>
-            <div className="flex items-center gap-3">
+          <div className="form-group mb-0">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2 block">Precio de Venta (PVP) <span className="text-rose-500">*</span></label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <span className="text-2xl font-black text-slate-300">€</span>
+              </div>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={item.price}
                 onChange={e => onChange({ price: e.target.value })}
-                className="form-input-premium text-2xl font-black text-emerald-600 text-center"
+                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-3xl font-black text-sky-600 focus:border-sky-500 focus:bg-white focus:outline-none transition-all shadow-inner"
                 placeholder="0.00"
-                style={{ maxWidth: '140px' }}
               />
-              <span className="text-2xl font-black text-slate-400">€</span>
             </div>
           </div>
 
           {/* Real-time Margin Badge */}
           <div
-            className={`p-4 rounded-2xl border flex justify-between items-center transition-all ${
+            className={`p-4 rounded-2xl border transition-all flex items-center justify-between shadow-sm ${
               pvp === 0
                 ? 'bg-slate-50 border-slate-100'
                 : isGood
-                ? 'bg-emerald-50 border-emerald-100'
+                ? 'bg-emerald-50 border-emerald-200'
                 : margin > 0
-                ? 'bg-amber-50 border-amber-100'
-                : 'bg-rose-50 border-rose-100'
+                ? 'bg-amber-50 border-amber-200'
+                : 'bg-rose-50 border-rose-200'
             }`}
           >
             <div>
-              <span className={`text-[10px] font-black uppercase tracking-widest block ${isGood ? 'text-emerald-600' : margin > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
-                Margen Estimado
+              <span className={`text-[10px] font-black uppercase tracking-widest block mb-0.5 ${isGood ? 'text-emerald-700' : margin > 0 ? 'text-amber-700' : 'text-rose-700'}`}>
+                Beneficio Bruto
               </span>
-              <span className="text-xs text-slate-400 font-bold">
-                PVP {pvp.toFixed(2)}€ − Coste {cost.toFixed(2)}€ = {(pvp - cost).toFixed(2)}€
+              <span className="text-[11px] text-slate-500 font-bold opacity-80">
+                PVP {pvp.toFixed(2)}€ − Coste {cost.toFixed(2)}€
               </span>
             </div>
-            <div className={`flex items-center gap-2 text-2xl font-black ${isGood ? 'text-emerald-600' : margin > 0 ? 'text-amber-600' : 'text-rose-500'}`}>
-              {pvp > 0 ? (isGood ? <TrendingUp size={20}/> : <TrendingDown size={20}/>) : null}
-              {pvp > 0 ? `${margin.toFixed(1)}%` : '—'}
+            <div className="flex flex-col items-end">
+               <div className={`text-xl font-black ${isGood ? 'text-emerald-600' : margin > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
+                 {(pvp - cost).toFixed(2)}€
+               </div>
+               <div className={`flex items-center gap-1 text-xs font-bold ${isGood ? 'text-emerald-500' : margin > 0 ? 'text-amber-500' : 'text-rose-500'}`}>
+                 {pvp > 0 ? (isGood ? <TrendingUp size={12}/> : <TrendingDown size={12}/>) : null}
+                 {pvp > 0 ? `${margin.toFixed(1)}% margen` : '—'}
+               </div>
             </div>
           </div>
 
           {/* Menu Category */}
           {menuCats && menuCats.length > 0 && (
-            <div className="form-group">
-              <label className="form-label text-slate-500 font-bold mb-2 block">
-                <Tag size={12} className="inline mr-1" />Categoría de Carta (TPV)
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                    !item.menuCategoryId
-                      ? 'bg-slate-900 text-white border-slate-900'
-                      : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
-                  }`}
-                  onClick={() => onChange({ menuCategoryId: '' })}
-                >
-                  Sin categoría
-                </button>
-                {menuCats.map(cat => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                      item.menuCategoryId === cat.id
-                        ? 'bg-emerald-500 text-white border-emerald-500'
-                        : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
-                    }`}
-                    onClick={() => onChange({ menuCategoryId: cat.id })}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
+            <div className="form-group mb-0">
+               <label className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3 block flex items-center gap-1">
+                 <Tag size={14} /> Categoría de Carta
+               </label>
+               <div className="flex flex-wrap gap-2">
+                 <button
+                   type="button"
+                   className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                     !item.menuCategoryId
+                       ? 'bg-navy text-white border-navy shadow-md'
+                       : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                   }`}
+                   onClick={() => onChange({ menuCategoryId: '' })}
+                 >
+                   Sin categoría
+                 </button>
+                 {menuCats.map(cat => (
+                   <button
+                     key={cat.id}
+                     type="button"
+                     className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                       item.menuCategoryId === cat.id
+                         ? 'bg-sky-500 text-white border-sky-500 shadow-md'
+                         : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                     }`}
+                     onClick={() => onChange({ menuCategoryId: cat.id })}
+                   >
+                     {cat.name}
+                   </button>
+                 ))}
+               </div>
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          {/* Actions - Stylized like Marchar/Cobrar */}
+          <div className="flex gap-3 pt-4 border-t border-slate-100 mt-2">
             <button
-              className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black active:scale-95 transition-all"
+              className="px-6 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black transition-colors"
               onClick={onClose}
               disabled={saving}
             >
               Cancelar
             </button>
             <button
-              className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 py-4 bg-sky-500 hover:bg-sky-600 text-white rounded-2xl font-black shadow-lg shadow-sky-500/30 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2"
               onClick={onConfirm}
               disabled={saving || pvp <= 0}
             >
               {saving
-                ? <><Loader2 size={20} className="animate-spin" /> Publicando...</>
-                : <><Store size={18} /> Publicar en TPV</>
+                ? <><Loader2 size={20} className="animate-spin" /> Procesando...</>
+                : <><Store size={20} /> Confirmar PVP</>
               }
             </button>
           </div>
+
         </div>
       </div>
     </div>
