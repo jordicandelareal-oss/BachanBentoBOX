@@ -171,10 +171,11 @@ export default function BentoMaker({ recipe = null, onClose }) {
           <Calculator size={18} /> Análisis de Costes
         </h3>
         
-        <div className="bento-analysis-row-horizontal">
-          <div className="bento-analysis-group-horizontal">
+        <div className="analysis-pills-container">
+          {/* Column 1: Inversión Materia Prima */}
+          <div className="analysis-pill-column">
             <div className="bento-analysis-label-row">
-              <span>Inversión Materia Prima</span>
+              <span className="text-[10px] text-white/50">Materia Prima</span>
               <DollarSign size={12} className="opacity-50" />
             </div>
             <div className="bento-analysis-value-large mt-1">
@@ -182,12 +183,13 @@ export default function BentoMaker({ recipe = null, onClose }) {
             </div>
           </div>
 
-          <div className="bento-analysis-group-horizontal">
+          {/* Column 2: Factor Tiempo */}
+          <div className="analysis-pill-column">
             <div className="bento-analysis-label-row">
-              <span>Factor Tiempo / Elaboración</span>
+              <span className="text-[10px] text-white/50">Factor Tiempo</span>
               <Clock size={12} className="opacity-50" />
             </div>
-            <div className="flex items-center gap-3 mt-1.5">
+            <div className="flex items-center gap-1.5 mt-1.5">
               <select
                 value={prepTime}
                 onChange={(e) => setPrepTime(Number(e.target.value))}
@@ -202,14 +204,37 @@ export default function BentoMaker({ recipe = null, onClose }) {
                 <option value={45}>45 min</option>
                 <option value={60}>60 min</option>
               </select>
-              <span className="text-[12px] text-white/40">/</span>
-              <span className="text-[16px] text-sky-400 font-extrabold">{(prepTime * 0.10).toFixed(2)}€</span>
+              <span className="text-[11px] text-white/30">/</span>
+              <span className="text-[13px] text-sky-400 font-extrabold">{(prepTime * 0.10).toFixed(2)}€</span>
             </div>
           </div>
 
-          <div className="bento-analysis-group-horizontal">
+          {/* Column 3: Costo Total Estimado */}
+          <div className="analysis-pill-column">
             <div className="bento-analysis-label-row">
-              <span>Margen Real</span>
+              <span className="text-[10px] text-white/50">Costo Total Est.</span>
+              <DollarSign size={12} className="opacity-50" />
+            </div>
+            <div className="bento-analysis-value-large mt-1 text-sky-400">
+              {(totals.totalCost + (prepTime * 0.10)).toFixed(2)}<span>€</span>
+            </div>
+          </div>
+
+          {/* Column 4: PVP Recomendado */}
+          <div className="analysis-pill-column">
+            <div className="bento-analysis-label-row">
+              <span className="text-[10px] text-white/50">PVP Recomendado</span>
+              <Target size={12} className="opacity-50" />
+            </div>
+            <div className="bento-analysis-value-large mt-1 text-emerald-400">
+              {((totals.totalCost + (prepTime * 0.10)) / 0.30).toFixed(2)}<span>€</span>
+            </div>
+          </div>
+
+          {/* Column 5: Margen Real */}
+          <div className="analysis-pill-column">
+            <div className="bento-analysis-label-row">
+              <span className="text-[10px] text-white/50">Margen Real</span>
               <span className="bento-info-icon cursor-pointer">
                 <Info size={12} className="text-sky-400/80 hover:text-sky-400 transition-colors" />
                 <span className="bento-tooltip-text">

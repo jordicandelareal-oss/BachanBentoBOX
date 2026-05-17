@@ -815,3 +815,38 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ==========================================
+   5-COLUMN FINANCIAL ANALYSIS BAR STYLES
+   ========================================== */
+.analysis-pills-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 10px; /* Reducimos ligeramente el gap para ganar espacio */
+  width: 100%;
+}
+
+.analysis-pill-column {
+  flex: 1; /* Distribución matemática exacta en 5 partes */
+  min-width: 0; /* Evita desbordamientos */
+  padding: 10px 12px; /* Reducimos el padding interno para compactar el texto */
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.analysis-pill-column:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.analysis-pill-column .bento-analysis-value-large {
+  font-size: 20px !important;
+  font-weight: 900;
+}
