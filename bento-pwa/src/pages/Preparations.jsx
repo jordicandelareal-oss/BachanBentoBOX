@@ -31,7 +31,7 @@ export function Preparations() {
   const [pvpModalOpen, setPvpModalOpen] = useState(false);
   
   const activeTabName = useMemo(() => 
-    prepCats.find(c => c.id === activeTabId)?.Name || '',
+    (prepCats || []).find(c => c.id === activeTabId)?.Name || '',
     [prepCats, activeTabId]
   );
   
@@ -198,115 +198,86 @@ export function Preparations() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 shrink-0">
-                {/* Desktop Financial Badges */}
-                <div className="hidden sm:flex items-center gap-3">
-                  {/* Cost Badge */}
-                  <div className="flex flex-col items-end px-3 py-1 bg-slate-50 rounded-xl border border-slate-100 min-w-[85px]">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Costo</span>
-                    <span className="text-xs font-black text-slate-700">{recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€'}</span>
-                  </div>
-
-                  {/* PVP Badge */}
-                  <div className={`flex flex-col items-end px-3 py-1 rounded-xl border min-w-[85px] transition-all ${
-                    recipe.is_published 
-                      ? 'bg-sky-50 border-sky-200 text-sky-700' 
-                      : 'bg-slate-50/50 border-slate-100 text-slate-300'
-                  }`}>
-                    <span className={`text-[9px] font-black uppercase tracking-wider ${recipe.is_published ? 'text-sky-500' : 'text-slate-300'}`}>PVP</span>
-                    <span className="text-xs font-black">
-                      {recipe.is_published && recipe.sale_price > 0 ? `${Number(recipe.sale_price).toFixed(2)}€` : '—'}
-                    </span>
-                  </div>
-
-                  {/* Margin Badge */}
-                  {(() => {
-                    const margin = recipe.sale_price > 0 ? ((recipe.sale_price - recipe.cost_per_portion) / recipe.sale_price) * 100 : 0;
-                    const good = margin >= 70;
-                    return (
-                      <div className={`flex flex-col items-end px-3 py-1 rounded-xl border min-w-[85px] transition-all ${
-                        recipe.is_published && recipe.sale_price > 0
-                          ? good 
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
-                            : 'bg-amber-50 border-amber-200 text-amber-700'
-                          : 'bg-slate-50/50 border-slate-100 text-slate-300'
-                      }`}>
-                        <span className={`text-[9px] font-black uppercase tracking-wider ${
-                          recipe.is_published && recipe.sale_price > 0
-                            ? good 
-                              ? 'text-emerald-500' 
-                              : 'text-amber-500'
-                            : 'text-slate-300'
-                        }`}>Margen</span>
-                        <span className="text-xs font-black">
-                          {recipe.is_published && recipe.sale_price > 0 ? `${margin.toFixed(0)}%` : '—'}
-                        </span>
+              {(() => {
+                const cost = Number(recipe?.cost_per_portion || 0);
+                const pvp = Number(recipe?.sale_price || 0);
+                const margin = pvp > 0 ? ((pvp - cost) / pvp) * 100 : 0;
+                const isPublished = recipe?.is_published;
+                const marginGood = margin >= 70;
+                
+                return (
+                  <div className="elaboracion-card-right-container">
+                    {/* Compact Financial Pills */}
+                    <div className="financial-pills-row">
+                      {/* Cost Pill */}
+                      <div className="financial-pill">
+                        <span className="pill-label">C:</span>
+                        <span>{cost > 0 ? `${cost.toFixed(2)}€` : '0.00€'}</span>
                       </div>
-                    );
-                  })()}
-                </div>
 
-                {/* Mobile Financial Row */}
-                {(() => {
-                  const costVal = recipe?.cost_per_portion ? `${Number(recipe.cost_per_portion).toFixed(2)}€` : '0.00€';
-                  const pvpVal = recipe.is_published && recipe.sale_price > 0 ? `${Number(recipe.sale_price).toFixed(2)}€` : '—';
-                  const margin = recipe.sale_price > 0 ? ((recipe.sale_price - recipe.cost_per_portion) / recipe.sale_price) * 100 : 0;
-                  const marginVal = recipe.is_published && recipe.sale_price > 0 ? `${margin.toFixed(0)}%` : '—';
-                  const goodMargin = margin >= 70;
-                  
-                  return (
-                    <div className="sm:hidden text-[10px] text-slate-500 font-medium flex items-center gap-1.5 bg-slate-50/50 border border-slate-100 rounded-lg px-2 py-1">
-                      <span>C: <span className="font-bold text-slate-700">{costVal}</span></span>
-                      <span className="opacity-30">|</span>
-                      <span>P: <span className={`font-bold ${recipe.is_published ? 'text-sky-600' : 'text-slate-400'}`}>{pvpVal}</span></span>
-                      <span className="opacity-30">|</span>
-                      <span>M: <span className={`font-bold ${recipe.is_published ? (goodMargin ? 'text-emerald-600' : 'text-amber-600') : 'text-slate-400'}`}>{marginVal}</span></span>
+                      {/* PVP Pill */}
+                      <div className={`financial-pill ${isPublished ? 'published-pvp' : 'unpublished'}`}>
+                        <span className="pill-label">P:</span>
+                        <span>{isPublished && pvp > 0 ? `${pvp.toFixed(2)}€` : '—'}</span>
+                      </div>
+
+                      {/* Margin Pill */}
+                      <div className={`financial-pill ${
+                        isPublished && pvp > 0 
+                          ? (marginGood ? 'published-margin-good' : 'published-margin-warn') 
+                          : 'unpublished'
+                      }`}>
+                        <span className="pill-label">M:</span>
+                        <span>{isPublished && pvp > 0 ? `${margin.toFixed(0)}%` : '—'}</span>
+                      </div>
                     </div>
-                  );
-                })()}
 
-                {/* Actions container */}
-                <div className="card-actions-subtle ml-1 sm:ml-2" onClick={(e) => e.stopPropagation()}>
-                  {/* TPV Store Toggle — central control */}
-                  <button 
-                    className={`p-1.5 md:p-2 rounded-xl transition-all border ${
-                      recipe.is_published 
-                        ? 'text-sky-500 bg-sky-50 border-sky-200 shadow-sm hover:bg-sky-100 hover:text-sky-600' 
-                        : 'text-slate-300 bg-slate-50 border-slate-100 hover:bg-slate-100 hover:text-slate-500'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleStore(recipe);
-                    }}
-                    title={recipe.is_published ? `Publicado en TPV · PVP ${Number(recipe.sale_price||0).toFixed(2)}€ — Click para despublicar` : "Publicar en TPV (configura PVP)"}
-                  >
-                    {saving && publishAction?.id === recipe.id 
-                      ? <Loader2 size={16} className="animate-spin" /> 
-                      : <Store size={16} />}
-                  </button>
-                  {recipe?.image_url && (
-                    <button 
-                      className="p-1.5 md:p-2 text-sky-500 hover:bg-sky-50 rounded-xl transition-colors border border-transparent"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLightbox({ isOpen: true, imageUrl: recipe.image_url, title: recipe.name });
-                      }}
-                    >
-                      <Camera size={16} />
-                    </button>
-                  )}
-                  <button 
-                    className="delete-btn-subtle"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setConfirmDelete(recipe?.id);
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                <ChevronRight size={16} className="text-slate-300 hidden sm:block" />
-              </div>
+                    {/* Actions container */}
+                    <div className="card-actions-subtle" onClick={(e) => e.stopPropagation()}>
+                      {/* TPV Store Toggle — central control */}
+                      <button 
+                        className={`tpv-store-btn ${isPublished ? 'active' : ''}`}
+                        style={{ border: 'none' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleStore(recipe);
+                        }}
+                        title={isPublished ? `Publicado en TPV · PVP ${pvp.toFixed(2)}€ — Click para despublicar` : "Publicar en TPV (configura PVP)"}
+                      >
+                        {saving && publishAction?.id === recipe.id 
+                          ? <Loader2 size={16} className="animate-spin" /> 
+                          : <Store size={16} />}
+                      </button>
+                      
+                      {recipe?.image_url && (
+                        <button 
+                          className="p-1.5 md:p-2 text-sky-500 hover:bg-sky-50 rounded-xl transition-colors border border-transparent"
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLightbox({ isOpen: true, imageUrl: recipe.image_url, title: recipe.name });
+                          }}
+                        >
+                          <Camera size={16} />
+                        </button>
+                      )}
+                      
+                      <button 
+                        className="delete-btn-subtle"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDelete(recipe?.id);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+
+                    <ChevronRight size={16} className="text-slate-300 hidden sm:block" />
+                  </div>
+                );
+              })()}
+
             </div>
           ))}
 
