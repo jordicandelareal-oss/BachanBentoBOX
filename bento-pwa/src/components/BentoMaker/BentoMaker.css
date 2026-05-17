@@ -873,6 +873,17 @@
     font-size: 9px;
   }
 
+  /* Corrección del selector de Factor Tiempo en móvil (Opción A) */
+  .analysis-pill-column:nth-child(2) .bento-analysis-label-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .bento-prep-time-select-horizontal {
+    width: 100% !important;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
   /* 2. Emplatado Final y Componentes en una sola columna */
   .bento-split-layout {
     display: flex !important;
