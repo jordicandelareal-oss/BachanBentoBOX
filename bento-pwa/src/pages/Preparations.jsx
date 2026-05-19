@@ -460,13 +460,23 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
             <div className="premium-form-card">
               {showPhoto && (
                 <div className="mobile-only-photo">
-                  <PhotoSelector 
-                    imageUrl={imageUrl}
-                    onUpload={handleUpload}
-                    onRemove={handleRemoveImage}
-                    isCircular={false}
-                    placeholder="Subir foto de la elaboración"
-                  />
+                  <div className="premium-photo-wrapper relative">
+                    <PhotoSelector 
+                      imageUrl={imageUrl}
+                      onUpload={handleUpload}
+                      onRemove={handleRemoveImage}
+                      isCircular={false}
+                      placeholder="Subir foto de la elaboración"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPhoto(false)} 
+                      className="btn-photo-float-toggle"
+                      title="Ocultar foto"
+                    >
+                      <EyeOff size={16} />
+                    </button>
+                  </div>
                 </div>
               )}
               
@@ -647,13 +657,23 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
           {showPhoto && (
             <div className="desktop-only-photo">
               <div className="premium-form-card mb-6" style={{ padding: '24px' }}>
-                <PhotoSelector 
-                  imageUrl={imageUrl}
-                  onUpload={handleUpload}
-                  onRemove={handleRemoveImage}
-                  isCircular={false}
-                  placeholder="Subir foto de la elaboración"
-                />
+                <div className="premium-photo-wrapper relative">
+                  <PhotoSelector 
+                    imageUrl={imageUrl}
+                    onUpload={handleUpload}
+                    onRemove={handleRemoveImage}
+                    isCircular={false}
+                    placeholder="Subir foto de la elaboración"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPhoto(false)} 
+                    className="btn-photo-float-toggle"
+                    title="Ocultar foto"
+                  >
+                    <EyeOff size={16} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -682,22 +702,25 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
           </div>
           
           <div className="section-header flex justify-between items-center mb-4">
-            <h3 className="section-title">
-              <Package size={20} className="text-sky-500" /> Ingredientes
-            </h3>
-            <div className="flex items-center gap-2">
-              <button 
-                type="button" 
-                onClick={() => setShowPhoto(!showPhoto)} 
-                className="btn-ghost-toggle-photo"
-                title={showPhoto ? "Ocultar foto" : "Mostrar foto"}
-              >
-                {showPhoto ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-              <button className="btn-add-item-small" onClick={() => setShowSelector(true)}>
-                <Plus size={14} /> Añadir
-              </button>
+            <div className="flex items-center gap-3">
+              <h3 className="section-title">
+                <CookingPot size={20} className="text-sky-500" /> Ingredientes
+              </h3>
+              {!showPhoto && (
+                <button 
+                  type="button" 
+                  onClick={() => setShowPhoto(true)} 
+                  className="btn-show-photo-pill animate-in fade-in slide-in-from-left-4 duration-200"
+                  title="Mostrar foto"
+                >
+                  <Eye size={12} />
+                  <span>Ver Foto</span>
+                </button>
+              )}
             </div>
+            <button className="btn-add-item-small" onClick={() => setShowSelector(true)}>
+              <Plus size={14} /> Añadir
+            </button>
           </div>
 
           <div className="internal-search">
