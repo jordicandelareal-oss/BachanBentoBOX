@@ -457,19 +457,14 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
         {/* PANEL IZQUIERDO: DATOS GENERALES */}
           <div className="editor-left-panel space-y-6">
             <div className="premium-form-card">
-              <div className="flex gap-4 items-start mb-8">
-                <div className="flex-1">
-                  <h3 className="section-title" style={{ fontFamily: 'var(--font-serif)' }}>Datos Generales</h3>
-                </div>
-                <div className="w-24 h-24">
-                  <PhotoSelector 
-                    imageUrl={imageUrl}
-                    onUpload={handleUpload}
-                    onRemove={handleRemoveImage}
-                    isCircular={false}
-                    placeholder="Sube foto"
-                  />
-                </div>
+              <div className="mb-6">
+                <PhotoSelector 
+                  imageUrl={imageUrl}
+                  onUpload={handleUpload}
+                  onRemove={handleRemoveImage}
+                  isCircular={false}
+                  placeholder="Subir foto de la elaboración"
+                />
               </div>
               
               <div className="form-group mb-4">
@@ -648,32 +643,33 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
         <div className="editor-right-panel">
           {/* PLATOS SUGERIDOS - PREMIUM STYLE ON RIGHT */}
           <div className="form-group mb-6">
-            <label className="form-label flex items-center gap-2">
-              <ChefHat size={14} className="text-slate-400" /> platos sugeridos (Ref.)
-            </label>
             <div 
-              className="flex items-center gap-4 p-4 bg-amber-50/50 rounded-2xl border border-amber-100 shadow-sm cursor-pointer"
+              className="platos-sugeridos-premium-banner"
               onClick={() => openNumPad('platos', 'Platos Sugeridos')}
             >
-              <div className="icon-bg-amber">
-                <Utensils size={18} className="text-amber-600" />
+              <div className="flex items-center gap-3">
+                <div className="platos-icon-box">
+                  <ChefHat size={16} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="platos-label">Platos Sugeridos (Ref.)</span>
+                  <span className="platos-helper">* Valor informativo, no afecta costes.</span>
+                </div>
               </div>
-              <div className="flex-1">
-                <span className="text-[10px] font-black text-amber-600 uppercase block mb-1">Rinde para:</span>
-                <div className="font-black text-navy text-xl">{platosEstimados || '0'}</div>
+              
+              <div className="platos-counter-badge">
+                <span className="platos-number">{platosEstimados || '0'}</span>
+                <span className="platos-unit">platos</span>
               </div>
-              <span className="text-xs font-black text-amber-600 uppercase">platos</span>
             </div>
-            <p className="text-[9px] text-slate-400 mt-2 italic px-1 opacity-60">
-              * Este valor es informativo y no afecta a los costes calculados.
-            </p>
           </div>
+          
           <div className="section-header flex justify-between items-center mb-4">
             <h3 className="section-title">
               <Package size={20} className="text-sky-500" /> Ingredientes
             </h3>
-            <button className="btn-primary" onClick={() => setShowSelector(true)} style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
-              <Plus size={16} /> Añadir
+            <button className="btn-add-item-small" onClick={() => setShowSelector(true)}>
+              <Plus size={14} /> Añadir
             </button>
           </div>
 
@@ -698,66 +694,73 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
             ) : (
               <div className="space-y-3">
                 {(filteredItems || []).map((item, index) => (
-                  <div key={item._key || index} className="mini-card compact overflow-hidden px-3 py-2.5">
-                    <div className="grid grid-cols-[1fr_70px_105px_40px] items-center gap-2">
-                      {/* COL 1: Name (Flexible + Truncated) */}
-                      <div 
-                        className="flex items-center gap-2 min-w-0 cursor-pointer group" 
-                        onClick={() => {
-                          const targetKey = item._key || item.id || `idx-${index}`;
-                          const label = (normalizeUnit(item.unit) === 'g' || normalizeUnit(item.unit) === 'ml')
-                            ? `${item.name} (g/ml)` 
-                            : `${item.name} (ud)`;
-                          openNumPad(targetKey, label);
-                        }}
-                      >
+                  <div key={item._key || index} className="mini-card compact">
+                    {/* COL 1: Name and Category/Icon */}
+                    <div 
+                      className="bento-component-left cursor-pointer group min-w-0" 
+                      onClick={() => {
+                        const targetKey = item._key || item.id || `idx-${index}`;
+                        const label = (normalizeUnit(item.unit) === 'g' || normalizeUnit(item.unit) === 'ml')
+                          ? `${item.name} (g/ml)` 
+                          : `${item.name} (ud)`;
+                        openNumPad(targetKey, label);
+                      }}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
                         <div className="mini-icon-box shrink-0 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
                           {item.type === 'ingredient' ? <Package size={14} className="text-slate-400" /> : <Utensils size={14} className="text-slate-400" />}
                         </div>
-                        <span className="text-[13px] font-bold text-slate-700 truncate min-w-0">{item.name}</span>
+                        <div className="min-w-0">
+                          <span className="bento-component-name text-sm font-semibold truncate block" title={item.name}>{item.name}</span>
+                          <span className="bento-component-category text-xs text-slate-400">
+                            {item.category_name || 'General'}
+                          </span>
+                        </div>
                       </div>
+                    </div>
 
-                      {/* COL 2: Quantity (Blue, Fixed 70px) */}
+                    {/* COL 2: Quantity Input Wrapper */}
+                    <div className="bento-component-center">
                       <div 
-                        className="text-right cursor-pointer"
+                        className="bento-qty-input-wrapper cursor-pointer"
                         onClick={() => {
                           const targetKey = item._key || item.id || `idx-${index}`;
                           openNumPad(targetKey, `CANTIDAD: ${item.name}`);
                         }}
                       >
-                        <span className="text-[14px] font-black text-sky-600 block leading-tight">
+                        <span className="bento-qty-input font-black text-sky-600 block text-sm leading-tight text-left">
                           {Number(item.quantity || 0).toLocaleString('es-ES', { maximumFractionDigits: 2 })}
                         </span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase italic">
+                        <span className="bento-qty-unit-label font-bold text-slate-400 uppercase italic">
                           {item.unit === 'ud' ? 'pzs' : (item.unit || 'g')}
                         </span>
                       </div>
+                    </div>
 
-                      {/* COL 3: Prices (Fixed 105px) */}
-                      <div className="text-right">
-                        <div className="text-[13px] font-black text-navy leading-none">
+                    {/* COL 3: Pricing and Delete Button */}
+                    <div className="bento-component-right">
+                      <div className="bento-component-pricing text-right">
+                        <span className="bento-component-total-price text-slate-900 font-extrabold text-sm block">
                           {((normalizeUnit(item.unit) === 'g' || normalizeUnit(item.unit) === 'ml')
                             ? (item.costPerUnit / 1000) * (item.quantity || 0)
                             : (item.costPerUnit * (item.quantity || 0))
                           ).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
-                        </div>
-                        <div className="text-[9px] font-bold text-slate-400 mt-1 whitespace-nowrap overflow-hidden">
+                        </span>
+                        <span className="bento-component-unit-price text-slate-400 text-[10px] font-semibold mt-0.5 block whitespace-nowrap overflow-hidden">
                           {item.costPerUnit.toFixed(3)}€/{(normalizeUnit(item.unit) === 'g' || normalizeUnit(item.unit) === 'ml') ? 'kg·l' : 'ud'}
-                        </div>
+                        </span>
                       </div>
-
-                      {/* COL 4: Action (Fixed 40px) */}
-                      <div className="flex justify-end">
-                        <button 
-                          onClick={() => {
-                            const targetKey = item._key || item.id || `idx-${index}`;
-                            removeItem(targetKey);
-                          }} 
-                          className="text-slate-200 hover:text-rose-500 p-1.5 transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      
+                      <button 
+                        onClick={() => {
+                          const targetKey = item._key || item.id || `idx-${index}`;
+                          removeItem(targetKey);
+                        }} 
+                        className="bento-component-delete-btn text-slate-300 hover:text-rose-500 p-1.5 transition-colors"
+                        title="Eliminar ingrediente"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </div>
                 ))}
