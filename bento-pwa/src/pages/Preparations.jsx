@@ -5,7 +5,7 @@ import { useIngredients } from '../hooks/useIngredients';
 import { useUnits } from '../hooks/useUnits';
 import { usePrepCategories } from '../hooks/usePrepCategories';
 import { useMenuCategories } from '../hooks/useMenuCategories';
-import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search, AlertCircle, ChefHat, CheckCircle2, Camera, CookingPot, Loader2, Store, TrendingUp, TrendingDown, Tag } from 'lucide-react';
+import { Utensils, Package, Plus, X, Save, ArrowLeft, ChevronRight, LayoutGrid, Scale, Trash2, Search, AlertCircle, ChefHat, CheckCircle2, Camera, CookingPot, Loader2, Store, TrendingUp, TrendingDown, Tag, Eye, EyeOff } from 'lucide-react';
 import SequentialSelector from '../components/Common/SequentialSelector';
 import PhotoSelector from '../components/Common/PhotoSelector';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
@@ -336,6 +336,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
   const [internalSearch, setInternalSearch] = useState('');
   // NumPad state: { field: 'portions'|'platos'|key_of_item, label: string }
   const [numPad, setNumPad] = useState(null);
+  const [showPhoto, setShowPhoto] = useState(true);
 
   const openNumPad = (field, label) => setNumPad({ field, label });
   const closeNumPad = () => setNumPad(null);
@@ -457,15 +458,17 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
         {/* PANEL IZQUIERDO: DATOS GENERALES */}
           <div className="editor-left-panel space-y-6">
             <div className="premium-form-card">
-              <div className="mobile-only-photo">
-                <PhotoSelector 
-                  imageUrl={imageUrl}
-                  onUpload={handleUpload}
-                  onRemove={handleRemoveImage}
-                  isCircular={false}
-                  placeholder="Subir foto de la elaboración"
-                />
-              </div>
+              {showPhoto && (
+                <div className="mobile-only-photo">
+                  <PhotoSelector 
+                    imageUrl={imageUrl}
+                    onUpload={handleUpload}
+                    onRemove={handleRemoveImage}
+                    isCircular={false}
+                    placeholder="Subir foto de la elaboración"
+                  />
+                </div>
+              )}
               
               <div className="form-group mb-4">
                 <label className="form-label">Nombre de la elaboración <span className="text-rose-500">*</span></label>
@@ -641,17 +644,19 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
 
         {/* PANEL DERECHO: PLATOS Y COMPONENTES */}
         <div className="editor-right-panel">
-          <div className="desktop-only-photo">
-            <div className="premium-form-card mb-6" style={{ padding: '24px' }}>
-              <PhotoSelector 
-                imageUrl={imageUrl}
-                onUpload={handleUpload}
-                onRemove={handleRemoveImage}
-                isCircular={false}
-                placeholder="Subir foto de la elaboración"
-              />
+          {showPhoto && (
+            <div className="desktop-only-photo">
+              <div className="premium-form-card mb-6" style={{ padding: '24px' }}>
+                <PhotoSelector 
+                  imageUrl={imageUrl}
+                  onUpload={handleUpload}
+                  onRemove={handleRemoveImage}
+                  isCircular={false}
+                  placeholder="Subir foto de la elaboración"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* PLATOS SUGERIDOS - PREMIUM STYLE ON RIGHT */}
           <div className="form-group mb-6">
@@ -680,9 +685,19 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
             <h3 className="section-title">
               <Package size={20} className="text-sky-500" /> Ingredientes
             </h3>
-            <button className="btn-add-item-small" onClick={() => setShowSelector(true)}>
-              <Plus size={14} /> Añadir
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                type="button" 
+                onClick={() => setShowPhoto(!showPhoto)} 
+                className="btn-ghost-toggle-photo"
+                title={showPhoto ? "Ocultar foto" : "Mostrar foto"}
+              >
+                {showPhoto ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+              <button className="btn-add-item-small" onClick={() => setShowSelector(true)}>
+                <Plus size={14} /> Añadir
+              </button>
+            </div>
           </div>
 
           <div className="internal-search">

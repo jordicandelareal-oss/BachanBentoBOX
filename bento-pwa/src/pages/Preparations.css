@@ -364,20 +364,20 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  background-color: #f8fafc;
-  border: 1.5px solid #e2e8f0;
+  background-color: rgba(2, 132, 199, 0.04);
+  border: 1.5px solid rgba(2, 132, 199, 0.1);
   border-radius: 12px;
   padding: 6px 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   width: 105px;
   box-sizing: border-box;
 }
 
 .bento-qty-input-wrapper:hover {
-  background-color: white;
+  background-color: rgba(2, 132, 199, 0.08);
   border-color: #0ea5e9;
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
 }
 
 .bento-qty-input {
@@ -398,7 +398,7 @@
   right: 12px;
   font-size: 9px;
   font-weight: 900;
-  color: #64748b;
+  color: #0284c7;
   text-transform: uppercase;
   pointer-events: none;
 }
@@ -413,21 +413,26 @@
 
 .bento-component-pricing {
   text-align: right;
-  min-width: 80px;
+  min-width: 85px;
 }
 
 .bento-component-total-price {
   font-size: 0.875rem; /* text-sm */
-  font-weight: 700;
-  color: #0f172a;
+  font-weight: 800;
+  color: #0c1c2e;
   display: block;
+  letter-spacing: -0.010em;
 }
 
 .bento-component-unit-price {
-  font-size: 0.75rem; /* text-xs */
-  font-weight: 500;
-  color: #94a3b8; /* text-slate-400 */
-  display: block;
+  font-size: 9px;
+  font-weight: 600;
+  color: #64748b; /* slate-500 */
+  display: inline-block;
+  background: rgba(241, 245, 249, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  padding: 2px 6px;
+  border-radius: 6px;
   margin-top: 2px;
 }
 
@@ -1144,4 +1149,33 @@
   .desktop-only-photo {
     display: block;
   }
+}
+
+/* ==========================================
+   PHOTO TOGGLE EYE BUTTON STYLE
+   ========================================== */
+.btn-ghost-toggle-photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: rgba(255, 255, 255, 0.8);
+  color: #64748b; /* slate-500 */
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.btn-ghost-toggle-photo:hover {
+  background: #f1f5f9;
+  color: #0f172a; /* slate-900 */
+  border-color: #cbd5e1;
+  transform: scale(1.05);
+}
+
+.btn-ghost-toggle-photo:active {
+  transform: scale(0.95);
 }
