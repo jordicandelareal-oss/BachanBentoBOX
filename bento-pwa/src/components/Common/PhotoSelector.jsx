@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Camera, Trash2, Scan, Image as ImageIcon, Edit2, X } from 'lucide-react';
+import { Camera, Trash2, Scan, Image as ImageIcon, Edit2, X, EyeOff } from 'lucide-react';
 import ImageEditorModal from './ImageEditorModal';
 import './PhotoSelector.css';
 
@@ -11,6 +11,7 @@ export default function PhotoSelector({
   onUpload, 
   onRemove, 
   onNanaScan, 
+  onHide,
   label, 
   isCircular = false,
   placeholder = "Añadir foto" 
@@ -59,19 +60,44 @@ export default function PhotoSelector({
         />
         
         {imageUrl ? (
-          <div className="image-wrapper group" onClick={triggerInput}>
-            <img src={imageUrl} alt="Uploaded" className="selected-image" />
-            <div className="image-overlay opacity-0 group-hover:opacity-100 transition-opacity">
-              <Camera size={24} className="text-white" />
+          <div className="image-wrapper group">
+            <img src={imageUrl} alt="Uploaded" className="selected-image" onClick={triggerInput} />
+            
+            {/* Premium Top Floating Actions Bar */}
+            <div className="photo-floating-bar" onClick={(e) => e.stopPropagation()}>
+              <div className="photo-left-controls">
+                <button 
+                  type="button" 
+                  onClick={triggerInput} 
+                  className="photo-action-btn btn-glass"
+                  title="Cambiar foto"
+                >
+                  <Camera size={14} />
+                  <span>Cambiar</span>
+                </button>
+                
+                {onHide && (
+                  <button 
+                    type="button" 
+                    onClick={onHide} 
+                    className="photo-action-btn btn-glass"
+                    title="Ocultar foto"
+                  >
+                    <EyeOff size={14} />
+                    <span>Ocultar</span>
+                  </button>
+                )}
+              </div>
+              
+              <button 
+                type="button" 
+                onClick={onRemove} 
+                className="photo-action-btn btn-destructive-glass"
+                title="Eliminar foto"
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
-            <button 
-              type="button" 
-              onClick={(e) => { e.stopPropagation(); onRemove(); }} 
-              className="floating-remove-btn"
-              title="Eliminar foto"
-            >
-              <X size={16} />
-            </button>
           </div>
         ) : (
           <div className="empty-state" onClick={triggerInput}>

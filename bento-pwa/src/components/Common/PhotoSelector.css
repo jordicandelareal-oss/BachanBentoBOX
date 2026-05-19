@@ -124,5 +124,78 @@
 
 /* Form layout adaptation */
 .photo-selector-container:not(.is-circular) .photo-box {
-  min-height: 180px;
+  min-height: 240px; /* increased to fit image beautifully */
+}
+
+/* ==========================================
+   PREMIUM FLOATING ACTIONS BAR SYSTEM
+   ========================================== */
+.photo-floating-bar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 40;
+}
+
+.photo-left-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.photo-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.photo-action-btn:active {
+  transform: scale(0.95);
+}
+
+/* Control buttons (glass style) */
+.btn-glass {
+  background: rgba(15, 23, 42, 0.6); /* dark elegant glass */
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.btn-glass:hover {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(1.05);
+}
+
+/* Destructive button (translucent red style) */
+.btn-destructive-glass {
+  background: rgba(239, 68, 68, 0.7); /* ruby red glass */
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+  padding: 0;
+  width: 32px; /* make it circular */
+}
+
+.btn-destructive-glass:hover {
+  background: rgba(239, 68, 68, 0.95);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(1.05);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
 }

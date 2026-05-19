@@ -459,24 +459,15 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
           <div className="editor-left-panel space-y-6">
             <div className="premium-form-card">
               {showPhoto && (
-                <div className="mobile-only-photo">
-                  <div className="premium-photo-wrapper relative">
-                    <PhotoSelector 
-                      imageUrl={imageUrl}
-                      onUpload={handleUpload}
-                      onRemove={handleRemoveImage}
-                      isCircular={false}
-                      placeholder="Subir foto de la elaboración"
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setShowPhoto(false)} 
-                      className="btn-photo-float-toggle"
-                      title="Ocultar foto"
-                    >
-                      <EyeOff size={16} />
-                    </button>
-                  </div>
+                <div className="mobile-only-photo animate-in fade-in zoom-in-95 duration-200">
+                  <PhotoSelector 
+                    imageUrl={imageUrl}
+                    onUpload={handleUpload}
+                    onRemove={handleRemoveImage}
+                    onHide={() => setShowPhoto(false)}
+                    isCircular={false}
+                    placeholder="Subir foto de la elaboración"
+                  />
                 </div>
               )}
               
@@ -657,23 +648,14 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
           {showPhoto && (
             <div className="desktop-only-photo">
               <div className="premium-form-card mb-6" style={{ padding: '24px' }}>
-                <div className="premium-photo-wrapper relative">
-                  <PhotoSelector 
-                    imageUrl={imageUrl}
-                    onUpload={handleUpload}
-                    onRemove={handleRemoveImage}
-                    isCircular={false}
-                    placeholder="Subir foto de la elaboración"
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => setShowPhoto(false)} 
-                    className="btn-photo-float-toggle"
-                    title="Ocultar foto"
-                  >
-                    <EyeOff size={16} />
-                  </button>
-                </div>
+                <PhotoSelector 
+                  imageUrl={imageUrl}
+                  onUpload={handleUpload}
+                  onRemove={handleRemoveImage}
+                  onHide={() => setShowPhoto(false)}
+                  isCircular={false}
+                  placeholder="Subir foto de la elaboración"
+                />
               </div>
             </div>
           )}
