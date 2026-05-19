@@ -1123,3 +1123,25 @@
     font-size: 8px;
   }
 }
+
+/* ==========================================
+   RESPONSIVE PHOTO SELECTOR LAYOUT BALANCING
+   ========================================== */
+.mobile-only-photo {
+  display: block;
+  margin-bottom: 24px;
+}
+
+.desktop-only-photo {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .mobile-only-photo {
+    display: none;
+  }
+  
+  .desktop-only-photo {
+    display: block;
+  }
+}

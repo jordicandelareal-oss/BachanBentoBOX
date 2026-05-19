@@ -457,7 +457,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
         {/* PANEL IZQUIERDO: DATOS GENERALES */}
           <div className="editor-left-panel space-y-6">
             <div className="premium-form-card">
-              <div className="mb-6">
+              <div className="mobile-only-photo">
                 <PhotoSelector 
                   imageUrl={imageUrl}
                   onUpload={handleUpload}
@@ -641,6 +641,18 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
 
         {/* PANEL DERECHO: PLATOS Y COMPONENTES */}
         <div className="editor-right-panel">
+          <div className="desktop-only-photo">
+            <div className="premium-form-card mb-6" style={{ padding: '24px' }}>
+              <PhotoSelector 
+                imageUrl={imageUrl}
+                onUpload={handleUpload}
+                onRemove={handleRemoveImage}
+                isCircular={false}
+                placeholder="Subir foto de la elaboración"
+              />
+            </div>
+          </div>
+
           {/* PLATOS SUGERIDOS - PREMIUM STYLE ON RIGHT */}
           <div className="form-group mb-6">
             <div 
