@@ -444,22 +444,24 @@ function ComprasTab() {
         // REQUISITO CRÍTICO: Solo sugerir compras para los ingredientes demandados por los platos pendientes.
         if (needFromOrders <= 0) return;
 
-        const currentStock = parseFloat(ing.stock || 0);
-        const minStock = parseFloat(ing.min_stock || 0);
-        
-        const target = needFromOrders + minStock;
-        const toBuy = target - currentStock;
+        const currentStock = Math.max(0, parseFloat(ing.stock || 0));
+        // REQUISITO: Cantidad a Comprar = Total Necesario en Recetas - Stock Actual (si el stock cubre la necesidad, la cantidad es 0)
+        const toBuy = needFromOrders - currentStock;
 
         if (toBuy > 0) {
           list.push({
             id: ing.id,
             name: ing.name,
-            providerName: ing.providers?.name || ing.provider || 'Sin Proveedor',
+            providerName: (() => {
+              const prov = Array.isArray(ing.providers) ? ing.providers[0] : ing.providers;
+              const name = prov?.name || ing.provider || '';
+              return (!name || name === 'null') ? 'Sin Proveedor' : name;
+            })(),
             unitName: ing.calculation_type === 'unidad' ? 'ud' : 'g',
             toBuy: toBuy,
             needFromOrders,
             currentStock,
-            minStock,
+            minStock: parseFloat(ing.min_stock || 0),
             breakdown: usageBreakdown[ing.id] || {}
           });
         }

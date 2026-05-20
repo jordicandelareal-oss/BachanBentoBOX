@@ -63,7 +63,11 @@ export function useIngredients() {
         category_name: ing.categories?.name || null,
         subcategory_name: ing.subcategories?.name || null,
         unit_name: ing.units?.name || null,
-        provider_name: ing.providers?.name || ing.provider || null,
+        provider_name: (() => {
+          const prov = Array.isArray(ing.providers) ? ing.providers[0] : ing.providers;
+          const name = prov?.name || ing.provider || '';
+          return (!name || name === 'null') ? null : name;
+        })(),
       }));
 
       setIngredients(mapped)
