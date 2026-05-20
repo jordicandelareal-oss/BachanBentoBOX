@@ -5,7 +5,8 @@ import { useProviders } from '../hooks/useProviders';
 import { 
   PackageSearch, ShoppingCart, FileText, Plus, Search,
   TrendingUp, PackageMinus, ChevronDown, ChevronUp, 
-  CheckCircle2, AlertTriangle, ListOrdered, Carrot 
+  CheckCircle2, AlertTriangle, ListOrdered, Carrot,
+  Loader2
 } from 'lucide-react';
 import '../styles/theme.css';
 import '../styles/Common.css';
@@ -432,21 +433,21 @@ function ComprasTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="card-panel flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all duration-200">
         <div>
-          <h2 className="panel-title mb-1 flex items-center gap-2">
-            <ShoppingCart size={22} className="text-accent" />
+          <h2 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+            <ShoppingCart size={20} className="text-sky-500" />
             Motor Inteligente de Compras
           </h2>
-          <p className="text-gray-400 text-sm">Analiza comandas pendientes, calcula el consumo y sugiere pedidos según stock.</p>
+          <p className="text-slate-400 text-sm mt-1">Analiza comandas pendientes, calcula el consumo y sugiere pedidos según stock.</p>
         </div>
         <button 
           onClick={calculatePurchases} 
-          className="btn-primary rounded-full px-6 py-2.5 font-bold shadow-[0_0_15px_rgba(212,175,55,0.3)] hover:shadow-[0_0_25px_rgba(212,175,55,0.5)] transition-all flex items-center gap-2" 
+          className="btn-primary rounded-full px-6 py-2.5 font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 bg-slate-900 text-white hover:bg-sky-500 hover:border-sky-500 border border-transparent" 
           disabled={loading}
         >
           {loading ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+            <Loader2 size={18} className="animate-spin" />
           ) : (
             <TrendingUp size={18} />
           )}
@@ -455,20 +456,20 @@ function ComprasTab() {
       </div>
 
       {hasCalculated && (
-        <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <ListOrdered size={16} className="text-accent" />
+        <div className="bg-slate-50 border border-slate-100 rounded-xl p-6 transition-all duration-200">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <ListOrdered size={16} className="text-sky-500" />
             Comandas Pendientes Detectadas
           </h3>
           
           {pendingItemsSummary.length === 0 ? (
-            <p className="text-gray-500 text-sm italic">No hay comandas pendientes en el TPV en este momento.</p>
+            <p className="text-slate-400 text-sm italic">No hay comandas pendientes en el TPV en este momento.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {pendingItemsSummary.map((item, idx) => (
-                <div key={idx} className="bg-slate-900/60 border border-slate-700 text-white text-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
-                  <span className="font-bold text-accent">{item.qty}x</span>
-                  <span>{item.name}</span>
+                <div key={idx} className="bg-white border border-slate-100 text-slate-700 text-sm px-4 py-2 rounded-full flex items-center gap-2 shadow-sm hover:border-slate-200 transition-colors">
+                  <span className="font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full text-xs">{item.qty}x</span>
+                  <span className="font-medium text-slate-800">{item.name}</span>
                 </div>
               ))}
             </div>
@@ -477,25 +478,34 @@ function ComprasTab() {
       )}
 
       {shoppingList.length === 0 && hasCalculated && (
-        <div className="p-12 text-center bg-slate-800/20 rounded-xl border border-dashed border-slate-700/50">
-          <CheckCircle2 size={56} className="mx-auto text-green-500/80 mb-4" />
-          <h3 className="text-xl font-bold text-white mb-2">¡Todo en Orden!</h3>
-          <p className="text-gray-400 max-w-md mx-auto">
+        <div className="p-12 text-center bg-emerald-50/30 rounded-xl border border-dashed border-emerald-200 transition-all duration-200">
+          <CheckCircle2 size={48} className="mx-auto text-emerald-500 mb-4 animate-bounce" style={{ animationDuration: '3s' }} />
+          <h3 className="text-lg font-bold text-emerald-800 mb-2">¡Todo en Orden!</h3>
+          <p className="text-emerald-600/80 text-sm max-w-md mx-auto">
             El stock actual es suficiente para cubrir las comandas pendientes manteniendo el stock mínimo de seguridad.
           </p>
         </div>
       )}
 
       {shoppingList.length === 0 && !hasCalculated && (
-        <div className="p-12 text-center bg-slate-800/20 rounded-xl border border-dashed border-slate-700/50">
-          <PackageMinus size={56} className="mx-auto text-slate-600 mb-4" />
-          <p className="text-gray-400">Presiona "Calcular Necesidades" para iniciar el análisis.</p>
+        <div className="p-12 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 transition-all duration-200">
+          <PackageMinus size={48} className="mx-auto text-slate-400 mb-4" />
+          <h3 className="text-base font-bold text-slate-700 mb-1">Análisis de Stock</h3>
+          <p className="text-slate-400 text-sm">Presiona "Calcular Necesidades" para iniciar el análisis inteligente de compras.</p>
         </div>
       )}
 
       {shoppingList.length > 0 && (
         <div className="flex flex-col gap-5">
-          <h3 className="text-lg font-bold text-white mb-1 border-b border-slate-700/50 pb-2">Lista de Compra Generada</h3>
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+              <ShoppingCart size={20} className="text-sky-500" />
+              Lista de Compra Generada
+            </h3>
+            <span className="text-xs bg-sky-50 text-sky-700 px-3 py-1 rounded-full font-bold">
+              {shoppingList.length} {shoppingList.length === 1 ? 'Proveedor' : 'Proveedores'}
+            </span>
+          </div>
           {shoppingList.map(([provider, items]) => (
             <ProviderPurchaseCard key={provider} provider={provider} items={items} />
           ))}
@@ -509,71 +519,117 @@ function ProviderPurchaseCard({ provider, items }) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl overflow-hidden shadow-lg">
+    <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm hover:border-slate-200/80 transition-all duration-200">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-slate-800 hover:bg-slate-700/80 transition-colors px-5 py-4 flex items-center justify-between"
+        className="w-full bg-white hover:bg-slate-50/50 transition-colors px-6 py-4 flex items-center justify-between"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-600 flex items-center justify-center text-accent">
+          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-sky-500">
             <ShoppingCart size={18} />
           </div>
           <div className="text-left">
-            <h4 className="text-base font-bold text-white">{provider}</h4>
-            <span className="text-xs text-gray-400">{items.length} insumos a reponer</span>
+            <h4 className="text-base font-extrabold text-slate-800">{provider}</h4>
+            <span className="text-xs text-slate-400 font-semibold">{items.length} {items.length === 1 ? 'insumo' : 'insumos'} a reponer</span>
           </div>
         </div>
-        <div className="text-gray-400">
+        <div className="text-slate-400">
           {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </div>
       </button>
 
       {isOpen && (
-        <div className="p-0 border-t border-slate-700/50">
+        <div className="p-0 border-t border-slate-100">
           <div className="hidden md:block">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-900/30 text-gray-400 border-b border-slate-700/50">
-                <tr>
-                  <th className="px-5 py-3 font-semibold">Insumo</th>
-                  <th className="px-5 py-3 font-semibold">Pedidos Pend.</th>
-                  <th className="px-5 py-3 font-semibold">Stock Actual</th>
-                  <th className="px-5 py-3 font-semibold">Stock Mín.</th>
-                  <th className="px-5 py-3 font-semibold text-right text-accent">A Comprar</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700/30">
-                {items.map(item => (
-                  <tr key={item.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="px-5 py-4 font-medium text-white">{item.name}</td>
-                    <td className="px-5 py-4 text-gray-300">{item.needFromOrders.toFixed(2)} <span className="text-xs text-gray-500">{item.unitName}</span></td>
-                    <td className="px-5 py-4 text-gray-300">{item.currentStock.toFixed(2)} <span className="text-xs text-gray-500">{item.unitName}</span></td>
-                    <td className="px-5 py-4 text-gray-300">{item.minStock.toFixed(2)} <span className="text-xs text-gray-500">{item.unitName}</span></td>
-                    <td className="px-5 py-4 text-right text-accent font-bold text-base bg-accent/5">
-                      {item.toBuy.toFixed(2)} <span className="text-xs text-accent/70">{item.unitName}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50/40 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+              <div className="col-span-5">Insumo / Ingrediente</div>
+              <div className="col-span-2 text-center">Pedidos Pendientes</div>
+              <div className="col-span-2 text-center">Stock Actual</div>
+              <div className="col-span-2 text-center">Stock Mínimo</div>
+              <div className="col-span-1 text-right text-sky-600">A Comprar</div>
+            </div>
 
-          <div className="md:hidden flex flex-col divide-y divide-slate-700/30">
-            {items.map(item => (
-              <div key={item.id} className="p-4 flex flex-col gap-3">
-                <div className="font-medium text-white text-base">{item.name}</div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="bg-slate-900/40 p-2 rounded border border-slate-700/50">
-                    <div className="text-xs text-gray-500 mb-1">Pendiente</div>
-                    <div className="text-gray-300">{item.needFromOrders.toFixed(2)} {item.unitName}</div>
+            <div className="divide-y divide-slate-100">
+              {items.map(item => (
+                <div 
+                  key={item.id} 
+                  className="grid grid-cols-12 gap-4 items-center px-6 py-3.5 hover:bg-slate-50/30 transition-colors duration-150 group"
+                >
+                  <div className="col-span-5 flex items-center gap-2 min-w-0">
+                    <div className="w-1.5 h-1.5 rounded-full bg-sky-400/80 group-hover:scale-125 transition-transform" />
+                    <span className="font-medium text-slate-800 text-sm truncate" title={item.name}>
+                      {item.name}
+                    </span>
                   </div>
-                  <div className="bg-slate-900/40 p-2 rounded border border-slate-700/50">
-                    <div className="text-xs text-gray-500 mb-1">Stock Actual</div>
-                    <div className="text-gray-300">{item.currentStock.toFixed(2)} {item.unitName}</div>
+                  <div className="col-span-2 text-center">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-100">
+                      {item.needFromOrders.toFixed(2)}
+                      <span className="text-[10px] text-slate-400 ml-1 font-normal">{item.unitName}</span>
+                    </span>
+                  </div>
+                  <div className="col-span-2 text-center">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-100">
+                      {item.currentStock.toFixed(2)}
+                      <span className="text-[10px] text-slate-400 ml-1 font-normal">{item.unitName}</span>
+                    </span>
+                  </div>
+                  <div className="col-span-2 text-center">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-500 border border-slate-100">
+                      {item.minStock.toFixed(2)}
+                      <span className="text-[10px] text-slate-400 ml-1 font-normal">{item.unitName}</span>
+                    </span>
+                  </div>
+                  <div className="col-span-1 text-right">
+                    <span className="inline-flex items-center gap-0.5 px-3 py-1 rounded-full text-xs font-extrabold bg-sky-50 text-sky-700 border border-sky-100/50 shadow-sm">
+                      {item.toBuy.toFixed(2)}
+                      <span className="text-[10px] text-sky-600/70 font-bold">{item.unitName}</span>
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between bg-accent/10 border border-accent/20 p-3 rounded-lg mt-1">
-                  <span className="text-sm font-semibold text-accent/80">Necesidad Total:</span>
-                  <span className="text-base font-bold text-accent">{item.toBuy.toFixed(2)} {item.unitName}</span>
+              ))}
+            </div>
+          </div>
+
+          <div className="md:hidden flex flex-col p-4 bg-slate-50/30 gap-3">
+            {items.map(item => (
+              <div key={item.id} className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                    <span className="font-semibold text-slate-800 text-sm truncate" title={item.name}>
+                      {item.name}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="bg-slate-50/50 p-2 rounded-lg border border-slate-100 flex flex-col items-center justify-center">
+                    <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Pendiente</span>
+                    <span className="text-slate-700 font-semibold">
+                      {item.needFromOrders.toFixed(2)} <span className="text-[10px] text-slate-400">{item.unitName}</span>
+                    </span>
+                  </div>
+                  <div className="bg-slate-50/50 p-2 rounded-lg border border-slate-100 flex flex-col items-center justify-center">
+                    <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Stock Act.</span>
+                    <span className="text-slate-700 font-semibold">
+                      {item.currentStock.toFixed(2)} <span className="text-[10px] text-slate-400">{item.unitName}</span>
+                    </span>
+                  </div>
+                  <div className="bg-slate-50/50 p-2 rounded-lg border border-slate-100 flex flex-col items-center justify-center">
+                    <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Stock Mín.</span>
+                    <span className="text-slate-700 font-semibold">
+                      {item.minStock.toFixed(2)} <span className="text-[10px] text-slate-400">{item.unitName}</span>
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between bg-sky-50/50 border border-sky-100/60 px-3 py-2.5 rounded-lg mt-1">
+                  <span className="text-xs font-bold text-sky-700 flex items-center gap-1">
+                    <ShoppingCart size={13} />
+                    A Comprar:
+                  </span>
+                  <span className="text-sm font-black text-sky-800 flex items-center gap-0.5">
+                    {item.toBuy.toFixed(2)}
+                    <span className="text-[10px] text-sky-700/80 font-bold">{item.unitName}</span>
+                  </span>
                 </div>
               </div>
             ))}
