@@ -350,6 +350,33 @@ function ComprasTab() {
   const [pendingItemsSummary, setPendingItemsSummary] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasCalculated, setHasCalculated] = useState(false);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+
+  useEffect(() => {
+    async function fetchPendingOrders() {
+      setLoadingOrders(true);
+      try {
+        const { data: orders, error } = await supabase
+          .from('orders')
+          .select('items')
+          .eq('status', 'pending');
+        if (error) throw error;
+        
+        const itemsSummary = {};
+        (orders || []).forEach(order => {
+          (order.items || []).forEach(item => {
+            itemsSummary[item.name] = (itemsSummary[item.name] || 0) + item.quantity;
+          });
+        });
+        setPendingItemsSummary(Object.entries(itemsSummary).map(([name, qty]) => ({ name, qty })));
+      } catch (err) {
+        console.error("Error loading pending orders:", err);
+      } finally {
+        setLoadingOrders(false);
+      }
+    }
+    fetchPendingOrders();
+  }, []);
 
   async function calculatePurchases() {
     setLoading(true);
@@ -379,14 +406,19 @@ function ComprasTab() {
       if (recIngErr) throw recIngErr;
 
       const neededQty = {};
+      const usageBreakdown = {};
 
-      const addRecipeNeeds = (recipeId, multiplier) => {
+      const addRecipeNeeds = (recipeId, multiplier, orderItemName) => {
         const ingredientsForRecipe = recipeIngs.filter(ri => ri.recipe_id === recipeId);
         ingredientsForRecipe.forEach(ri => {
           if (ri.ingredient_id) {
             neededQty[ri.ingredient_id] = (neededQty[ri.ingredient_id] || 0) + (ri.quantity * multiplier);
+            if (!usageBreakdown[ri.ingredient_id]) {
+              usageBreakdown[ri.ingredient_id] = {};
+            }
+            usageBreakdown[ri.ingredient_id][orderItemName] = (usageBreakdown[ri.ingredient_id][orderItemName] || 0) + (ri.quantity * multiplier);
           } else if (ri.child_recipe_id) {
-            addRecipeNeeds(ri.child_recipe_id, ri.quantity * multiplier);
+            addRecipeNeeds(ri.child_recipe_id, ri.quantity * multiplier, orderItemName);
           }
         });
       };
@@ -394,9 +426,13 @@ function ComprasTab() {
       (orders || []).forEach(order => {
         (order.items || []).forEach(item => {
           if (item.recipe_id) {
-            addRecipeNeeds(item.recipe_id, item.quantity);
+            addRecipeNeeds(item.recipe_id, item.quantity, item.name);
           } else if (item.ingredient_id) {
             neededQty[item.ingredient_id] = (neededQty[item.ingredient_id] || 0) + item.quantity;
+            if (!usageBreakdown[item.ingredient_id]) {
+              usageBreakdown[item.ingredient_id] = {};
+            }
+            usageBreakdown[item.ingredient_id][item.name] = (usageBreakdown[item.ingredient_id][item.name] || 0) + item.quantity;
           }
         });
       });
@@ -423,7 +459,8 @@ function ComprasTab() {
             toBuy: toBuy,
             needFromOrders,
             currentStock,
-            minStock
+            minStock,
+            breakdown: usageBreakdown[ing.id] || {}
           });
         }
       });
@@ -446,6 +483,38 @@ function ComprasTab() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* 1. Bloque Superior Nuevo: Pedidos Pendientes */}
+      <div className="bg-[#fdfbf7] border border-slate-200/85 rounded-xl p-5 shadow-sm">
+        <h3 className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <ListOrdered size={16} className="text-amber-700" />
+          Pedidos en Cola - Servicio Actual
+        </h3>
+        
+        {loadingOrders ? (
+          <div className="text-slate-400 text-sm italic flex items-center gap-2">
+            <Loader2 size={16} className="animate-spin text-amber-600" />
+            Cargando comandas pendientes...
+          </div>
+        ) : pendingItemsSummary.length === 0 ? (
+          <p className="text-slate-400 text-sm italic">No hay comandas pendientes de preparar en el TPV.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {pendingItemsSummary.map((item, idx) => (
+              <div 
+                key={idx} 
+                className="bg-white border border-amber-100/80 text-slate-700 text-sm px-4 py-2 rounded-full flex items-center gap-2 shadow-sm hover:border-amber-250 transition-colors"
+              >
+                <span className="font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full text-xs">
+                  {item.qty}x
+                </span>
+                <span className="font-semibold text-slate-800">{item.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 2. Caja del Motor Inteligente */}
       <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all duration-200">
         <div>
           <h2 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
@@ -468,34 +537,12 @@ function ComprasTab() {
         </button>
       </div>
 
-      {hasCalculated && (
-        <div className="bg-slate-50 border border-slate-100 rounded-xl p-6 transition-all duration-200">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <ListOrdered size={16} className="text-sky-500" />
-            Comandas Pendientes Detectadas
-          </h3>
-          
-          {pendingItemsSummary.length === 0 ? (
-            <p className="text-slate-400 text-sm italic">No hay comandas pendientes en el TPV en este momento.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {pendingItemsSummary.map((item, idx) => (
-                <div key={idx} className="bg-white border border-slate-100 text-slate-700 text-sm px-4 py-2 rounded-full flex items-center gap-2 shadow-sm hover:border-slate-200 transition-colors">
-                  <span className="font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full text-xs">{item.qty}x</span>
-                  <span className="font-medium text-slate-800">{item.name}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       {shoppingList.length === 0 && hasCalculated && (
         <div className="p-12 text-center bg-emerald-50/30 rounded-xl border border-dashed border-emerald-200 transition-all duration-200">
           <CheckCircle2 size={48} className="mx-auto text-emerald-500 mb-4 animate-bounce" style={{ animationDuration: '3s' }} />
           <h3 className="text-lg font-bold text-emerald-800 mb-2">¡Todo en Orden!</h3>
           <p className="text-emerald-600/80 text-sm max-w-md mx-auto">
-            El stock actual es suficiente para cubrir las comandas pendientes manteniendo el stock mínimo de seguridad.
+            El stock actual es suficiente para cubrir las comandas pendientes.
           </p>
         </div>
       )}
@@ -532,18 +579,18 @@ function ProviderPurchaseCard({ provider, items }) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm hover:border-slate-200/80 transition-all duration-200">
+    <div className="bg-[#fdfbf7] border border-slate-200/80 rounded-xl overflow-hidden shadow-sm hover:border-slate-350 transition-all duration-200">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-white hover:bg-slate-50/50 transition-colors px-6 py-4 flex items-center justify-between"
+        className="w-full bg-[#fcf9f2] hover:bg-[#f8f4e8] transition-colors px-6 py-4 flex items-center justify-between border-b border-slate-200/60"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-sky-500">
+          <div className="w-10 h-10 rounded-xl bg-amber-50/60 border border-amber-100 flex items-center justify-center text-amber-600">
             <ShoppingCart size={18} />
           </div>
           <div className="text-left">
             <h4 className="text-base font-extrabold text-slate-800">{provider}</h4>
-            <span className="text-xs text-slate-400 font-semibold">{items.length} {items.length === 1 ? 'insumo' : 'insumos'} a reponer</span>
+            <span className="text-xs text-amber-800/60 font-semibold">{items.length} {items.length === 1 ? 'insumo' : 'insumos'} a reponer</span>
           </div>
         </div>
         <div className="text-slate-400">
@@ -552,113 +599,106 @@ function ProviderPurchaseCard({ provider, items }) {
       </button>
 
       {isOpen && (
-        <div className="p-0 border-t border-slate-100">
+        <div className="p-0">
           {/* Desktop Table View */}
           <div className="hidden md:block">
-            <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50/60 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-              <div className="col-span-4">Insumo / Ingrediente</div>
-              <div className="col-span-3 text-center">Stock Actual / Mínimo</div>
-              <div className="col-span-2 text-center">Pedidos Pendientes</div>
-              <div className="col-span-3 text-right">Cantidad a Comprar</div>
+            {/* Cabecera */}
+            <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-[#fcf9f2]/70 text-[10px] font-bold text-amber-800/60 uppercase tracking-wider border-b border-slate-200/60">
+              <div className="col-span-4 pl-4">Insumo / Ingrediente</div>
+              <div className="col-span-2 text-center">Stock Actual</div>
+              <div className="col-span-6 text-right pr-4">Desglose de Recetas → Total a Comprar</div>
             </div>
 
-            <div className="divide-y divide-slate-100">
-              {items.map(item => (
-                <div 
-                  key={item.id} 
-                  className="grid grid-cols-12 gap-4 items-center px-6 py-3 hover:bg-slate-50/20 transition-colors duration-150"
-                >
-                  {/* Nombre del Insumo */}
-                  <div className="col-span-4 flex items-center gap-2 min-w-0">
-                    <div className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                    <span className="font-medium text-gray-800 text-sm truncate" title={item.name}>
-                      {item.name}
-                    </span>
-                  </div>
+            {/* Lomo de libreta y líneas rayadas */}
+            <div className="relative pl-6 ml-2 border-l-2 border-rose-355/60 py-1">
+              <div className="divide-y divide-slate-150">
+                {items.map(item => {
+                  const breakdownEntries = Object.entries(item.breakdown || {});
+                  const breakdownText = breakdownEntries
+                    .map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(1)}${item.unitName}`)
+                    .join(', ');
 
-                  {/* Métricas de Stock */}
-                  <div className="col-span-3 text-center">
-                    <div className="flex flex-col items-center justify-center text-xs text-gray-500">
-                      <span className="font-medium">
-                        Act: <strong className="text-gray-700 font-semibold">{item.currentStock.toFixed(2)}{item.unitName}</strong>
-                      </span>
-                      <span className="text-[10px] text-gray-405 mt-0.5">
-                        Mín: {item.minStock.toFixed(2)}{item.unitName}
-                      </span>
+                  return (
+                    <div 
+                      key={item.id} 
+                      className="grid grid-cols-12 gap-4 items-center px-4 py-3.5 hover:bg-amber-50/15 transition-colors duration-150"
+                    >
+                      {/* Nombre del Insumo */}
+                      <div className="col-span-4 flex items-center gap-2 min-w-0">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        <span className="font-bold text-slate-800 text-sm truncate" title={item.name}>
+                          {item.name}
+                        </span>
+                      </div>
+
+                      {/* Stock Actual */}
+                      <div className="col-span-2 text-center">
+                        <div className="text-xs text-slate-500">
+                          <strong className="text-slate-700 font-bold font-mono">{item.currentStock.toFixed(1)}</strong>
+                          <span className="text-[10px] text-slate-400 ml-0.5">{item.unitName}</span>
+                        </div>
+                      </div>
+
+                      {/* Desglose + Total */}
+                      <div className="col-span-6 flex items-center justify-end gap-3 min-w-0 pr-4">
+                        {breakdownEntries.length > 0 && (
+                          <span 
+                            className="text-xs text-slate-400 truncate max-w-sm lg:max-w-md font-medium" 
+                            title={breakdownText}
+                          >
+                            [{breakdownEntries.map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(0)}${item.unitName}`).join(', ')}]
+                          </span>
+                        )}
+                        
+                        <span className="text-slate-300 font-light select-none">→</span>
+
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100/50 text-amber-900 border border-amber-200/50 shadow-sm shrink-0">
+                          <span className="text-[9px] text-amber-755 uppercase font-extrabold tracking-wider">Total:</span>
+                          <span className="font-black font-mono text-sm">{item.toBuy.toFixed(1)}</span>
+                          <span className="text-[10px] text-amber-700 font-semibold">{item.unitName}</span>
+                        </span>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Pedidos Pendientes */}
-                  <div className="col-span-2 text-center">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-100">
-                      {item.needFromOrders.toFixed(2)}
-                      <span className="text-[10px] text-slate-400 ml-0.5 font-normal">{item.unitName}</span>
-                    </span>
-                  </div>
-
-                  {/* Cantidad a Comprar */}
-                  <div className="col-span-3 text-right">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-sky-50 text-sky-900 border border-sky-100/60 shadow-sm">
-                      <span className="text-[9px] text-sky-600/80 uppercase font-extrabold tracking-wider">A Comprar:</span>
-                      <span className="font-black text-sm">{item.toBuy.toFixed(2)}{item.unitName}</span>
-                    </span>
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
+              </div>
             </div>
           </div>
 
           {/* Mobile Card View */}
-          <div className="md:hidden flex flex-col p-4 bg-slate-50/30 gap-3">
-            {items.map(item => (
-              <div 
-                key={item.id} 
-                className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-3"
-              >
-                {/* Nombre del Insumo */}
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                  <span className="font-bold text-slate-800 text-sm truncate" title={item.name}>
-                    {item.name}
-                  </span>
-                </div>
-
-                {/* Grid con dos columnas */}
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  {/* Columna Izquierda: Métricas y Pendiente */}
-                  <div className="bg-slate-50/50 p-2.5 rounded-lg border border-slate-100 flex flex-col gap-1.5 justify-center">
-                    <div className="flex flex-col text-[11px] text-gray-500">
-                      <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">Métricas Stock</span>
-                      <span className="font-medium mt-0.5">
-                        Act: <strong className="text-gray-700 font-semibold">{item.currentStock.toFixed(2)}{item.unitName}</strong>
+          <div className="md:hidden flex flex-col p-4 bg-amber-50/5 gap-3 relative pl-6 ml-2 border-l-2 border-rose-350/60">
+            {items.map(item => {
+              const breakdownEntries = Object.entries(item.breakdown || {});
+              return (
+                <div 
+                  key={item.id} 
+                  className="bg-white border border-slate-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-slate-800 text-sm truncate" title={item.name}>
+                        {item.name}
                       </span>
-                      <span className="text-[10px] text-slate-400">
-                        Mín: {item.minStock.toFixed(2)}{item.unitName}
-                      </span>
+                      {breakdownEntries.length > 0 && (
+                        <span className="text-[10px] text-slate-400 font-normal leading-tight mt-0.5">
+                          {breakdownEntries.map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(0)}${item.unitName}`).join(', ')}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex flex-col border-t border-slate-100/80 pt-1.5 mt-0.5">
-                      <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">Pendiente</span>
-                      <span className="text-slate-700 font-semibold text-[11px]">
-                        {item.needFromOrders.toFixed(2)} <span className="text-[9px] text-slate-400 font-normal">{item.unitName}</span>
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Columna Derecha: Bloque Destacado de Compra */}
-                  <div className="bg-sky-50/50 border border-sky-100/60 p-2.5 rounded-lg flex flex-col justify-between items-center text-center">
-                    <span className="text-[9px] text-sky-700 uppercase font-black tracking-wider">A Comprar</span>
-                    <div className="flex flex-col items-center justify-center my-auto">
-                      <span className="text-lg font-black text-sky-900 leading-none">
-                        {item.toBuy.toFixed(2)}
-                      </span>
-                      <span className="text-[10px] text-sky-700 font-bold mt-1">
-                        {item.unitName}
+                    <div className="flex flex-col items-end shrink-0 gap-1.5">
+                      <div className="text-[11px] text-slate-500">
+                        <span className="font-medium">Stock:</span> <strong className="text-slate-700 font-bold font-mono">{item.currentStock.toFixed(1)}{item.unitName}</strong>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100/50 text-amber-900 border border-amber-250/50 shadow-sm">
+                        <span className="font-black font-mono">{item.toBuy.toFixed(1)}</span>
+                        <span className="text-[10px] text-amber-700 font-semibold">{item.unitName}</span>
                       </span>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
