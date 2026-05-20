@@ -16,7 +16,7 @@ export default function Operations() {
   const [activeTab, setActiveTab] = useState('stock');
 
   return (
-    <div className="page-container fade-in">
+    <div className="page-container fade-in md:!max-w-none md:px-8">
       <div className="page-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
           <h1 className="page-title">Gestión de Operaciones</h1>
@@ -579,7 +579,7 @@ function ProviderPurchaseCard({ provider, items }) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="bg-[#fdfbf7] border border-slate-200/80 rounded-xl overflow-hidden shadow-sm hover:border-slate-350 transition-all duration-200">
+    <div className="bg-[#fdfbf7] border border-slate-200/80 rounded-xl overflow-hidden shadow-sm hover:border-slate-350 transition-all duration-200 w-full">
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="w-full bg-[#fcf9f2] hover:bg-[#f8f4e8] transition-colors px-6 py-4 flex items-center justify-between border-b border-slate-200/60"
@@ -602,16 +602,17 @@ function ProviderPurchaseCard({ provider, items }) {
         <div className="p-0">
           {/* Desktop Table View */}
           <div className="hidden md:block">
-            {/* Cabecera */}
+            {/* Cabecera Única */}
             <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-[#fcf9f2]/70 text-[10px] font-bold text-amber-800/60 uppercase tracking-wider border-b border-slate-200/60">
-              <div className="col-span-4 pl-4">Insumo / Ingrediente</div>
+              <div className="col-span-3 pl-4">Ingrediente</div>
+              <div className="col-span-5">Desglose Recetas</div>
               <div className="col-span-2 text-center">Stock Actual</div>
-              <div className="col-span-6 text-right pr-4">Desglose de Recetas → Total a Comprar</div>
+              <div className="col-span-2 text-right pr-4">Total a Comprar</div>
             </div>
 
             {/* Lomo de libreta y líneas rayadas */}
-            <div className="relative pl-6 ml-2 border-l-2 border-rose-355/60 py-1">
-              <div className="divide-y divide-slate-150">
+            <div className="relative pl-6 ml-2 border-l-2 border-rose-300/60 py-1">
+              <div>
                 {items.map(item => {
                   const breakdownEntries = Object.entries(item.breakdown || {});
                   const breakdownText = breakdownEntries
@@ -621,41 +622,42 @@ function ProviderPurchaseCard({ provider, items }) {
                   return (
                     <div 
                       key={item.id} 
-                      className="grid grid-cols-12 gap-4 items-center px-4 py-3.5 hover:bg-amber-50/15 transition-colors duration-150"
+                      className="grid grid-cols-12 gap-4 items-center px-4 py-3.5 hover:bg-amber-50/15 transition-colors duration-150 border-b border-gray-100 last:border-0"
                     >
-                      {/* Nombre del Insumo */}
-                      <div className="col-span-4 flex items-center gap-2 min-w-0">
-                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                      {/* Column 1: Ingrediente */}
+                      <div className="col-span-3 flex items-center gap-2 min-w-0">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                         <span className="font-bold text-slate-800 text-sm truncate" title={item.name}>
                           {item.name}
                         </span>
                       </div>
 
-                      {/* Stock Actual */}
+                      {/* Column 2: Desglose Recetas */}
+                      <div className="col-span-5 min-w-0">
+                        {breakdownEntries.length > 0 ? (
+                          <span 
+                            className="text-xs text-slate-500 font-medium truncate block" 
+                            title={breakdownText}
+                          >
+                            {breakdownEntries.map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(0)}${item.unitName}`).join(', ')}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-350 italic block">-</span>
+                        )}
+                      </div>
+
+                      {/* Column 3: Stock Actual */}
                       <div className="col-span-2 text-center">
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-slate-600">
                           <strong className="text-slate-700 font-bold font-mono">{item.currentStock.toFixed(1)}</strong>
                           <span className="text-[10px] text-slate-400 ml-0.5">{item.unitName}</span>
                         </div>
                       </div>
 
-                      {/* Desglose + Total */}
-                      <div className="col-span-6 flex items-center justify-end gap-3 min-w-0 pr-4">
-                        {breakdownEntries.length > 0 && (
-                          <span 
-                            className="text-xs text-slate-400 truncate max-w-sm lg:max-w-md font-medium" 
-                            title={breakdownText}
-                          >
-                            [{breakdownEntries.map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(0)}${item.unitName}`).join(', ')}]
-                          </span>
-                        )}
-                        
-                        <span className="text-slate-300 font-light select-none">→</span>
-
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100/50 text-amber-900 border border-amber-200/50 shadow-sm shrink-0">
-                          <span className="text-[9px] text-amber-755 uppercase font-extrabold tracking-wider">Total:</span>
-                          <span className="font-black font-mono text-sm">{item.toBuy.toFixed(1)}</span>
-                          <span className="text-[10px] text-amber-700 font-semibold">{item.unitName}</span>
+                      {/* Column 4: Total a Comprar */}
+                      <div className="col-span-2 text-right pr-4">
+                        <span className="text-amber-900 font-extrabold font-mono text-sm bg-amber-100/40 px-2.5 py-1 rounded">
+                          {item.toBuy.toFixed(1)} <span className="text-[10px] text-amber-700 font-semibold">{item.unitName}</span>
                         </span>
                       </div>
                     </div>
@@ -666,7 +668,7 @@ function ProviderPurchaseCard({ provider, items }) {
           </div>
 
           {/* Mobile Card View */}
-          <div className="md:hidden flex flex-col p-4 bg-amber-50/5 gap-3 relative pl-6 ml-2 border-l-2 border-rose-350/60">
+          <div className="md:hidden flex flex-col p-4 bg-amber-50/5 gap-3 relative pl-6 ml-2 border-l-2 border-rose-300/60">
             {items.map(item => {
               const breakdownEntries = Object.entries(item.breakdown || {});
               return (
