@@ -587,16 +587,12 @@ function ProviderPurchaseCard({ provider, items }) {
         className="w-full bg-[#fcf9f2] hover:bg-[#f8f4e8] transition-colors px-6 py-4 flex items-center justify-between border-b border-slate-200/60"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-50/60 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-amber-50/60 border border-amber-100 flex items-center justify-center text-amber-600">
             <ShoppingCart size={18} />
           </div>
-          <div className="text-left flex flex-col md:flex-row md:items-center gap-2">
-            <span className="inline-flex items-center px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wider uppercase bg-slate-900 text-slate-100 shadow-sm border border-slate-800">
-              PROVEEDOR: {provider}
-            </span>
-            <span className="text-xs text-amber-800/60 font-semibold md:pl-1">
-              {items.length} {items.length === 1 ? 'insumo' : 'insumos'} a reponer
-            </span>
+          <div className="text-left">
+            <h4 className="text-base font-extrabold text-slate-800">{provider}</h4>
+            <span className="text-xs text-amber-800/60 font-semibold">{items.length} {items.length === 1 ? 'insumo' : 'insumos'} a reponer</span>
           </div>
         </div>
         <div className="text-slate-400">
@@ -606,9 +602,9 @@ function ProviderPurchaseCard({ provider, items }) {
 
       {isOpen && (
         <div className="p-0">
-          {/* ── Tabla Semántica Ancho Completo ── */}
-          <div className="overflow-x-auto" style={{ borderLeft: '3px solid rgba(251,113,133,0.4)', marginLeft: '8px' }}>
-            <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          {/* ── Desktop: Tabla Semántica Ancho Completo ── */}
+          <div className="hidden md:block" style={{ borderLeft: '3px solid rgba(251,113,133,0.4)', marginLeft: '8px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
               <colgroup>
                 <col style={{ width: '28%' }} />
                 <col style={{ width: '40%' }} />
@@ -650,6 +646,9 @@ function ProviderPurchaseCard({ provider, items }) {
               <tbody>
                 {items.map((item, idx) => {
                   const breakdownEntries = Object.entries(item.breakdown || {});
+                  const breakdownText = breakdownEntries
+                    .map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(1)}${item.unitName}`)
+                    .join(', ');
                   const isLast = idx === items.length - 1;
 
                   return (
@@ -678,7 +677,7 @@ function ProviderPurchaseCard({ provider, items }) {
                         {breakdownEntries.length > 0 ? (
                           <span
                             style={{ fontSize: '11px', color: '#64748b', fontWeight: 500, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                            title={breakdownEntries.map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(0)}${item.unitName}`).join(' · ')}
+                            title={breakdownText}
                           >
                             {breakdownEntries.map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(0)}${item.unitName}`).join(' · ')}
                           </span>
@@ -710,6 +709,42 @@ function ProviderPurchaseCard({ provider, items }) {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden flex flex-col p-4 bg-amber-50/5 gap-3 relative pl-6 ml-2 border-l-2 border-rose-300/60">
+            {items.map(item => {
+              const breakdownEntries = Object.entries(item.breakdown || {});
+              return (
+                <div 
+                  key={item.id} 
+                  className="bg-white border border-slate-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-slate-800 text-sm truncate" title={item.name}>
+                        {item.name}
+                      </span>
+                      {breakdownEntries.length > 0 && (
+                        <span className="text-[10px] text-slate-400 font-normal leading-tight mt-0.5">
+                          {breakdownEntries.map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(0)}${item.unitName}`).join(', ')}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col items-end shrink-0 gap-1.5">
+                      <div className="text-[11px] text-slate-500">
+                        <span className="font-medium">Stock:</span> <strong className="text-slate-700 font-bold font-mono">{item.currentStock.toFixed(1)}{item.unitName}</strong>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100/50 text-amber-900 border border-amber-250/50 shadow-sm">
+                        <span className="font-black font-mono">{item.toBuy.toFixed(1)}</span>
+                        <span className="text-[10px] text-amber-700 font-semibold">{item.unitName}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
