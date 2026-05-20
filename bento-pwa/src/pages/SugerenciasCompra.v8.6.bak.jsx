@@ -602,113 +602,71 @@ function ProviderPurchaseCard({ provider, items }) {
 
       {isOpen && (
         <div className="p-0">
-          {/* ── Desktop: Tabla Semántica Ancho Completo ── */}
-          <div className="hidden md:block" style={{ borderLeft: '3px solid rgba(251,113,133,0.4)', marginLeft: '8px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-              <colgroup>
-                <col style={{ width: '28%' }} />
-                <col style={{ width: '40%' }} />
-                <col style={{ width: '16%' }} />
-                <col style={{ width: '16%' }} />
-              </colgroup>
-              <thead>
-                <tr style={{ background: 'rgba(252,249,242,0.7)', borderBottom: '1px solid rgba(226,232,240,0.6)' }}>
-                  <th style={{
-                    padding: '10px 16px 10px 24px',
-                    fontSize: '10px', fontWeight: 700,
-                    color: 'rgba(120,84,40,0.6)',
-                    textTransform: 'uppercase', letterSpacing: '0.08em',
-                    textAlign: 'left'
-                  }}>Ingrediente</th>
-                  <th style={{
-                    padding: '10px 16px',
-                    fontSize: '10px', fontWeight: 700,
-                    color: 'rgba(120,84,40,0.6)',
-                    textTransform: 'uppercase', letterSpacing: '0.08em',
-                    textAlign: 'left'
-                  }}>Desglose Recetas</th>
-                  <th style={{
-                    padding: '10px 16px',
-                    fontSize: '10px', fontWeight: 700,
-                    color: 'rgba(120,84,40,0.6)',
-                    textTransform: 'uppercase', letterSpacing: '0.08em',
-                    textAlign: 'center'
-                  }}>Stock Actual</th>
-                  <th style={{
-                    padding: '10px 24px 10px 16px',
-                    fontSize: '10px', fontWeight: 700,
-                    color: 'rgba(120,84,40,0.6)',
-                    textTransform: 'uppercase', letterSpacing: '0.08em',
-                    textAlign: 'right'
-                  }}>Total a Comprar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, idx) => {
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            {/* Cabecera Única */}
+            <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-[#fcf9f2]/70 text-[10px] font-bold text-amber-800/60 uppercase tracking-wider border-b border-slate-200/60">
+              <div className="col-span-3 pl-4">Ingrediente</div>
+              <div className="col-span-5">Desglose Recetas</div>
+              <div className="col-span-2 text-center">Stock Actual</div>
+              <div className="col-span-2 text-right pr-4">Total a Comprar</div>
+            </div>
+
+            {/* Lomo de libreta y líneas rayadas */}
+            <div className="relative pl-6 ml-2 border-l-2 border-rose-300/60 py-1">
+              <div>
+                {items.map(item => {
                   const breakdownEntries = Object.entries(item.breakdown || {});
                   const breakdownText = breakdownEntries
                     .map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(1)}${item.unitName}`)
                     .join(', ');
-                  const isLast = idx === items.length - 1;
 
                   return (
-                    <tr
-                      key={item.id}
-                      style={{
-                        borderBottom: isLast ? 'none' : '1px solid #f3f4f6',
-                        transition: 'background 0.15s',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(254,243,199,0.12)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    <div 
+                      key={item.id} 
+                      className="grid grid-cols-12 gap-4 items-center px-4 py-3.5 hover:bg-amber-50/15 transition-colors duration-150 border-b border-gray-100 last:border-0"
                     >
-                      <td style={{ padding: '12px 16px 12px 24px', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#fbbf24', flexShrink: 0 }} />
-                          <span
-                            style={{ fontWeight: 700, color: '#1e293b', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                            title={item.name}
-                          >
-                            {item.name}
-                          </span>
-                        </div>
-                      </td>
+                      {/* Column 1: Ingrediente */}
+                      <div className="col-span-3 flex items-center gap-2 min-w-0">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                        <span className="font-bold text-slate-800 text-sm truncate" title={item.name}>
+                          {item.name}
+                        </span>
+                      </div>
 
-                      <td style={{ padding: '12px 16px', verticalAlign: 'middle', minWidth: 0 }}>
+                      {/* Column 2: Desglose Recetas */}
+                      <div className="col-span-5 min-w-0">
                         {breakdownEntries.length > 0 ? (
-                          <span
-                            style={{ fontSize: '11px', color: '#64748b', fontWeight: 500, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          <span 
+                            className="text-xs text-slate-500 font-medium truncate block" 
                             title={breakdownText}
                           >
-                            {breakdownEntries.map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(0)}${item.unitName}`).join(' · ')}
+                            {breakdownEntries.map(([recipeName, qty]) => `${recipeName}: ${qty.toFixed(0)}${item.unitName}`).join(', ')}
                           </span>
                         ) : (
-                          <span style={{ fontSize: '11px', color: '#cbd5e1', fontStyle: 'italic' }}>—</span>
+                          <span className="text-xs text-slate-350 italic block">-</span>
                         )}
-                      </td>
+                      </div>
 
-                      <td style={{ padding: '12px 16px', verticalAlign: 'middle', textAlign: 'center' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#374151', fontFamily: 'ui-monospace, monospace' }}>
-                          {item.currentStock.toFixed(1)}
-                        </span>
-                        <span style={{ fontSize: '10px', color: '#94a3b8', marginLeft: '2px' }}>{item.unitName}</span>
-                      </td>
+                      {/* Column 3: Stock Actual */}
+                      <div className="col-span-2 text-center">
+                        <div className="text-xs text-slate-600">
+                          <strong className="text-slate-700 font-bold font-mono">{item.currentStock.toFixed(1)}</strong>
+                          <span className="text-[10px] text-slate-400 ml-0.5">{item.unitName}</span>
+                        </div>
+                      </div>
 
-                      <td style={{ padding: '12px 24px 12px 16px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'baseline', gap: '3px',
-                          background: 'rgba(254,243,199,0.6)', border: '1px solid rgba(253,230,138,0.5)',
-                          padding: '4px 10px', borderRadius: '6px',
-                          fontWeight: 900, fontFamily: 'ui-monospace, monospace', fontSize: '13px', color: '#78350f'
-                        }}>
-                          {item.toBuy.toFixed(1)}
-                          <span style={{ fontSize: '10px', fontWeight: 600, color: '#92400e' }}>{item.unitName}</span>
+                      {/* Column 4: Total a Comprar */}
+                      <div className="col-span-2 text-right pr-4">
+                        <span className="text-amber-900 font-extrabold font-mono text-sm bg-amber-100/40 px-2.5 py-1 rounded">
+                          {item.toBuy.toFixed(1)} <span className="text-[10px] text-amber-700 font-semibold">{item.unitName}</span>
                         </span>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+            </div>
           </div>
 
           {/* Mobile Card View */}
