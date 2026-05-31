@@ -205,27 +205,18 @@ export function Preparations() {
                 
                 return (
                   <div className="elaboracion-card-right-container">
-                    {/* Compact sliding Costo/PVP container */}
-                    <div 
-                      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none items-center rounded-lg bg-slate-50 border border-slate-100 w-28 shrink-0 relative"
-                      style={{ 
-                        msOverflowStyle: 'none', 
-                        scrollbarWidth: 'none',
-                        height: '34px',
-                        boxSizing: 'border-box'
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {/* Cost slide */}
-                      <div className="min-w-full snap-center flex flex-col justify-center items-center py-0.5 text-[11px] text-slate-500 font-bold shrink-0">
-                        <span>Costo: {cost > 0 ? `${cost.toFixed(2)}€` : '0.00€'}</span>
-                        <span className="text-[7px] text-sky-500 font-extrabold uppercase tracking-wide leading-none mt-0.5">PVP ➔</span>
+                    {/* Compact Financial Pills */}
+                    <div className="financial-pills-row">
+                      {/* Cost Pill */}
+                      <div className="financial-pill">
+                        <span className="pill-label">C:</span>
+                        <span>{cost > 0 ? `${cost.toFixed(2)}€` : '0.00€'}</span>
                       </div>
 
-                      {/* PVP slide */}
-                      <div className="min-w-full snap-center flex flex-col justify-center items-center py-0.5 text-[11px] text-emerald-600 font-extrabold shrink-0">
-                        <span>PVP: {isPublished && pvp > 0 ? `${pvp.toFixed(2)}€` : '—'}</span>
-                        <span className="text-[7px] text-slate-400 font-bold uppercase tracking-wide leading-none mt-0.5">➔ Costo</span>
+                      {/* PVP Pill */}
+                      <div className={`financial-pill ${isPublished ? 'published-pvp' : 'unpublished'}`}>
+                        <span className="pill-label">P:</span>
+                        <span>{isPublished && pvp > 0 ? `${pvp.toFixed(2)}€` : '—'}</span>
                       </div>
                     </div>
 
