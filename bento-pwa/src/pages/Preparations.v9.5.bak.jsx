@@ -206,14 +206,16 @@ export function Preparations() {
                 return (
                   <div className="elaboracion-card-right-container">
                     <div 
-                      className="w-[100px] h-7 overflow-x-auto snap-x snap-mandatory scrollbar-none flex flex-shrink-0 items-center"
+                      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none flex-shrink-0 w-[95px]"
                       style={{ 
                         msOverflowStyle: 'none', 
-                        scrollbarWidth: 'none'
+                        scrollbarWidth: 'none',
+                        height: '40px',
+                        boxSizing: 'border-box'
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* WRAPPER 1: COSTO (Ocupa el 100% de la ventana) */}
+                      {/* Cost slide — premium pill */}
                       <div className="min-w-full flex-shrink-0 snap-center flex justify-center items-center">
                         <div style={{
                           display: 'flex',
@@ -234,7 +236,7 @@ export function Preparations() {
                         </div>
                       </div>
 
-                      {/* WRAPPER 2: PRECIO (Oculto a la derecha hasta que se arrastra) */}
+                      {/* PVP slide — premium pill */}
                       <div className="min-w-full flex-shrink-0 snap-center flex justify-center items-center">
                         <div style={{
                           display: 'flex',
@@ -257,7 +259,7 @@ export function Preparations() {
                     </div>
 
                     {/* Actions container */}
-                    <div className="flex-shrink-0 flex items-center gap-2 ml-auto" onClick={(e) => e.stopPropagation()}>
+                    <div className="card-actions-subtle" onClick={(e) => e.stopPropagation()}>
                       {/* TPV Store Toggle — central control */}
                       <button 
                         className={`tpv-store-btn ${isPublished ? 'active' : ''}`}
