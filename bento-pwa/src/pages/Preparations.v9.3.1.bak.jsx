@@ -205,56 +205,27 @@ export function Preparations() {
                 
                 return (
                   <div className="elaboracion-card-right-container">
+                    {/* Compact sliding Costo/PVP container */}
                     <div 
-                      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none items-center w-28 shrink-0"
+                      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none items-center rounded-lg bg-slate-50 border border-slate-100 w-28 shrink-0 relative"
                       style={{ 
                         msOverflowStyle: 'none', 
                         scrollbarWidth: 'none',
-                        height: '40px',
+                        height: '34px',
                         boxSizing: 'border-box'
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* Cost slide — premium pill */}
-                      <div className="min-w-full snap-center flex justify-center items-center px-1 shrink-0">
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          background: '#f1f5f9',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '8px',
-                          padding: '4px 8px',
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          color: '#334155',
-                          whiteSpace: 'nowrap',
-                          lineHeight: 1.2
-                        }}>
-                          <span style={{ fontWeight: 800, color: '#64748b', fontSize: '9px' }}>C:</span>
-                          <span>{cost > 0 ? `${cost.toFixed(2)}€` : '0.00€'}</span>
-                        </div>
+                      {/* Cost slide */}
+                      <div className="min-w-full snap-center flex flex-col justify-center items-center py-0.5 text-[11px] text-slate-500 font-bold shrink-0">
+                        <span>Costo: {cost > 0 ? `${cost.toFixed(2)}€` : '0.00€'}</span>
+                        <span className="text-[7px] text-sky-500 font-extrabold uppercase tracking-wide leading-none mt-0.5">PVP ➔</span>
                       </div>
 
-                      {/* PVP slide — premium pill */}
-                      <div className="min-w-full snap-center flex justify-center items-center px-1 shrink-0">
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          background: isPublished && pvp > 0 ? '#ecfdf5' : '#f8fafc',
-                          border: `1px solid ${isPublished && pvp > 0 ? '#6ee7b7' : '#e2e8f0'}`,
-                          borderRadius: '8px',
-                          padding: '4px 8px',
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          color: isPublished && pvp > 0 ? '#065f46' : '#94a3b8',
-                          whiteSpace: 'nowrap',
-                          lineHeight: 1.2
-                        }}>
-                          <span style={{ fontWeight: 800, fontSize: '9px', color: isPublished && pvp > 0 ? '#059669' : '#94a3b8' }}>P:</span>
-                          <span>{isPublished && pvp > 0 ? `${pvp.toFixed(2)}€` : '—'}</span>
-                        </div>
+                      {/* PVP slide */}
+                      <div className="min-w-full snap-center flex flex-col justify-center items-center py-0.5 text-[11px] text-emerald-600 font-extrabold shrink-0">
+                        <span>PVP: {isPublished && pvp > 0 ? `${pvp.toFixed(2)}€` : '—'}</span>
+                        <span className="text-[7px] text-slate-400 font-bold uppercase tracking-wide leading-none mt-0.5">➔ Costo</span>
                       </div>
                     </div>
 
