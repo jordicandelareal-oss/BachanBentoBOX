@@ -153,11 +153,11 @@
 }
 
 /* ─── Ingredient Row (Mobile-First Compact) ──────────────────────
-   Grid: [Photo 36px] [Info flexible] [Price 72px] [Actions 68px]
+   Grid: [Photo 36px] [Info flexible] [Price 60px] [Actions 36px]
    ─────────────────────────────────────────────────────────────── */
 .insumos-container .insumo-card {
   display: grid;
-  grid-template-columns: 36px 1fr 72px 68px;
+  grid-template-columns: 36px 1fr 60px 36px;
   align-items: center;
   gap: 8px;
   padding: 8px 6px;
@@ -166,6 +166,7 @@
   border: 1px solid #f1f5f9;
   box-sizing: border-box;
   width: 100%;
+  cursor: pointer;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -268,8 +269,6 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  white-space: nowrap;
-  min-width: 72px;
 }
 
 .insumos-container .price-main {
@@ -277,7 +276,6 @@
   font-weight: 900;
   color: #0f172a;
   line-height: 1.2;
-  white-space: nowrap;
 }
 
 .insumos-container .price-unit-label {
@@ -285,7 +283,6 @@
   font-weight: 700;
   color: #94a3b8;
   text-transform: uppercase;
-  white-space: nowrap;
 }
 
 /* ─── Actions (Store + Trash) ────────────────────────────────── */
@@ -293,8 +290,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
-  min-width: 68px;
+  gap: 2px;
 }
 
 /* ─── Modal ──────────────────────────────────────────────────── */
