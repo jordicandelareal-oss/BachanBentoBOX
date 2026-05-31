@@ -206,30 +206,51 @@ export function Preparations() {
                 return (
                   <div className="elaboracion-card-right-container">
                     <div 
-                      className="overflow-x-auto snap-x snap-mandatory flex items-center"
+                      className="w-[100px] h-7 overflow-x-auto snap-x snap-mandatory scrollbar-none flex flex-shrink-0 items-center"
                       style={{ 
-                        width: '100px', 
-                        minWidth: '100px', 
-                        maxWidth: '100px',
-                        height: '28px',
-                        flexShrink: 0,
                         msOverflowStyle: 'none', 
                         scrollbarWidth: 'none'
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {/* WRAPPER 1: COSTO (Ocupa el 100% de la ventana) */}
-                      <div className="snap-center flex justify-center items-center" style={{ minWidth: '100%', flexShrink: 0 }}>
-                        <div className="bg-slate-100 text-slate-700 text-[10px] font-bold py-1 px-2.5 rounded-md border border-slate-200 flex items-center gap-1 whitespace-nowrap">
-                          <span className="text-[9px] font-extrabold text-slate-500">C:</span>
+                      <div className="min-w-full flex-shrink-0 snap-center flex justify-center items-center">
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          background: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '8px',
+                          padding: '4px 8px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          color: '#334155',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.2
+                        }}>
+                          <span style={{ fontWeight: 800, color: '#64748b', fontSize: '9px' }}>C:</span>
                           <span>{cost > 0 ? `${cost.toFixed(2)}€` : '0.00€'}</span>
                         </div>
                       </div>
 
                       {/* WRAPPER 2: PRECIO (Oculto a la derecha hasta que se arrastra) */}
-                      <div className="snap-center flex justify-center items-center" style={{ minWidth: '100%', flexShrink: 0 }}>
-                        <div className={`text-[10px] font-bold py-1 px-2.5 rounded-md border flex items-center gap-1 whitespace-nowrap ${isPublished && pvp > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
-                          <span className={`text-[9px] font-extrabold ${isPublished && pvp > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>P:</span>
+                      <div className="min-w-full flex-shrink-0 snap-center flex justify-center items-center">
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          background: isPublished && pvp > 0 ? '#ecfdf5' : '#f8fafc',
+                          border: `1px solid ${isPublished && pvp > 0 ? '#6ee7b7' : '#e2e8f0'}`,
+                          borderRadius: '8px',
+                          padding: '4px 8px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          color: isPublished && pvp > 0 ? '#065f46' : '#94a3b8',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.2
+                        }}>
+                          <span style={{ fontWeight: 800, fontSize: '9px', color: isPublished && pvp > 0 ? '#059669' : '#94a3b8' }}>P:</span>
                           <span>{isPublished && pvp > 0 ? `${pvp.toFixed(2)}€` : '—'}</span>
                         </div>
                       </div>
