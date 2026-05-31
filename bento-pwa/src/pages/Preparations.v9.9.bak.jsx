@@ -205,8 +205,8 @@ export function Preparations() {
                 
                 return (
                   <div className="elaboracion-card-right-container">
-                    <div className="financial-pill" onClick={(e) => e.stopPropagation()}>
-                      <span className="pill-label">C:</span>
+                    <div className="bg-slate-100 text-slate-700 text-xs font-semibold py-1 px-2.5 rounded-md border border-slate-200 flex-shrink-0 flex items-center gap-1">
+                      <span className="text-[10px] font-extrabold text-slate-500">C:</span>
                       <span>{cost > 0 ? `${cost.toFixed(2)}€` : '0.00€'}</span>
                     </div>
 
