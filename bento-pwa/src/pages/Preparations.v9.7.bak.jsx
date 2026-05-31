@@ -205,12 +205,38 @@ export function Preparations() {
                 
                 return (
                   <div className="elaboracion-card-right-container">
-                    <div className="bg-slate-100 text-slate-700 text-xs font-semibold py-1 px-2.5 rounded-md border border-slate-200 flex-shrink-0">
-                      C: {cost > 0 ? `${cost.toFixed(2)}` : '0.00'}€
+                    <div 
+                      className="overflow-x-auto snap-x snap-mandatory flex items-center"
+                      style={{ 
+                        width: '100px', 
+                        minWidth: '100px', 
+                        maxWidth: '100px',
+                        height: '28px',
+                        flexShrink: 0,
+                        msOverflowStyle: 'none', 
+                        scrollbarWidth: 'none'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* WRAPPER 1: COSTO (Ocupa el 100% de la ventana) */}
+                      <div className="snap-center flex justify-center items-center" style={{ minWidth: '100%', flexShrink: 0 }}>
+                        <div className="bg-slate-100 text-slate-700 text-[10px] font-bold py-1 px-2.5 rounded-md border border-slate-200 flex items-center gap-1 whitespace-nowrap">
+                          <span className="text-[9px] font-extrabold text-slate-500">C:</span>
+                          <span>{cost > 0 ? `${cost.toFixed(2)}€` : '0.00€'}</span>
+                        </div>
+                      </div>
+
+                      {/* WRAPPER 2: PRECIO (Oculto a la derecha hasta que se arrastra) */}
+                      <div className="snap-center flex justify-center items-center" style={{ minWidth: '100%', flexShrink: 0 }}>
+                        <div className={`text-[10px] font-bold py-1 px-2.5 rounded-md border flex items-center gap-1 whitespace-nowrap ${isPublished && pvp > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+                          <span className={`text-[9px] font-extrabold ${isPublished && pvp > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>P:</span>
+                          <span>{isPublished && pvp > 0 ? `${pvp.toFixed(2)}€` : '—'}</span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Actions container */}
-                    <div className="ml-auto flex items-center gap-2 flex-shrink-0 pr-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex-shrink-0 flex items-center gap-2 ml-auto" onClick={(e) => e.stopPropagation()}>
                       {/* TPV Store Toggle — central control */}
                       <button 
                         className={`tpv-store-btn ${isPublished ? 'active' : ''}`}
