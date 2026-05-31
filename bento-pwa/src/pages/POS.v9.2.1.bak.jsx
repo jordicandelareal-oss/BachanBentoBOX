@@ -35,7 +35,7 @@ class SmartTouchSensor extends TouchSensor {
       eventName: 'onTouchStart',
       handler: ({ nativeEvent: event }) => {
         // Solo activar arrastre si el touch viene del icono de drag-handle
-        if (event.touches && event.touches.length > 1) return false;
+        if (!event.isPrimary) return false;
         const target = event.target;
         if (!target.closest('[data-drag-handle]')) return false;
         return true;
@@ -94,7 +94,6 @@ function SortableProduct({ id, isEmpty, children, onCardClick }) {
         ref={setActivatorNodeRef}
         {...listeners}
         data-drag-handle
-        className="touch-none"
         style={{
           position: 'absolute',
           top: 6,
