@@ -34,10 +34,9 @@ class SmartTouchSensor extends TouchSensor {
     {
       eventName: 'onTouchStart',
       handler: ({ nativeEvent: event }) => {
-        // Solo activar arrastre si el touch viene del icono de drag-handle
-        if (!event.isPrimary) return false;
-        const target = event.target;
-        if (!target.closest('[data-drag-handle]')) return false;
+        if (!event.isPrimary || event.target.closest('button')) {
+          return false;
+        }
         return true;
       },
     },
@@ -49,10 +48,9 @@ class SmartMouseSensor extends MouseSensor {
     {
       eventName: 'onMouseDown',
       handler: ({ nativeEvent: event }) => {
-        if (event.button !== 0) return false;
-        // Solo activar arrastre desde el drag-handle
-        const target = event.target;
-        if (!target.closest('[data-drag-handle]')) return false;
+        if (event.button !== 0 || event.target.closest('button')) {
+          return false;
+        }
         return true;
       },
     },
@@ -62,68 +60,21 @@ class SmartMouseSensor extends MouseSensor {
 import '../styles/Common.css';
 import './POS.css';
 
-function SortableProduct({ id, isEmpty, children, onCardClick }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id });
-
-  const wrapperStyle = {
+function SortableProduct({ id, isEmpty, children, onClick }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({id});
+  const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 10 : 1,
     opacity: isDragging ? 0.8 : 1,
-    // touchAction libre para que el navegador pueda hacer scroll nativo
-    touchAction: 'auto',
+    touchAction: 'none',
     aspectRatio: '1 / 1',
     width: '100%',
-    height: '100%',
-    position: 'relative',
+    height: '100%'
   };
-
-  // Clonar children pasando el ref del activador para el handle
   return (
-    <div ref={setNodeRef} style={wrapperStyle} {...attributes}>
-      {/* Handle de arrastre: icono de puntos, solo él activa el DnD */}
-      <div
-        ref={setActivatorNodeRef}
-        {...listeners}
-        data-drag-handle
-        style={{
-          position: 'absolute',
-          top: 6,
-          left: 6,
-          zIndex: 20,
-          width: 28,
-          height: 28,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(0,0,0,0.35)',
-          borderRadius: 8,
-          cursor: isDragging ? 'grabbing' : 'grab',
-          touchAction: 'none',  // Solo aquí bloqueamos el scroll nativo
-          color: 'rgba(255,255,255,0.85)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
-          flexShrink: 0,
-        }}
-        title="Arrastra para reordenar"
-      >
-        <GripVertical size={14} strokeWidth={2.5} />
-      </div>
-      {/* Área de contenido: libre para scroll y click */}
-      <div
-        style={{ width: '100%', height: '100%' }}
-        onClick={!isDragging ? onCardClick : undefined}
-      >
-        {children}
-      </div>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={onClick}>
+      {children}
     </div>
   );
 }
@@ -722,12 +673,7 @@ export default function POS() {
                 <SortableContext items={finalGrid.map(p => p.id)} strategy={rectSortingStrategy}>
                    <div className="pos-grid">
                       {finalGrid.map(p => (
-                        <SortableProduct
-                          key={p.id}
-                          id={p.id}
-                          isEmpty={p.isEmpty}
-                          onCardClick={!p.isEmpty ? () => addToCart(p) : undefined}
-                        >
+                        <SortableProduct key={p.id} id={p.id}>
                           {p.isEmpty ? (
                             <div className="pos-card-empty" />
                           ) : (
