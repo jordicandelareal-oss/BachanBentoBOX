@@ -9,6 +9,7 @@ ALTER TABLE preparation_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE menu_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pos_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE price_history ENABLE ROW LEVEL SECURITY;
 
 -- Limpiar políticas anteriores (opcional)
 -- DROP POLICY IF EXISTS "Admin All Access" ON ingredients;
@@ -43,6 +44,9 @@ CREATE POLICY "Admin All Access" ON orders FOR ALL USING (auth.role() = 'authent
 
 -- Tabla: pos_config
 CREATE POLICY "Admin All Access" ON pos_config FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
+
+-- Tabla: price_history
+CREATE POLICY "Admin All Access" ON price_history FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
   
 -- NOTA: Si necesitas que los usuarios públicos (clientes que entren a la home y vean el "Próximamente")
