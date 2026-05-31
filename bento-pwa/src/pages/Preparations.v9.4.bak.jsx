@@ -206,7 +206,7 @@ export function Preparations() {
                 return (
                   <div className="elaboracion-card-right-container">
                     <div 
-                      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none flex-shrink-0 w-[95px]"
+                      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none items-center w-28 shrink-0"
                       style={{ 
                         msOverflowStyle: 'none', 
                         scrollbarWidth: 'none',
@@ -216,7 +216,7 @@ export function Preparations() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       {/* Cost slide — premium pill */}
-                      <div className="min-w-full flex-shrink-0 snap-center flex justify-center items-center">
+                      <div className="min-w-full snap-center flex justify-center items-center px-1 shrink-0">
                         <div style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -237,7 +237,7 @@ export function Preparations() {
                       </div>
 
                       {/* PVP slide — premium pill */}
-                      <div className="min-w-full flex-shrink-0 snap-center flex justify-center items-center">
+                      <div className="min-w-full snap-center flex justify-center items-center px-1 shrink-0">
                         <div style={{
                           display: 'flex',
                           alignItems: 'center',
