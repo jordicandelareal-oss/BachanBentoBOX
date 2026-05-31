@@ -16,36 +16,47 @@ ALTER TABLE price_history ENABLE ROW LEVEL SECURITY;
 
 -- Crear Política Híbrida: Solo Autenticados o Cabecera Personalizada
 -- Tabla: ingredients
+DROP POLICY IF EXISTS "Admin All Access" ON ingredients;
 CREATE POLICY "Admin All Access" ON ingredients FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
 -- Tabla: recipes
+DROP POLICY IF EXISTS "Admin All Access" ON recipes;
 CREATE POLICY "Admin All Access" ON recipes FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
 -- Tabla: recipe_ingredients
+DROP POLICY IF EXISTS "Admin All Access" ON recipe_ingredients;
 CREATE POLICY "Admin All Access" ON recipe_ingredients FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
 -- Tabla: menu_items
+DROP POLICY IF EXISTS "Admin All Access" ON menu_items;
 CREATE POLICY "Admin All Access" ON menu_items FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
 -- Tabla: categories
+DROP POLICY IF EXISTS "Admin All Access" ON categories;
 CREATE POLICY "Admin All Access" ON categories FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
 -- Tabla: subcategories
+DROP POLICY IF EXISTS "Admin All Access" ON subcategories;
 CREATE POLICY "Admin All Access" ON subcategories FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
 -- Tabla: preparation_categories
+DROP POLICY IF EXISTS "Admin All Access" ON preparation_categories;
 CREATE POLICY "Admin All Access" ON preparation_categories FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
 -- Tabla: menu_categories
+DROP POLICY IF EXISTS "Admin All Access" ON menu_categories;
 CREATE POLICY "Admin All Access" ON menu_categories FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
 -- Tabla: orders
+DROP POLICY IF EXISTS "Admin All Access" ON orders;
 CREATE POLICY "Admin All Access" ON orders FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
 -- Tabla: pos_config
+DROP POLICY IF EXISTS "Admin All Access" ON pos_config;
 CREATE POLICY "Admin All Access" ON pos_config FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
 -- Tabla: price_history
+DROP POLICY IF EXISTS "Admin All Access" ON price_history;
 CREATE POLICY "Admin All Access" ON price_history FOR ALL USING (auth.role() = 'authenticated' OR current_setting('request.headers', true)::json->>'x-bachan-key' = 'BachAn_Master_2026_Secure');
 
   
