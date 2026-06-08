@@ -66,6 +66,12 @@ input[type=number] {
   color: #94a3b8;
   text-transform: uppercase;
 }
+/* Contenedor de textos: móvil primero (puede encoger), escritorio con mín garantizado */
+.stock-card__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
 .stock-card__name {
   font-size: 12px;
   font-weight: 800;
@@ -74,7 +80,6 @@ input[type=number] {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 140px; /* garantiza espacio mínimo en escritorio */
 }
 .stock-card__sub {
   font-size: 10px;
@@ -922,4 +927,12 @@ input[type=number] {
   justify-content: space-between;
   gap: 10px;
   width: 100%;
+}
+
+/* ─── Stock Card: Desktop — nombre garantizado ───────────────── */
+/* Solo afecta pantallas ≥ 768px. Móvil completamente intacto.    */
+@media (min-width: 768px) {
+  .stock-card__text {
+    min-width: 200px; /* espacio mínimo para leer el nombre completo */
+  }
 }

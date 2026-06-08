@@ -122,7 +122,7 @@ function StockCard({ ingredient, updateIngredient }) {
           }
         </div>
         {/* min-width garantizado para que el nombre nunca colapse a una letra */}
-        <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="stock-card__text">
           <p className="stock-card__name">{ingredient.name}</p>
           <p className="stock-card__sub">{categoryName} · {providerName}</p>
         </div>
