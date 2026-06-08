@@ -156,6 +156,9 @@ input[type=number] {
   color: #dc2626;
   border-color: #fecaca;
 }
+/* Por defecto (móvil): texto completo visible, abreviado oculto */
+.stock-badge-full  { display: inline; }
+.stock-badge-short { display: none; }
 .stock-card__qty {
   display: flex;
   align-items: center;
@@ -932,7 +935,17 @@ input[type=number] {
 /* ─── Stock Card: Desktop — nombre garantizado ───────────────── */
 /* Solo afecta pantallas ≥ 768px. Móvil completamente intacto.    */
 @media (min-width: 768px) {
+  /* El contenedor de textos tiene espacio mínimo garantizado */
   .stock-card__text {
-    min-width: 200px; /* espacio mínimo para leer el nombre completo */
+    min-width: 200px;
+  }
+
+  /* Badge: mostrar abreviatura, ocultar texto completo */
+  .stock-badge-full  { display: none; }
+  .stock-badge-short { display: inline; }
+
+  /* Badge: reducir ancho de la columna de 88px → 44px */
+  .stock-card__badge {
+    width: 44px;
   }
 }

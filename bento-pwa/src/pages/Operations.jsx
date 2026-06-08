@@ -155,10 +155,11 @@ function StockCard({ ingredient, updateIngredient }) {
           </div>
         </div>
 
-        {/* Badge de estado */}
+        {/* Badge de estado: texto completo en móvil, abreviado en escritorio */}
         <div className="stock-card__badge">
           <span className={`stock-badge ${isLow ? 'stock-badge--low' : 'stock-badge--ok'}`}>
-            {isLow ? 'REPOSICIÓN' : 'STOCK OK'}
+            <span className="stock-badge-full">{isLow ? 'REPOSICIÓN' : 'STOCK OK'}</span>
+            <span className="stock-badge-short">{isLow ? 'REP' : 'OK'}</span>
           </span>
         </div>
 
