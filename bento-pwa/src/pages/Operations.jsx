@@ -141,7 +141,7 @@ function StockCard({ ingredient, updateIngredient }) {
       </div>
 
       {/* Fila 2 (Inferior Móvil): El Bloque Numérico */}
-      <div className="stock-card__row-2 flex flex-row items-center gap-2 w-full mt-2 md:mt-0 md:contents">
+      <div className="stock-card__row-2 flex flex-row items-center gap-2 w-full mt-2 md:flex md:flex-row md:w-auto md:grid-none md:contents">
 
         {/* Píldoras Min / Máx */}
         <div className="stock-card__alarms">

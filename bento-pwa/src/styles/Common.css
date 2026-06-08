@@ -887,15 +887,41 @@ input[type=number] {
     justify-content: flex-end;
   }
 
-  /* Quantity input: compact on mobile, fits next to alarms */
+  /* Fila 2 - Bloque Numérico ensanchado simétricamente */
+  .stock-card__row-2 {
+    width: 100%;
+  }
+
+  .stock-card__alarms {
+    flex: 2;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .stock-pill {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .stock-pill__input {
+    width: 100%;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Quantity input: compact/aligned within the three columns grid */
   .stock-card__qty {
-    width: 84px;
+    flex: 1;
+    width: auto;
     box-sizing: border-box;
     padding: 5px 8px;
   }
 
   .stock-card__qty-input {
-    width: 44px;
+    width: 100%;
+    flex: 1;
+    min-width: 0;
   }
 }
 
