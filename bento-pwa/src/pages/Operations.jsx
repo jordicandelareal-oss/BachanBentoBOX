@@ -115,19 +115,19 @@ function StockCard({ ingredient, updateIngredient }) {
     <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 w-full mb-3 hover:shadow-md transition-shadow">
 
       {/* ── BLOQUE IZQUIERDO: Identidad del Insumo ── */}
-      <div className="flex items-center gap-3 flex-1 min-w-0 max-w-full md:max-w-[40%]">
+      <div className="flex items-center gap-3 flex-1 min-w-0 w-full md:w-auto">
 
         {/* Avatar / imagen fija */}
-        <div className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center border border-slate-100">
+        <div className="w-12 h-12 min-w-[48px] min-h-[48px] max-w-[48px] max-h-[48px] flex-shrink-0 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center border border-slate-100">
           {ingredient.image_url
-            ? <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" className="w-full h-full object-cover" />
+            ? <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" className="w-full h-full object-cover flex-shrink-0" />
             : <span className="text-[11px] font-extrabold text-slate-400 uppercase">{ingredient.name.substring(0, 2).toUpperCase()}</span>
           }
         </div>
 
         {/* Textos: nombre + subtítulo */}
-        <div className="flex flex-col min-w-[180px] md:min-w-[240px] flex-1">
-          <h3 className="text-sm font-bold text-slate-800 truncate leading-tight">
+        <div className="flex flex-col min-w-0 flex-1">
+          <h3 className="text-sm font-semibold text-slate-800 whitespace-normal md:truncate">
             {ingredient.name}
           </h3>
           <p className="text-[10px] text-slate-400 truncate uppercase tracking-wider mt-0.5 font-semibold">
@@ -138,7 +138,7 @@ function StockCard({ ingredient, updateIngredient }) {
 
       {/* ── BLOQUE DERECHO: Controles numéricos ── */}
       {/* En móvil: baja con separador sutil; en desktop: alineado al extremo derecho */}
-      <div className="flex flex-row items-center justify-between md:justify-end gap-3 w-full md:w-auto flex-shrink-0 border-t border-slate-100 pt-3 md:border-t-0 md:pt-0">
+      <div className="flex flex-row items-center justify-between md:justify-end gap-4 w-full md:w-auto ml-auto flex-shrink-0 border-t border-slate-50 pt-3 md:border-t-0 md:pt-0 mt-2 md:mt-0">
 
         {/* Píldoras Min / Máx */}
         <div className="flex items-center gap-2 flex-shrink-0">
