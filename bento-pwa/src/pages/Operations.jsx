@@ -111,71 +111,87 @@ function StockCard({ ingredient, updateIngredient }) {
   const categoryName = ingredient.category_name || ingredient.categories?.name || 'General';
 
   return (
-    <div className="stock-card">
+    /* ── Tarjeta responsiva: columna en móvil → fila en escritorio ── */
+    <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 w-full mb-3 hover:shadow-md transition-shadow">
 
-      {/* IZQUIERDA / ARRIBA: identidad */}
-      <div className="stock-card__left">
-        <div className="stock-card__avatar">
+      {/* ── BLOQUE IZQUIERDO: Identidad del Insumo ── */}
+      <div className="flex items-center gap-3 flex-1 min-w-0 w-full md:w-auto">
+
+        {/* Avatar / imagen fija */}
+        <div className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center border border-slate-100">
           {ingredient.image_url
-            ? <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" />
-            : <span className="stock-card__initials">{ingredient.name.substring(0, 2).toUpperCase()}</span>
+            ? <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" className="w-full h-full object-cover" />
+            : <span className="text-[11px] font-extrabold text-slate-400 uppercase">{ingredient.name.substring(0, 2).toUpperCase()}</span>
           }
         </div>
-        <div style={{ minWidth: 0 }}>
-          <p className="stock-card__name">{ingredient.name}</p>
-          <p className="stock-card__sub">{categoryName} · {providerName}</p>
+
+        {/* Textos: nombre + subtítulo */}
+        <div className="flex flex-col min-w-0 flex-1">
+          <h3 className="text-sm font-bold text-slate-800 whitespace-normal md:truncate leading-tight">
+            {ingredient.name}
+          </h3>
+          <p className="text-[10px] text-slate-400 truncate uppercase tracking-wider mt-0.5 font-semibold">
+            {categoryName} · {providerName}
+          </p>
         </div>
       </div>
 
-      {/* DERECHA / ABAJO: controles */}
-      <div className="stock-card__right">
+      {/* ── BLOQUE DERECHO: Controles numéricos ── */}
+      {/* En móvil: baja con separador sutil; en desktop: alineado al extremo derecho */}
+      <div className="flex flex-row items-center justify-between md:justify-end gap-3 w-full md:w-auto flex-shrink-0 border-t border-slate-100 pt-3 md:border-t-0 md:pt-0">
 
-        {/* Sub-fila: Píldoras Min/Máx + Badge de estado */}
-        <div className="stock-card__controls-row">
+        {/* Píldoras Min / Máx */}
+        <div className="flex items-center gap-2 flex-shrink-0">
 
-          {/* Píldoras Min / Máx */}
-          <div className="stock-card__alarms">
-            <div className="stock-pill">
-              <span className="stock-pill__label">Min</span>
-              <input
-                type="number"
-                className="stock-pill__input"
-                value={minStock}
-                onChange={e => setMinStock(e.target.value)}
-                onBlur={e => handleBlur('min_stock', e.target.value)}
-              />
-            </div>
-            <div className="stock-pill">
-              <span className="stock-pill__label">Máx</span>
-              <input
-                type="number"
-                className="stock-pill__input"
-                value={maxStock}
-                onChange={e => setMaxStock(e.target.value)}
-                onBlur={e => handleBlur('max_stock', e.target.value)}
-              />
-            </div>
+          {/* Píldora Mínimo */}
+          <div className="bg-slate-100 text-slate-700 text-xs font-semibold py-1 px-2.5 rounded-md border border-slate-200 flex items-center gap-1">
+            <span className="text-slate-400 font-normal">Min:</span>
+            <input
+              type="number"
+              style={{ MozAppearance: 'textfield' }}
+              className="w-10 bg-transparent text-center font-bold text-slate-800 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              value={minStock}
+              onChange={e => setMinStock(e.target.value)}
+              onBlur={e => handleBlur('min_stock', e.target.value)}
+            />
           </div>
 
-          {/* Badge estado */}
-          <div className="stock-card__badge">
-            <span className={`stock-badge ${isLow ? 'stock-badge--low' : 'stock-badge--ok'}`}>
-              {isLow ? 'REPOSICIÓN' : 'STOCK OK'}
-            </span>
+          {/* Píldora Máximo */}
+          <div className="bg-slate-100 text-slate-700 text-xs font-semibold py-1 px-2.5 rounded-md border border-slate-200 flex items-center gap-1">
+            <span className="text-slate-400 font-normal">Máx:</span>
+            <input
+              type="number"
+              style={{ MozAppearance: 'textfield' }}
+              className="w-10 bg-transparent text-center font-bold text-slate-800 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              value={maxStock}
+              onChange={e => setMaxStock(e.target.value)}
+              onBlur={e => handleBlur('max_stock', e.target.value)}
+            />
           </div>
-
         </div>
 
-        {/* Input cantidad disponible */}
-        <div className="stock-card__qty">
+        {/* Badge de estado */}
+        <div className="w-24 flex justify-center flex-shrink-0">
+          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+            isLow ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+          }`}>
+            {isLow ? 'REPOSICIÓN' : 'STOCK OK'}
+          </span>
+        </div>
+
+        {/* Input de stock disponible */}
+        <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 w-28 justify-end focus-within:border-slate-400 transition-colors flex-shrink-0">
           <input
             type="number"
-            className={`stock-card__qty-input ${isLow ? 'stock-card__qty-input--low' : 'stock-card__qty-input--ok'}`}
+            style={{ MozAppearance: 'textfield' }}
+            className={`w-16 bg-transparent text-right font-bold text-base focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+              isLow ? 'text-red-600' : 'text-slate-800'
+            }`}
             value={stock}
             onChange={e => setStock(e.target.value)}
             onBlur={e => handleBlur('stock', e.target.value)}
           />
-          <span className="stock-card__unit">{unit}</span>
+          <span className="text-slate-400 text-xs font-semibold ml-1">{unit}</span>
         </div>
 
       </div>
