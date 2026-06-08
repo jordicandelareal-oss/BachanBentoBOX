@@ -88,12 +88,14 @@ function AlphabetSidebar({ scrollToLetter, presentLetters }) {
 
 function StockCard({ ingredient, updateIngredient }) {
   const [minStock, setMinStock] = useState(ingredient.min_stock || 0);
-  const [stock, setStock] = useState(ingredient.stock || 0);
+  const [maxStock, setMaxStock] = useState(ingredient.max_stock || 0);
+  const [stock, setStock]       = useState(ingredient.stock || 0);
 
   useEffect(() => {
     setMinStock(ingredient.min_stock || 0);
+    setMaxStock(ingredient.max_stock || 0);
     setStock(ingredient.stock || 0);
-  }, [ingredient.min_stock, ingredient.stock]);
+  }, [ingredient.min_stock, ingredient.max_stock, ingredient.stock]);
 
   const handleBlur = (field, val) => {
     let num = parseFloat(val);
@@ -103,72 +105,79 @@ function StockCard({ ingredient, updateIngredient }) {
     }
   };
 
-  const isLow = stock < minStock;
-  // SIEMPRE GRAMOS EN EL UI
-  const unit = 'g';
+  const isLow        = stock <= minStock;
+  const unit         = ingredient.calculation_type === 'unidad' ? 'ud' : 'g';
   const providerName = ingredient.providers?.name || ingredient.provider || 'S/M';
   const categoryName = ingredient.category_name || ingredient.categories?.name || 'General';
 
   return (
-    <div className="insumo-card relative" style={{ gridTemplateColumns: '36px 1fr auto', padding: '12px', alignItems: 'center' }}>
-      
-      <div className="card-avatar">
-        {ingredient.image_url ? (
-          <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" />
-        ) : (
-          <div className="avatar-initials">
-            {ingredient.name.substring(0, 2).toUpperCase()}
+    <div className="stock-card">
+
+      {/* IZQUIERDA / ARRIBA: identidad */}
+      <div className="stock-card__left">
+        <div className="stock-card__avatar">
+          {ingredient.image_url
+            ? <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" />
+            : <span className="stock-card__initials">{ingredient.name.substring(0, 2).toUpperCase()}</span>
+          }
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <p className="stock-card__name">{ingredient.name}</p>
+          <p className="stock-card__sub">{categoryName} · {providerName}</p>
+        </div>
+      </div>
+
+      {/* DERECHA / ABAJO: controles */}
+      <div className="stock-card__right">
+
+        {/* Sub-fila: Píldoras Min/Máx + Badge de estado */}
+        <div className="stock-card__controls-row">
+
+          {/* Píldoras Min / Máx */}
+          <div className="stock-card__alarms">
+            <div className="stock-pill">
+              <span className="stock-pill__label">Min</span>
+              <input
+                type="number"
+                className="stock-pill__input"
+                value={minStock}
+                onChange={e => setMinStock(e.target.value)}
+                onBlur={e => handleBlur('min_stock', e.target.value)}
+              />
+            </div>
+            <div className="stock-pill">
+              <span className="stock-pill__label">Máx</span>
+              <input
+                type="number"
+                className="stock-pill__input"
+                value={maxStock}
+                onChange={e => setMaxStock(e.target.value)}
+                onBlur={e => handleBlur('max_stock', e.target.value)}
+              />
+            </div>
           </div>
-        )}
-      </div>
 
-      <div className="card-info-center flex flex-col justify-center">
-        <div className="flex items-center gap-2">
-          <h3 className="card-name-bold text-sm truncate">{ingredient.name}</h3>
-          {/* Badge de Estado Inline o posicionado limpiamente */}
-          {isLow ? (
-            <div className="px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-black uppercase flex items-center gap-1">
-              <AlertTriangle size={10} strokeWidth={3} /> REPOSICIÓN
-            </div>
-          ) : (
-            <div className="px-2 py-0.5 rounded-md bg-green-500/10 border border-green-500/20 text-green-500 text-[9px] font-black uppercase flex items-center gap-1">
-              <CheckCircle2 size={10} strokeWidth={3} /> OK
-            </div>
-          )}
-        </div>
-        <p className="card-subtext truncate">
-          {categoryName} · {providerName}
-        </p>
-      </div>
+          {/* Badge estado */}
+          <div className="stock-card__badge">
+            <span className={`stock-badge ${isLow ? 'stock-badge--low' : 'stock-badge--ok'}`}>
+              {isLow ? 'REPOSICIÓN' : 'STOCK OK'}
+            </span>
+          </div>
 
-      <div className="flex items-center gap-3 ml-auto" style={{ gap: '12px' }}>
-        {/* Input Stock Mínimo */}
-        <div className="flex items-center bg-slate-900 rounded-lg py-1.5 px-2 border border-slate-700/80 focus-within:border-slate-500 transition-colors shadow-inner" style={{ minWidth: '110px' }}>
-          <span className="text-[10px] text-slate-500 font-bold pr-2 uppercase tracking-wider">Mín:</span>
-          <input 
-            type="number"
-            value={minStock}
-            onChange={e => setMinStock(e.target.value)}
-            onBlur={e => handleBlur('min_stock', e.target.value)}
-            className="bg-transparent border-none outline-none text-white w-full text-right font-bold text-sm hide-arrows"
-            style={{ appearance: 'textfield', WebkitAppearance: 'none' }}
-          />
-          <span className="text-[10px] text-slate-400 pl-1 font-semibold">{unit}</span>
         </div>
 
-        {/* Input Stock Disponible */}
-        <div className={`flex items-center rounded-lg py-1.5 px-2 border transition-colors shadow-inner ${isLow ? 'bg-red-950/20 border-red-500/40 focus-within:border-red-400' : 'bg-slate-900 border-slate-700/80 focus-within:border-accent'}`} style={{ minWidth: '110px' }}>
-          <span className="text-[10px] text-slate-500 font-bold pr-2 uppercase tracking-wider">Disp:</span>
-          <input 
+        {/* Input cantidad disponible */}
+        <div className="stock-card__qty">
+          <input
             type="number"
+            className={`stock-card__qty-input ${isLow ? 'stock-card__qty-input--low' : 'stock-card__qty-input--ok'}`}
             value={stock}
             onChange={e => setStock(e.target.value)}
             onBlur={e => handleBlur('stock', e.target.value)}
-            className={`bg-transparent border-none outline-none w-full text-right font-bold text-sm hide-arrows ${isLow ? 'text-red-400' : 'text-accent'}`}
-            style={{ appearance: 'textfield', WebkitAppearance: 'none' }}
           />
-          <span className="text-[10px] text-slate-400 pl-1 font-semibold">{unit}</span>
+          <span className="stock-card__unit">{unit}</span>
         </div>
+
       </div>
     </div>
   );
