@@ -877,75 +877,56 @@ input[type=number] {
   .stock-card {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
-  }
-
-  /* Identity block: full width, horizontal row (avatar + text) */
-  .stock-card__left {
-    width: 100%;
-    flex: none;
-  }
-
-  /* Controls block: full width, vertical stack */
-  .stock-card__right {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    width: 100%;
-    flex-shrink: 1;
-  }
-
-  /* Alarms row (Min/Max pills + badge): space-between */
-  .stock-card__alarms {
-    flex: 1;
-    justify-content: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
   }
 
   /* Badge: no fixed width on mobile, auto-sized */
   .stock-card__badge {
     width: auto;
-    justify-content: flex-start;
-  }
-
-  /* Quantity input: full width on mobile */
-  .stock-card__qty {
-    width: 100%;
     justify-content: flex-end;
+  }
+
+  /* Quantity input: compact on mobile, fits next to alarms */
+  .stock-card__qty {
+    width: 84px;
     box-sizing: border-box;
+    padding: 5px 8px;
   }
 
-  /* Sub-row wrapping alarms + badge side-by-side */
-  .stock-card__right > .stock-card__alarms,
-  .stock-card__right > .stock-card__badge {
-    /* keep them inline on the same row in mobile */
+  .stock-card__qty-input {
+    width: 44px;
   }
-}
-
-/* ─── Stock Card right: sub-row helper (all sizes) ──────────── */
-/* Group alarms + badge horizontally on a first row */
-.stock-card__controls-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
 }
 
 /* ─── Stock Card: Desktop — nombre garantizado ───────────────── */
 /* Solo afecta pantallas ≥ 768px. Móvil completamente intacto.    */
 @media (min-width: 768px) {
+  .stock-card__row-1,
+  .stock-card__row-2 {
+    display: contents;
+  }
+
   /* El contenedor de textos tiene espacio mínimo garantizado */
   .stock-card__text {
     min-width: 200px;
   }
 
-  /* Badge: mostrar abreviatura, ocultar texto completo */
-  .stock-badge-full  { display: none; }
-  .stock-badge-short { display: inline; }
-
   /* Badge: reducir ancho de la columna de 88px → 44px */
   .stock-card__badge {
     width: 44px;
+    order: 3;
+  }
+
+  .stock-card__left {
+    order: 1;
+  }
+
+  .stock-card__alarms {
+    order: 2;
+  }
+
+  .stock-card__qty {
+    order: 4;
   }
 }

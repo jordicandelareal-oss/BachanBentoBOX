@@ -113,23 +113,35 @@ function StockCard({ ingredient, updateIngredient }) {
   return (
     <div className="stock-card">
 
-      {/* BLOQUE IZQUIERDO: identidad */}
-      <div className="stock-card__left">
-        <div className="stock-card__avatar">
-          {ingredient.image_url
-            ? <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" />
-            : <span className="stock-card__initials">{ingredient.name.substring(0, 2).toUpperCase()}</span>
-          }
+      {/* Fila 1 (Superior Móvil): Identidad + Estado */}
+      <div className="stock-card__row-1 flex flex-row justify-between items-center w-full md:contents">
+        
+        {/* BLOQUE IZQUIERDO: identidad */}
+        <div className="stock-card__left">
+          <div className="stock-card__avatar">
+            {ingredient.image_url
+              ? <img src={ingredient.image_url} alt={ingredient.name} loading="lazy" />
+              : <span className="stock-card__initials">{ingredient.name.substring(0, 2).toUpperCase()}</span>
+            }
+          </div>
+          {/* min-width garantizado para que el nombre nunca colapse a una letra */}
+          <div className="stock-card__text">
+            <p className="stock-card__name">{ingredient.name}</p>
+            <p className="stock-card__sub">{categoryName} · {providerName}</p>
+          </div>
         </div>
-        {/* min-width garantizado para que el nombre nunca colapse a una letra */}
-        <div className="stock-card__text">
-          <p className="stock-card__name">{ingredient.name}</p>
-          <p className="stock-card__sub">{categoryName} · {providerName}</p>
+
+        {/* Badge de estado: abreviado tanto en móvil como en escritorio */}
+        <div className="stock-card__badge">
+          <span className={`stock-badge ${isLow ? 'stock-badge--low' : 'stock-badge--ok'}`}>
+            {isLow ? 'REP' : 'OK'}
+          </span>
         </div>
+
       </div>
 
-      {/* BLOQUE DERECHO: controles numéricos */}
-      <div className="stock-card__right">
+      {/* Fila 2 (Inferior Móvil): El Bloque Numérico */}
+      <div className="stock-card__row-2 flex flex-row items-center gap-2 w-full mt-2 md:mt-0 md:contents">
 
         {/* Píldoras Min / Máx */}
         <div className="stock-card__alarms">
@@ -155,14 +167,6 @@ function StockCard({ ingredient, updateIngredient }) {
           </div>
         </div>
 
-        {/* Badge de estado: texto completo en móvil, abreviado en escritorio */}
-        <div className="stock-card__badge">
-          <span className={`stock-badge ${isLow ? 'stock-badge--low' : 'stock-badge--ok'}`}>
-            <span className="stock-badge-full">{isLow ? 'REPOSICIÓN' : 'STOCK OK'}</span>
-            <span className="stock-badge-short">{isLow ? 'REP' : 'OK'}</span>
-          </span>
-        </div>
-
         {/* Input de stock disponible */}
         <div className="stock-card__qty">
           <input
@@ -176,6 +180,7 @@ function StockCard({ ingredient, updateIngredient }) {
         </div>
 
       </div>
+
     </div>
   );
 }
