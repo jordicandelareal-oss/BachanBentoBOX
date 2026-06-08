@@ -115,7 +115,7 @@ function StockCard({ ingredient, updateIngredient }) {
     <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 w-full mb-3 hover:shadow-md transition-shadow">
 
       {/* ── BLOQUE IZQUIERDO: Identidad del Insumo ── */}
-      <div className="flex items-center gap-3 flex-1 min-w-0 w-full md:w-auto">
+      <div className="flex items-center gap-3 flex-1 min-w-0 max-w-full md:max-w-[40%]">
 
         {/* Avatar / imagen fija */}
         <div className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center border border-slate-100">
@@ -126,8 +126,8 @@ function StockCard({ ingredient, updateIngredient }) {
         </div>
 
         {/* Textos: nombre + subtítulo */}
-        <div className="flex flex-col min-w-0 flex-1">
-          <h3 className="text-sm font-bold text-slate-800 whitespace-normal md:truncate leading-tight">
+        <div className="flex flex-col min-w-[180px] md:min-w-[240px] flex-1">
+          <h3 className="text-sm font-bold text-slate-800 truncate leading-tight">
             {ingredient.name}
           </h3>
           <p className="text-[10px] text-slate-400 truncate uppercase tracking-wider mt-0.5 font-semibold">
