@@ -37,22 +37,28 @@ input[type=number] {
   gap: 10px;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 .stock-card__avatar {
   width: 36px;
   height: 36px;
   min-width: 36px;
+  max-width: 36px;
+  min-height: 36px;
+  max-height: 36px;
   border-radius: 10px;
   overflow: hidden;
   background: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .stock-card__avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 .stock-card__initials {
   font-size: 11px;
@@ -68,6 +74,7 @@ input[type=number] {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 140px; /* garantiza espacio mínimo en escritorio */
 }
 .stock-card__sub {
   font-size: 10px;
