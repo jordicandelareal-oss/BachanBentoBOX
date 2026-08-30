@@ -113,36 +113,72 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
   const filteredItems = useMemo(() => {
     if (step !== 4) return [];
     const source = type === 'ingredient' ? ingredients : recipes;
-    const catField = type === 'ingredient' ? 'category_name' : 'preparation_category';
     
-    return source.filter(item => {
+    const items = source.filter(item => {
       // Prevent circular dependency
       if (item.id === excludeId && type === 'recipe') return false;
       
       const itemCatId = type === 'ingredient' ? item.category_id : item.preparation_category_Id;
       const matchesCategory = category.id === 'general' ? !itemCatId : itemCatId === category.id;
       const matchesSubcategory = type === 'recipe' || (item.subcategory_name || 'General') === subcategory;
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesCategory && matchesSubcategory && matchesSearch;
+      return matchesCategory && matchesSubcategory;
     });
+
+    if (!searchTerm.trim()) {
+      return [...items].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    const term = searchTerm.toLowerCase();
+
+    // Prioritized filtering and sorting by name only
+    const startsWithList = [];
+    const containsList = [];
+
+    items.forEach(item => {
+      const nameLower = item.name.toLowerCase();
+      if (nameLower.startsWith(term)) {
+        startsWithList.push(item);
+      } else if (nameLower.includes(term)) {
+        containsList.push(item);
+      }
+    });
+
+    startsWithList.sort((a, b) => a.name.localeCompare(b.name));
+    containsList.sort((a, b) => a.name.localeCompare(b.name));
+
+    return [...startsWithList, ...containsList];
   }, [step, type, category, subcategory, ingredients, recipes, searchTerm, excludeId]);
 
   // Omnichannel mixed search for Step 1
   const mixedResults = useMemo(() => {
-    if (!debouncedSearch || debouncedSearch.length < 2) return [];
+    if (!debouncedSearch || debouncedSearch.trim().length < 2) return [];
     
     const term = debouncedSearch.toLowerCase();
     
-    const ingResults = ingredients
-      .filter(ing => ing.name.toLowerCase().includes(term))
-      .map(ing => ({ ...ing, type: 'ingredient' }));
-      
-    const recResults = recipes
-      .filter(rec => rec.id !== excludeId && rec.name.toLowerCase().includes(term))
+    const ingFiltered = ingredients.map(ing => ({ ...ing, type: 'ingredient' }));
+    const recFiltered = recipes
+      .filter(rec => rec.id !== excludeId)
       .map(rec => ({ ...rec, type: 'recipe' }));
-      
-    return [...ingResults, ...recResults].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 15);
-  }, [globalSearch, ingredients, recipes, excludeId]);
+
+    const pool = [...ingFiltered, ...recFiltered];
+
+    const startsWithList = [];
+    const containsList = [];
+
+    pool.forEach(item => {
+      const nameLower = item.name.toLowerCase();
+      if (nameLower.startsWith(term)) {
+        startsWithList.push(item);
+      } else if (nameLower.includes(term)) {
+        containsList.push(item);
+      }
+    });
+
+    startsWithList.sort((a, b) => a.name.localeCompare(b.name));
+    containsList.sort((a, b) => a.name.localeCompare(b.name));
+
+    return [...startsWithList, ...containsList].slice(0, 15);
+  }, [debouncedSearch, ingredients, recipes, excludeId]);
 
   const goBack = () => {
     if (step === 4) {
@@ -206,7 +242,7 @@ export default function SequentialSelector({ ingredients, recipes, onSelect, onC
                 </div>
               </div>
 
-              {globalSearch.length >= 2 ? (
+              {globalSearch.trim().length >= 2 ? (
                 <div className="quick-results-container fade-in">
                   <p className="results-label">Resultados encontrados:</p>
                   <div className="item-selection-list">
