@@ -308,7 +308,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
     unitId, setUnitId,
     prepCategoryId, setPrepCategoryId,
     platosEstimados, setPlatosEstimados,
-    items,
+    items, addItem, updateItemQuantity, removeItem,
     yieldScenario, setYieldScenario,
     adjustmentPercent, setAdjustmentPercent,
     totals, saveBento, loadRecipeItems,
@@ -375,52 +375,110 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
       const isOnigiris = selectedCat?.Name === 'Onigiris' || prepCategoryId === '2245ab52-2e1b-455e-a43a-08948f4fb8ae';
       
       if (isOnigiris && prevPrepCategoryIdRef.current !== prepCategoryId) {
+        // Define base components with their source type (recipe vs ingredient)
         const targets = [
-          { name: 'Arroz Koshihikari cocido', defaultQty: 160, defaultUnit: 'g', fallbackNames: ['Arroz Koshihikari', 'Arroz japones'] },
-          { name: 'Sal', defaultQty: 1, defaultUnit: 'g', fallbackNames: [] },
-          { name: 'Alga nori', defaultQty: 0.5, defaultUnit: 'ud', fallbackNames: ['Alga Nori'] }
+          { 
+            name: 'Arroz Koshihikari cocido', 
+            source: 'recipe',       // Sub-elaboración → buscar en recipes
+            defaultQty: 160, 
+            defaultUnit: 'g', 
+            fallbackNames: ['Arroz Koshihikari Cocido'] 
+          },
+          { 
+            name: 'Sal', 
+            source: 'ingredient',   // Materia prima → buscar en ingredients
+            defaultQty: 1, 
+            defaultUnit: 'g', 
+            fallbackNames: [] 
+          },
+          { 
+            name: 'Alga nori', 
+            source: 'ingredient',   // Materia prima → buscar en ingredients
+            defaultQty: 0.5, 
+            defaultUnit: 'ud', 
+            fallbackNames: ['Alga Nori'] 
+          }
         ];
 
         const newItems = [];
-        const missingIngredients = [];
+        const missingComponents = [];
 
         targets.forEach(target => {
-          let foundIng = ingredients.find(ing => ing.name === target.name);
-          if (!foundIng) {
-            foundIng = ingredients.find(ing => ing.name.toLowerCase() === target.name.toLowerCase());
-          }
-          if (!foundIng && target.fallbackNames.length > 0) {
-            for (const fallback of target.fallbackNames) {
-              foundIng = ingredients.find(ing => ing.name.toLowerCase() === fallback.toLowerCase());
-              if (foundIng) {
-                console.warn(`⚠️ No se encontró '${target.name}', usando fallback '${foundIng.name}'.`);
-                break;
+          if (target.source === 'recipe') {
+            // --- Buscar en sub-recetas (recipes) ---
+            let foundRecipe = (recipes || []).find(r => r.name === target.name);
+            if (!foundRecipe) {
+              foundRecipe = (recipes || []).find(r => r.name.toLowerCase() === target.name.toLowerCase());
+            }
+            if (!foundRecipe && target.fallbackNames.length > 0) {
+              for (const fallback of target.fallbackNames) {
+                foundRecipe = (recipes || []).find(r => r.name.toLowerCase() === fallback.toLowerCase());
+                if (foundRecipe) {
+                  console.warn(`⚠️ No se encontró receta '${target.name}', usando fallback '${foundRecipe.name}'.`);
+                  break;
+                }
               }
             }
-          }
 
-          if (foundIng) {
-            const normUnit = normalizeUnit(foundIng.unit_name || target.defaultUnit);
-            const costPerUnit = parseFloat(foundIng.net_cost_per_unit || foundIng.cost_per_unit || 0);
-            
-            newItems.push({
-              _key: Math.random().toString(36).substring(7),
-              type: 'ingredient',
-              id: foundIng.id,
-              name: foundIng.name,
-              costPerUnit: costPerUnit,
-              unit: normUnit,
-              quantity: target.defaultQty,
-              category_name: foundIng.category_name || 'General'
-            });
+            if (foundRecipe) {
+              // Sub-recipe: Respect the recipe's own yield_scenario
+              // weight → unit 'g' (totalizer divides /1000 to get €/g from €/kg)
+              // units  → unit 'ud' (direct multiplication)
+              const normUnit = foundRecipe.yield_scenario === 'weight' ? 'g' : 'ud';
+              const costPerUnit = parseFloat(foundRecipe.cost_per_portion || 0);
+
+              newItems.push({
+                _key: Math.random().toString(36).substring(7),
+                type: 'recipe',
+                id: foundRecipe.id,
+                name: foundRecipe.name,
+                costPerUnit: costPerUnit,
+                unit: normUnit,
+                quantity: target.defaultQty,
+                category_name: foundRecipe.preparation_category || 'Elaboración'
+              });
+            } else {
+              missingComponents.push(`${target.name} (sub-receta)`);
+            }
           } else {
-            missingIngredients.push(target.name);
+            // --- Buscar en ingredientes (ingredients) ---
+            let foundIng = ingredients.find(ing => ing.name === target.name);
+            if (!foundIng) {
+              foundIng = ingredients.find(ing => ing.name.toLowerCase() === target.name.toLowerCase());
+            }
+            if (!foundIng && target.fallbackNames.length > 0) {
+              for (const fallback of target.fallbackNames) {
+                foundIng = ingredients.find(ing => ing.name.toLowerCase() === fallback.toLowerCase());
+                if (foundIng) {
+                  console.warn(`⚠️ No se encontró ingrediente '${target.name}', usando fallback '${foundIng.name}'.`);
+                  break;
+                }
+              }
+            }
+
+            if (foundIng) {
+              const normUnit = normalizeUnit(foundIng.unit_name || target.defaultUnit);
+              const costPerUnit = parseFloat(foundIng.net_cost_per_unit || foundIng.cost_per_unit || 0);
+              
+              newItems.push({
+                _key: Math.random().toString(36).substring(7),
+                type: 'ingredient',
+                id: foundIng.id,
+                name: foundIng.name,
+                costPerUnit: costPerUnit,
+                unit: normUnit,
+                quantity: target.defaultQty,
+                category_name: foundIng.category_name || 'General'
+              });
+            } else {
+              missingComponents.push(`${target.name} (insumo)`);
+            }
           }
         });
 
-        if (missingIngredients.length > 0) {
-          alert(`⚠️ Advertencia: Los siguientes ingredientes base de Onigiris no se encontraron en la base de datos:\n${missingIngredients.join(', ')}\n\nPor favor, créalos en la sección de Insumos.`);
-          console.error(`Missing onigiri base ingredients: ${missingIngredients.join(', ')}`);
+        if (missingComponents.length > 0) {
+          alert(`⚠️ Advertencia: Los siguientes componentes base de Onigiris no se encontraron en la base de datos:\n${missingComponents.join('\n')}\n\nPor favor, verifica que existan en Insumos o Elaboraciones.`);
+          console.error(`Missing onigiri base components: ${missingComponents.join(', ')}`);
         }
 
         if (newItems.length > 0) {
@@ -431,7 +489,7 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
       }
     }
     prevPrepCategoryIdRef.current = prepCategoryId;
-  }, [prepCategoryId, prepCats, recipe?.id, ingredients, setItems, setYieldScenario, setPortions]);
+  }, [prepCategoryId, prepCats, recipe?.id, ingredients, recipes, setItems, setYieldScenario, setPortions]);
 
   const filteredItems = items.filter(item => 
     item.name.toLowerCase().includes(internalSearch.toLowerCase())
