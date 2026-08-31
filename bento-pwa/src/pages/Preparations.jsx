@@ -311,9 +311,9 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
     items,
     yieldScenario, setYieldScenario,
     adjustmentPercent, setAdjustmentPercent,
-    addItem, updateItemQuantity, removeItem,
     totals, saveBento, loadRecipeItems,
-    imageUrl, setImageUrl
+    imageUrl, setImageUrl,
+    setItems
   } = useBentoMaker(recipe, 'elaboracion');
   
   const initialCost = recipe?.cost_per_portion || 0;
@@ -366,6 +366,72 @@ function PreparationEditor({ recipe, onClose, prepCats }) {
   useEffect(() => {
     if (recipe.id) loadRecipeItems(recipe.id);
   }, [recipe.id, loadRecipeItems]);
+
+  // Hook and function to auto-populate Onigiri base ingredients when category is changed to Onigiris
+  const prevPrepCategoryIdRef = React.useRef(prepCategoryId);
+  useEffect(() => {
+    if (!recipe?.id) {
+      const selectedCat = (prepCats || []).find(c => c.id === prepCategoryId);
+      const isOnigiris = selectedCat?.Name === 'Onigiris' || prepCategoryId === '2245ab52-2e1b-455e-a43a-08948f4fb8ae';
+      
+      if (isOnigiris && prevPrepCategoryIdRef.current !== prepCategoryId) {
+        const targets = [
+          { name: 'Arroz Koshihikari cocido', defaultQty: 160, defaultUnit: 'g', fallbackNames: ['Arroz Koshihikari', 'Arroz japones'] },
+          { name: 'Sal', defaultQty: 1, defaultUnit: 'g', fallbackNames: [] },
+          { name: 'Alga nori', defaultQty: 0.5, defaultUnit: 'ud', fallbackNames: ['Alga Nori'] }
+        ];
+
+        const newItems = [];
+        const missingIngredients = [];
+
+        targets.forEach(target => {
+          let foundIng = ingredients.find(ing => ing.name === target.name);
+          if (!foundIng) {
+            foundIng = ingredients.find(ing => ing.name.toLowerCase() === target.name.toLowerCase());
+          }
+          if (!foundIng && target.fallbackNames.length > 0) {
+            for (const fallback of target.fallbackNames) {
+              foundIng = ingredients.find(ing => ing.name.toLowerCase() === fallback.toLowerCase());
+              if (foundIng) {
+                console.warn(`⚠️ No se encontró '${target.name}', usando fallback '${foundIng.name}'.`);
+                break;
+              }
+            }
+          }
+
+          if (foundIng) {
+            const normUnit = normalizeUnit(foundIng.unit_name || target.defaultUnit);
+            const costPerUnit = parseFloat(foundIng.net_cost_per_unit || foundIng.cost_per_unit || 0);
+            
+            newItems.push({
+              _key: Math.random().toString(36).substring(7),
+              type: 'ingredient',
+              id: foundIng.id,
+              name: foundIng.name,
+              costPerUnit: costPerUnit,
+              unit: normUnit,
+              quantity: target.defaultQty,
+              category_name: foundIng.category_name || 'General'
+            });
+          } else {
+            missingIngredients.push(target.name);
+          }
+        });
+
+        if (missingIngredients.length > 0) {
+          alert(`⚠️ Advertencia: Los siguientes ingredientes base de Onigiris no se encontraron en la base de datos:\n${missingIngredients.join(', ')}\n\nPor favor, créalos en la sección de Insumos.`);
+          console.error(`Missing onigiri base ingredients: ${missingIngredients.join(', ')}`);
+        }
+
+        if (newItems.length > 0) {
+          setItems(newItems);
+          setYieldScenario('units');
+          setPortions(1);
+        }
+      }
+    }
+    prevPrepCategoryIdRef.current = prepCategoryId;
+  }, [prepCategoryId, prepCats, recipe?.id, ingredients, setItems, setYieldScenario, setPortions]);
 
   const filteredItems = items.filter(item => 
     item.name.toLowerCase().includes(internalSearch.toLowerCase())
