@@ -9,7 +9,7 @@ function loadEnv(path) {
       if (match) {
         const key = match[1];
         let val = match[2] || '';
-        process.env[key] = val.trim();
+        process.env[key] = val.trim().replace(/^"|"$/g, '');
       }
     });
   }
