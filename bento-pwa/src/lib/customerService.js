@@ -647,22 +647,42 @@ export async function syncCustomersFromOrders(allOrders = []) {
   };
 }
 
+export function cleanCustomerName(str) {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // ── Métricas y Análisis de Consumo del Cliente ─────────────────────────────
 export function getCustomerConsumptionStats(customer, allOrders = []) {
   if (!customer) return null;
 
   const custNameNorm = (customer.name || '').trim().toLowerCase();
+  const custNameClean = cleanCustomerName(customer.name);
   const custPhoneNorm = (customer.phone || '').replace(/\D/g, '');
 
-  // Match orders by name, phone or customer_id
+  // Match orders by customer_id, phone, exact name, or clean normalized name
   const customerOrders = allOrders.filter(o => {
     if (!o) return false;
-    const orderNameNorm = (o.customer_name || '').trim().toLowerCase();
-    const orderPhoneNorm = (o.customer_phone || '').replace(/\D/g, '');
     
+    // 1. Exact ID match (highest priority)
     if (o.customer_id && o.customer_id === customer.id) return true;
-    if (custNameNorm && orderNameNorm && (orderNameNorm === custNameNorm || orderNameNorm.includes(custNameNorm) || custNameNorm.includes(orderNameNorm))) return true;
-    if (custPhoneNorm && orderPhoneNorm && orderPhoneNorm === custPhoneNorm) return true;
+
+    // 2. Phone match (if at least 6 digits)
+    const orderPhoneNorm = (o.customer_phone || '').replace(/\D/g, '');
+    if (custPhoneNorm && custPhoneNorm.length >= 6 && orderPhoneNorm && orderPhoneNorm === custPhoneNorm) return true;
+
+    // 3. Exact and clean normalized name match
+    const orderNameNorm = (o.customer_name || '').trim().toLowerCase();
+    if (custNameNorm && orderNameNorm) {
+      if (orderNameNorm === custNameNorm) return true;
+      const orderNameClean = cleanCustomerName(o.customer_name);
+      if (custNameClean && orderNameClean && custNameClean === orderNameClean) return true;
+    }
+
     return false;
   });
 

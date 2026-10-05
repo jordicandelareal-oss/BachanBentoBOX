@@ -298,7 +298,7 @@ export default function Customers() {
           <div className="customer-kpi-card">
             <div className="kpi-icon-badge emerald"><TrendingUp size={22} /></div>
             <div>
-              <div className="kpi-info-val">{summary.totalRevenueFromCustomers.toFixed(2)}€</div>
+              <div className="kpi-info-val">{(summary.totalOrdersRevenue || summary.totalRevenueFromCustomers || 0).toFixed(2)}€</div>
               <div className="kpi-info-lbl">Ventas Acumuladas</div>
             </div>
           </div>

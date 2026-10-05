@@ -92,6 +92,9 @@ export function useCustomers() {
     const vipCount = enrichedCustomers.filter(c => c.loyalty_tier === 'vip' || c.loyalty_tier === 'gold').length;
     const birthdaysSoon = enrichedCustomers.filter(c => c.birthdayStatus.isToday || c.birthdayStatus.isUpcoming).length;
     const birthdaysToday = enrichedCustomers.filter(c => c.birthdayStatus.isToday).length;
+    
+    // Total revenue from all real sales (exactly matching Business Analytics)
+    const totalOrdersRevenue = orders.reduce((acc, o) => acc + Number(o.total || 0), 0);
     const totalRevenueFromCustomers = enrichedCustomers.reduce((acc, c) => acc + (c.stats?.totalSpent || 0), 0);
 
     return {
@@ -99,9 +102,10 @@ export function useCustomers() {
       vipCount,
       birthdaysSoon,
       birthdaysToday,
+      totalOrdersRevenue,
       totalRevenueFromCustomers
     };
-  }, [enrichedCustomers]);
+  }, [enrichedCustomers, orders]);
 
   const syncFromOrders = async () => {
     const res = await syncCustomersFromOrders(orders);
