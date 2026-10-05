@@ -14,6 +14,8 @@ import AdminRoute      from './components/AdminRoute'
 import SplashScreen    from './components/SplashScreen'
 import Providers       from './pages/Providers'
 import Operations      from './pages/Operations'
+import Customers       from './pages/Customers'
+import Flyers          from './pages/Flyers'
 
 import './styles/theme.css'
 import './styles/animations.css'
@@ -118,6 +120,8 @@ function App() {
                 <Route path="bento-maker"  element={<Navigate to="/preparations" replace />} />
                 <Route path="providers"    element={<Providers />} />
                 <Route path="operations"   element={<Operations />} />
+                <Route path="customers"    element={<Customers />} />
+                <Route path="flyers"       element={<Flyers />} />
                 <Route path="settings"     element={<CatalogSettings />} />
               </Route>
             </Route>

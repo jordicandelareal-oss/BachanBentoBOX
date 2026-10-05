@@ -21,8 +21,14 @@ import {
   GripVertical,
   ChevronUp,
   ChevronDown,
-  ArrowLeft
+  ArrowLeft,
+  Users,
+  Crown,
+  Cake,
+  AlertTriangle,
+  UserCheck
 } from 'lucide-react';
+import { getCustomers, checkBirthdayStatus } from '../lib/customerService';
 
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -184,6 +190,11 @@ export default function POS() {
   const [showOpenOrders, setShowOpenOrders] = useState(false);
   const [openOrdersList, setOpenOrdersList] = useState([]);
   
+  // CRM Customer Link States
+  const [savedCustomers, setSavedCustomers] = useState([]);
+  const [selectedCustomerObj, setSelectedCustomerObj] = useState(null);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  
   // Discount States
   const [discountValue, setDiscountValue] = useState(0);
   const [discountType, setDiscountType] = useState('percent');
@@ -214,6 +225,10 @@ export default function POS() {
 
   useEffect(() => {
     fetchTicketSeq();
+    // Load customers for POS autocomplete & CRM sync
+    getCustomers().then(res => {
+      if (res?.data) setSavedCustomers(res.data);
+    });
   }, []);
 
   const resetTicketCounter = async () => {
@@ -540,6 +555,8 @@ export default function POS() {
       // 3. Preparación de datos para Supabase
       const orderData = {
         customer_name: finalCustomerName,
+        customer_id: selectedCustomerObj?.id || null,
+        customer_phone: selectedCustomerObj?.phone || null,
         table_id: tableId,
         ticket_number: ticketNumber,
         total: cartTotal,
@@ -588,6 +605,7 @@ export default function POS() {
           setShowCheckout(false);
           setCart([]);
           setCustomerName('');
+          setSelectedCustomerObj(null);
           setActiveOrderId(null);
           setDeliveryCost(3.00);
           setDeliveryInput('3.00');
@@ -595,6 +613,7 @@ export default function POS() {
       } else {
         setCart([]);
         setCustomerName('');
+        setSelectedCustomerObj(null);
         setTableId('Delivery');
         setDiscountValue(0);
         setDiscountType('percent');
@@ -807,9 +826,118 @@ export default function POS() {
                   <option value="Delivery">Delivery</option>
                </select>
             </div>
-            <div className="pos-input-group" style={{ flex: 2 }}>
-               <label className="pos-label">Nombre Cliente</label>
-               <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Opcional..." className="pos-input" />
+            <div className="pos-input-group" style={{ flex: 2, position: 'relative' }}>
+               <label className="pos-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Nombre Cliente</span>
+                  {selectedCustomerObj && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setSelectedCustomerObj(null);
+                        setCustomerName('');
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
+                    >
+                      Desvincular
+                    </button>
+                  )}
+               </label>
+               <input 
+                 type="text" 
+                 value={customerName} 
+                 onChange={(e) => {
+                   setCustomerName(e.target.value);
+                   setShowCustomerDropdown(true);
+                   if (selectedCustomerObj && e.target.value !== selectedCustomerObj.name) {
+                     setSelectedCustomerObj(null);
+                   }
+                 }}
+                 onFocus={() => setShowCustomerDropdown(true)}
+                 placeholder="Escribe o busca cliente..." 
+                 className="pos-input" 
+               />
+
+               {/* Dropdown predictivo de clientes */}
+               {showCustomerDropdown && customerName.trim() && (
+                 <div style={{
+                   position: 'absolute',
+                   top: '100%',
+                   left: 0,
+                   right: 0,
+                   background: '#ffffff',
+                   border: '1px solid var(--color-border)',
+                   borderRadius: '8px',
+                   boxShadow: '0 10px 20px rgba(0,0,0,0.15)',
+                   zIndex: 50,
+                   maxHeight: '180px',
+                   overflowY: 'auto'
+                 }}>
+                   {savedCustomers
+                     .filter(c => 
+                       (c.name || '').toLowerCase().includes(customerName.toLowerCase()) ||
+                       (c.phone || '').includes(customerName)
+                     )
+                     .slice(0, 5)
+                     .map(cust => (
+                       <div 
+                         key={cust.id}
+                         onClick={() => {
+                           setCustomerName(cust.name);
+                           setSelectedCustomerObj(cust);
+                           setShowCustomerDropdown(false);
+                           if (cust.discount_percent > 0) {
+                             setDiscountValue(cust.discount_percent);
+                             setDiscountType('percent');
+                           }
+                         }}
+                         style={{
+                           padding: '8px 12px',
+                           borderBottom: '1px solid #f1f5f9',
+                           cursor: 'pointer',
+                           display: 'flex',
+                           justifyContent: 'space-between',
+                           alignItems: 'center'
+                         }}
+                         onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                         onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
+                       >
+                         <div>
+                           <strong style={{ fontSize: '0.85rem', color: '#0c1c2e' }}>{cust.name}</strong>
+                           {cust.phone && <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '6px' }}>({cust.phone})</span>}
+                         </div>
+                         <span style={{ fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', color: cust.loyalty_tier === 'vip' ? '#b45309' : '#0369a1' }}>
+                           {cust.loyalty_tier || 'standard'}
+                         </span>
+                       </div>
+                     ))}
+                 </div>
+               )}
+
+               {/* Indicador de cliente VIP / Cumpleaños / Alérgenos */}
+               {selectedCustomerObj && (
+                 <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                     <span style={{ fontSize: '10px', background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                       ✓ {selectedCustomerObj.loyalty_tier?.toUpperCase() || 'CLIENTE'}
+                     </span>
+                     {selectedCustomerObj.discount_percent > 0 && (
+                       <span style={{ fontSize: '10px', background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                         🎁 {selectedCustomerObj.discount_percent}% dto.
+                       </span>
+                     )}
+                     {checkBirthdayStatus(selectedCustomerObj.birthday)?.isToday && (
+                       <span style={{ fontSize: '10px', background: '#ffe4e6', color: '#e11d48', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                         🎂 ¡Cumpleaños hoy!
+                       </span>
+                     )}
+                   </div>
+                   {selectedCustomerObj.allergens && (
+                     <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: 'bold' }}>
+                       ⚠️ Alérgenos: {selectedCustomerObj.allergens}
+                     </div>
+                   )}
+                 </div>
+               )}
             </div>
          </div>
 

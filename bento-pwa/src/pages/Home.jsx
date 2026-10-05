@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import AIActionSheet from '../components/Nana/AIActionSheet';
 import './Home.css';
-import { CookingPot, Carrot, Sparkles, ShoppingBag, TrendingUp, Settings } from 'lucide-react';
+import { CookingPot, Carrot, Sparkles, ShoppingBag, TrendingUp, Settings, Users, Palette, Truck } from 'lucide-react';
 
 // ─── Iconos ──────────────────────────────────────────────────────────────────
 const ChefIcon        = () => <CookingPot size={42} strokeWidth={1.2} />;
@@ -18,12 +18,15 @@ const ArrowIcon = () => (
 
 // ─── Menú principal ───────────────────────────────────────────────────────────
 const MENU_ITEMS = [
-  { id: 'pos',          title: 'TPV / Caja',   desc: 'Cobro rápido y gestión de pedidos',          icon: <ShoppingBag    size={42} strokeWidth={1.2} />, path: '/pos' },
-  { id: 'operations',   title: 'Operaciones',  desc: 'Compras, Stock y Facturas',                  icon: <TrendingUp     size={42} strokeWidth={1.2} />, path: '/operations' },
-  { id: 'analytics',   title: 'Analítica',     desc: 'Dashboard y análisis histórico',             icon: <TrendingUp     size={42} strokeWidth={1.2} />, path: '/analytics' },
-  { id: 'preparations',title: 'Elaboraciones', desc: 'Mise en place, recetas y gestión TPV',       icon: <ChefIcon />,                                   path: '/preparations' },
-  { id: 'ingredients', title: 'Insumos',       desc: 'Control de stock y precios de mercado',      icon: <IngredientsIcon />,                            path: '/ingredients' },
-  { id: 'settings',    title: 'Ajustes',       desc: 'Configuración general del sistema',          icon: <Settings       size={42} strokeWidth={1.2} />, path: '/settings' },
+  { id: 'pos',          title: 'TPV / Caja',        desc: 'Cobro rápido y gestión de pedidos',          icon: <ShoppingBag    size={42} strokeWidth={1.2} />, path: '/pos' },
+  { id: 'customers',    title: 'Ficha de Clientes', desc: 'Consumo, favoritos, cumpleaños y ofertas',   icon: <Users          size={42} strokeWidth={1.2} />, path: '/customers' },
+  { id: 'flyers',       title: 'Flyers & Menús',    desc: 'Publicidad visual y menú semanal WhatsApp',  icon: <Palette        size={42} strokeWidth={1.2} />, path: '/flyers' },
+  { id: 'operations',   title: 'Operaciones',       desc: 'Compras, Stock y Facturas',                  icon: <TrendingUp     size={42} strokeWidth={1.2} />, path: '/operations' },
+  { id: 'analytics',    title: 'Analítica',          desc: 'Dashboard y análisis histórico',             icon: <TrendingUp     size={42} strokeWidth={1.2} />, path: '/analytics' },
+  { id: 'preparations', title: 'Elaboraciones',      desc: 'Mise en place, recetas y gestión TPV',       icon: <ChefIcon />,                                   path: '/preparations' },
+  { id: 'ingredients',  title: 'Insumos',            desc: 'Control de stock y precios de mercado',      icon: <IngredientsIcon />,                            path: '/ingredients' },
+  { id: 'providers',    title: 'Proveedores',        desc: 'Gestión de contactos y pedidos mínimos',     icon: <Truck          size={42} strokeWidth={1.2} />, path: '/providers' },
+  { id: 'settings',     title: 'Ajustes',            desc: 'Configuración general del sistema',          icon: <Settings       size={42} strokeWidth={1.2} />, path: '/settings' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
