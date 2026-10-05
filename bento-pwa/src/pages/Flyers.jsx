@@ -997,94 +997,170 @@ export default function Flyers() {
                     </div>
 
                     {/* Badge / Claim y Sugerencias Inteligentes */}
-                    <div className="form-group-custom">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
-                        <label style={{ margin: 0 }}>Pastilla / Claim de Sabor <span style={{ fontWeight: 'normal', color: '#94a3b8' }}>(Opcional)</span></label>
-                        {dish.badge && dish.badge.trim() !== '' && (
+                    {/* Pastilla / Claim de Sabor (Segmented Toggle + Editable Input) */}
+                    <div className="form-group-custom" style={{ marginTop: '4px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                        <label style={{ margin: 0, fontWeight: '800', color: '#1e293b' }}>
+                          Pastilla / Claim de Sabor
+                        </label>
+                        
+                        {/* Selector Segmentado: Con Pastilla / Sin Pastilla */}
+                        <div style={{ display: 'inline-flex', background: '#e2e8f0', borderRadius: '6px', padding: '2px', gap: '2px' }}>
                           <button
                             type="button"
                             onClick={() => handleDishChange(idx, 'badge', '')}
                             style={{
-                              background: '#fef2f2',
-                              border: '1px solid #fecaca',
-                              color: '#dc2626',
+                              border: 'none',
+                              padding: '3px 8px',
+                              borderRadius: '5px',
+                              fontSize: '0.72rem',
+                              fontWeight: (!dish.badge || dish.badge.trim() === '') ? '800' : '500',
+                              background: (!dish.badge || dish.badge.trim() === '') ? '#ffffff' : 'transparent',
+                              color: (!dish.badge || dish.badge.trim() === '') ? '#dc2626' : '#64748b',
+                              boxShadow: (!dish.badge || dish.badge.trim() === '') ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                          >
+                            🚫 Sin Pastilla
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!dish.badge || dish.badge.trim() === '') {
+                                const matched = menuItems.find(m => m.id === dish.menuItemId || (m.name || '').toLowerCase() === (dish.name || '').toLowerCase()) || { name: dish.name };
+                                const smart = generateSmartDishDescriptor(matched);
+                                handleDishChange(idx, 'badge', smart.badge || 'especialidad');
+                              }
+                            }}
+                            style={{
+                              border: 'none',
+                              padding: '3px 8px',
+                              borderRadius: '5px',
+                              fontSize: '0.72rem',
+                              fontWeight: (dish.badge && dish.badge.trim() !== '') ? '800' : '500',
+                              background: (dish.badge && dish.badge.trim() !== '') ? 'var(--color-navy)' : 'transparent',
+                              color: (dish.badge && dish.badge.trim() !== '') ? '#f5e6c8' : '#64748b',
+                              boxShadow: (dish.badge && dish.badge.trim() !== '') ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                          >
+                            🏷️ Con Pastilla
+                          </button>
+                        </div>
+                      </div>
+
+                      {dish.badge && dish.badge.trim() !== '' ? (
+                        <div>
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <input 
+                              type="text" 
+                              value={dish.badge}
+                              onChange={e => handleDishChange(idx, 'badge', e.target.value)}
+                              placeholder="Escribe el claim ej: el clásico crujiente, 🎓 Promo..."
+                              style={{ paddingRight: '28px' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleDishChange(idx, 'badge', '')}
+                              style={{
+                                position: 'absolute',
+                                right: '6px',
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#94a3b8',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              title="Borrar pastilla"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
+                            {(() => {
+                              const matched = menuItems.find(m => m.id === dish.menuItemId || (m.name || '').toLowerCase() === (dish.name || '').toLowerCase()) || { name: dish.name };
+                              const smart = generateSmartDishDescriptor(matched);
+                              const suggestions = Array.from(new Set([
+                                smart.badge,
+                                'el clásico crujiente',
+                                'confort en cada bocado',
+                                'jugoso & crujiente',
+                                'glaseado teriyaki',
+                                'fresco del día',
+                                'selección premium',
+                                'aroma & tradición',
+                                'doradas al punto',
+                                'el favorito de BaChan',
+                                '🎓 Promo Estudiante',
+                                '⭐ Recomendado',
+                                '🔥 Oferta',
+                                '🌱 Vegano'
+                              ])).filter(Boolean).slice(0, 8);
+
+                              return suggestions.map(sugg => {
+                                const isSelected = dish.badge === sugg;
+                                return (
+                                  <button
+                                    key={sugg}
+                                    type="button"
+                                    onClick={() => handleDishChange(idx, 'badge', isSelected ? '' : sugg)}
+                                    style={{
+                                      background: isSelected ? '#fef3c7' : '#ffffff',
+                                      border: `1px solid ${isSelected ? '#f59e0b' : '#cbd5e1'}`,
+                                      fontSize: '0.68rem',
+                                      padding: '2px 7px',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      color: isSelected ? '#92400e' : '#334155',
+                                      fontWeight: isSelected ? 'bold' : 'normal',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '3px'
+                                    }}
+                                    title={isSelected ? 'Haz clic para desmarcar y quitar' : `Aplicar "${sugg}"`}
+                                  >
+                                    {isSelected ? '✓' : '+'} {sugg}
+                                  </button>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontStyle: 'italic', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>✓ Este plato no llevará pastilla de sabor (diseño limpio)</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const matched = menuItems.find(m => m.id === dish.menuItemId || (m.name || '').toLowerCase() === (dish.name || '').toLowerCase()) || { name: dish.name };
+                              const smart = generateSmartDishDescriptor(matched);
+                              handleDishChange(idx, 'badge', smart.badge || 'especialidad');
+                            }}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              color: 'var(--color-navy)',
                               fontSize: '0.68rem',
                               fontWeight: 'bold',
-                              padding: '1px 6px',
+                              padding: '2px 6px',
                               borderRadius: '4px',
                               cursor: 'pointer'
                             }}
-                            title="Borrar pastilla para dejarla en blanco"
                           >
-                            ✕ Dejar en blanco
+                            + Añadir pastilla
                           </button>
-                        )}
-                      </div>
-                      <input 
-                        type="text" 
-                        value={dish.badge || ''}
-                        onChange={e => handleDishChange(idx, 'badge', e.target.value)}
-                        placeholder="Dejar en blanco o escribir ej: el clásico crujiente, 🎓 Promo..."
-                      />
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleDishChange(idx, 'badge', '')}
-                          style={{
-                            background: !dish.badge || dish.badge.trim() === '' ? '#fee2e2' : '#f1f5f9',
-                            border: `1px solid ${!dish.badge || dish.badge.trim() === '' ? '#f87171' : '#cbd5e1'}`,
-                            fontSize: '0.68rem',
-                            padding: '2px 7px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            color: !dish.badge || dish.badge.trim() === '' ? '#991b1b' : '#64748b',
-                            fontWeight: !dish.badge || dish.badge.trim() === '' ? 'bold' : 'normal'
-                          }}
-                          title="Sin pastilla de sabor"
-                        >
-                          🚫 Sin pastilla
-                        </button>
-                        {(() => {
-                          const matched = menuItems.find(m => m.id === dish.menuItemId || (m.name || '').toLowerCase() === (dish.name || '').toLowerCase()) || { name: dish.name };
-                          const smart = generateSmartDishDescriptor(matched);
-                          const suggestions = Array.from(new Set([
-                            smart.badge,
-                            'el clásico crujiente',
-                            'confort en cada bocado',
-                            'jugoso & crujiente',
-                            'glaseado teriyaki',
-                            'fresco del día',
-                            'selección premium',
-                            'aroma & tradición',
-                            'doradas al punto',
-                            'el favorito de BaChan',
-                            '🎓 Promo Estudiante',
-                            '⭐ Recomendado',
-                            '🔥 Oferta',
-                            '🌱 Vegano'
-                          ])).filter(Boolean).slice(0, 7);
-
-                          return suggestions.map(sugg => (
-                            <button
-                              key={sugg}
-                              type="button"
-                              onClick={() => handleDishChange(idx, 'badge', sugg)}
-                              style={{
-                                background: dish.badge === sugg ? '#fef3c7' : '#f1f5f9',
-                                border: `1px solid ${dish.badge === sugg ? '#f59e0b' : '#e2e8f0'}`,
-                                fontSize: '0.68rem',
-                                padding: '2px 7px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                color: dish.badge === sugg ? '#92400e' : '#475569',
-                                fontWeight: dish.badge === sugg ? 'bold' : 'normal'
-                              }}
-                            >
-                              +{sugg}
-                            </button>
-                          ));
-                        })()}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                   </div>

@@ -701,7 +701,7 @@ export function generateWhatsAppWeeklyText(weeklyData) {
     if (d.name) {
       text += `🥢 *${d.name}* • *${d.price}*\n`;
       if (d.description) text += `   _${d.description}_\n`;
-      if (d.badge) text += `   ↳ ✨ [${d.badge}]\n`;
+      if (d.badge && d.badge.trim() !== '') text += `   ↳ ✨ [${d.badge}]\n`;
       text += `\n`;
     }
   });
