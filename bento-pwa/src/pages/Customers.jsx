@@ -168,12 +168,28 @@ export default function Customers() {
       return;
     }
 
-    if (editingCustomer) {
-      await editCustomer(editingCustomer.id, formData);
-      showToast('✅ Ficha de cliente actualizada');
-    } else {
-      await addCustomer(formData);
-      showToast('🎉 Nuevo cliente registrado');
+    try {
+      if (editingCustomer) {
+        const res = await editCustomer(editingCustomer.id, formData);
+        if (res.success) {
+          showToast('✅ Ficha y teléfono de cliente guardados');
+          if (selectedCustomerDetail?.id === editingCustomer.id) {
+            setSelectedCustomerDetail(prev => ({ ...prev, ...formData }));
+          }
+        } else {
+          showToast('⚠️ No se pudo actualizar en Supabase');
+        }
+      } else {
+        const res = await addCustomer(formData);
+        if (res.success) {
+          showToast('🎉 Nuevo cliente registrado en Supabase');
+        } else {
+          showToast('⚠️ No se pudo registrar el cliente');
+        }
+      }
+    } catch (err) {
+      console.error('Error guardando cliente:', err);
+      showToast('❌ Error al guardar cliente');
     }
 
     setShowAddEditModal(false);

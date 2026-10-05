@@ -1,380 +1,366 @@
 import { supabase } from './supabaseClient';
 
-const LOCAL_CUSTOMERS_KEY = 'bachan_customers_real_v2';
+const LOCAL_CUSTOMERS_KEY = 'bachan_customers_real_v3';
 
-// ── Clientes Reales iniciales extraídos del histórico de tickets TPV ─────────
+// ── Clientes Reales sincronizados desde Supabase con UUIDs reales ─────────────
 export const INITIAL_REAL_CUSTOMERS = [
   {
-    id: 'cust_alina_vip',
-    name: 'Alina',
-    phone: '',
-    email: '',
+    id: "9b93fbff-cd29-4cf6-bbdd-be91db5eb400",
+    name: "Alina",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Cliente fiel. 5 pedidos registrados (Tickets: T-2026-0009, T-2026-0018, T-2026-0039, T-2026-0045).',
-    loyalty_tier: 'vip',
+    address: "",
+    allergens: "",
+    notes: "Cliente fiel registrada desde tickets de venta TPV.",
+    loyalty_tier: "vip",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 30',
-    created_at: '2026-04-18T12:36:55.624Z'
+    favorite_dish: "Nato pack 30",
+    created_at: "2026-04-18T12:36:55.624+00:00"
   },
   {
-    id: 'cust_fumiko_vip',
-    name: 'Fumiko',
-    phone: '',
-    email: '',
+    id: "b493d528-8403-43bd-8f88-180d2e22a54d",
+    name: "Fumiko",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Cliente habitual de Nato Pack 30. Registrada desde TPV.',
-    loyalty_tier: 'vip',
+    address: "",
+    allergens: "",
+    notes: "Cliente habitual de Nato Pack 30. Registrada desde TPV.",
+    loyalty_tier: "vip",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 30',
-    created_at: '2026-06-11T04:59:20.999Z'
+    favorite_dish: "Nato pack 30",
+    created_at: "2026-06-11T04:59:20.999+00:00"
   },
   {
-    id: 'cust_sergio_vip',
-    name: 'Sergio',
-    phone: '',
-    email: '',
+    id: "7a06bc34-b4fc-4e6c-9d97-e75857d86112",
+    name: "Sergio",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Comanda grande de Bento Sushi 18 piezas.',
-    loyalty_tier: 'vip',
+    address: "",
+    allergens: "",
+    notes: "Comanda grande de Bento Sushi 18 piezas.",
+    loyalty_tier: "vip",
     discount_percent: 0,
-    favorite_dish: 'Bento Sushi 18 piezas',
-    created_at: '2026-04-30T10:18:18.446Z'
+    favorite_dish: "Bento Sushi 18 piezas",
+    created_at: "2026-04-30T10:18:18.446+00:00"
   },
   {
-    id: 'cust_yuka_vip',
-    name: 'yuka',
-    phone: '',
-    email: '',
+    id: "722a39c3-29bc-40f1-9000-be5641943aad",
+    name: "yuka",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Cliente fiel de BaChan.',
-    loyalty_tier: 'vip',
+    address: "",
+    allergens: "",
+    notes: "Cliente fiel de BaChan.",
+    loyalty_tier: "vip",
     discount_percent: 0,
-    favorite_dish: 'Bento adulto',
-    created_at: '2026-04-18T12:30:32.602Z'
+    favorite_dish: "Bento adulto",
+    created_at: "2026-04-18T12:30:32.602+00:00"
   },
   {
-    id: 'cust_combi_vip',
-    name: 'Combi',
-    phone: '',
-    email: '',
+    id: "0db3a0e1-edec-40c5-8f6c-5e62e1a27740",
+    name: "Combi",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Pedidos de Bento Tonkatsu.',
-    loyalty_tier: 'vip',
+    address: "",
+    allergens: "",
+    notes: "Pedidos de Bento Tonkatsu.",
+    loyalty_tier: "vip",
     discount_percent: 0,
-    favorite_dish: 'Bento Tonkatsu',
-    created_at: '2026-04-18T12:36:02.868Z'
+    favorite_dish: "Bento Tonkatsu",
+    created_at: "2026-04-18T12:36:02.868+00:00"
   },
   {
-    id: 'cust_danielsan_gold',
-    name: 'DanielSan',
-    phone: '',
-    email: '',
+    id: "85ce8386-dd79-4483-8eac-1f4a090729dd",
+    name: "Cliente Delivery",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Fan del Bento Tonkatsu.',
-    loyalty_tier: 'gold',
+    address: "",
+    allergens: "",
+    notes: "Pedidos agrupados de Delivery general (8 pedidos acumulados).",
+    loyalty_tier: "vip",
     discount_percent: 0,
-    favorite_dish: 'Bento Tonkatsu',
-    created_at: '2026-04-18T12:31:56.937Z'
+    favorite_dish: "Bento cumpleaños",
+    created_at: "2026-04-18T12:31:19.660+00:00"
   },
   {
-    id: 'cust_juanma_gold',
-    name: 'Juanma',
-    phone: '',
-    email: '',
+    id: "395dc504-363e-44ad-a211-f3f06ba2b270",
+    name: "DanielSan",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Pedido de Bento Sushi 18 piezas.',
-    loyalty_tier: 'gold',
+    address: "",
+    allergens: "",
+    notes: "Fan del Bento Tonkatsu.",
+    loyalty_tier: "gold",
     discount_percent: 0,
-    favorite_dish: 'Bento Sushi 18 piezas',
-    created_at: '2026-04-28T16:44:55.392Z'
+    favorite_dish: "Bento Tonkatsu",
+    created_at: "2026-04-18T12:31:56.937+00:00"
   },
   {
-    id: 'cust_tomoko_gold',
-    name: 'Tomoko',
-    phone: '',
-    email: '',
+    id: "f2f327d9-12db-4b08-986e-37ee295783a8",
+    name: "Juanma",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Pedidos de Nato pack 9.',
-    loyalty_tier: 'gold',
+    address: "",
+    allergens: "",
+    notes: "Pedido de Bento Sushi 18 piezas.",
+    loyalty_tier: "gold",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 9',
-    created_at: '2026-04-18T12:38:31.060Z'
+    favorite_dish: "Bento Sushi 18 piezas",
+    created_at: "2026-04-28T16:44:55.392+00:00"
   },
   {
-    id: 'cust_wasamolers_gold',
-    name: 'Wasamolers',
-    phone: '',
-    email: '',
+    id: "1b285471-2aed-4eaf-a87a-436ae9cea94e",
+    name: "Tomoko",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Fan del Chirashi Sushi.',
-    loyalty_tier: 'gold',
+    address: "",
+    allergens: "",
+    notes: "Pedidos de Nato pack 9.",
+    loyalty_tier: "gold",
     discount_percent: 0,
-    favorite_dish: 'Chirashi Sushi',
-    created_at: '2026-05-01T07:14:08.322Z'
+    favorite_dish: "Nato pack 9",
+    created_at: "2026-04-18T12:38:31.060+00:00"
   },
   {
-    id: 'cust_laura_gold',
-    name: 'laura',
-    phone: '',
-    email: '',
+    id: "76b538fa-0346-4f9b-91dc-8e7657f1bcf5",
+    name: "Wasamolers",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Pedido de Katsudon.',
-    loyalty_tier: 'gold',
+    address: "",
+    allergens: "",
+    notes: "Fan del Chirashi Sushi.",
+    loyalty_tier: "gold",
     discount_percent: 0,
-    favorite_dish: 'Katsudon',
-    created_at: '2026-04-18T12:35:03.876Z'
+    favorite_dish: "Chirashi Sushi",
+    created_at: "2026-05-01T07:14:08.322+00:00"
   },
   {
-    id: 'cust_makiko_gold',
-    name: 'Makiko',
-    phone: '',
-    email: '',
+    id: "575eb7c7-a172-4b68-ab5a-e0dd02508f6d",
+    name: "laura",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Nato pack 30.',
-    loyalty_tier: 'gold',
+    address: "",
+    allergens: "",
+    notes: "Pedido de Katsudon.",
+    loyalty_tier: "gold",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 30',
-    created_at: '2026-06-11T05:01:16.840Z'
+    favorite_dish: "Katsudon",
+    created_at: "2026-04-18T12:35:03.876+00:00"
   },
   {
-    id: 'cust_michiko_gold',
-    name: 'Michiko',
-    phone: '',
-    email: '',
+    id: "e0d1d021-c82e-4162-93f9-99c287ba33b5",
+    name: "Makiko",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Nato pack 30.',
-    loyalty_tier: 'gold',
+    address: "",
+    allergens: "",
+    notes: "Nato pack 30.",
+    loyalty_tier: "gold",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 30',
-    created_at: '2026-06-11T05:02:31.335Z'
+    favorite_dish: "Nato pack 30",
+    created_at: "2026-06-11T05:01:16.840+00:00"
   },
   {
-    id: 'cust_yokopi_gold',
-    name: 'Yokopi',
-    phone: '',
-    email: '',
+    id: "f7ea7e3f-468a-460e-9214-4d949b7beead",
+    name: "Michiko",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Nato pack 30.',
-    loyalty_tier: 'gold',
+    address: "",
+    allergens: "",
+    notes: "Nato pack 30.",
+    loyalty_tier: "gold",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 30',
-    created_at: '2026-08-18T16:20:31.901Z'
+    favorite_dish: "Nato pack 30",
+    created_at: "2026-06-11T05:02:31.335+00:00"
   },
   {
-    id: 'cust_alinabio_gold',
-    name: 'Alina / BIO 🍀',
-    phone: '',
-    email: '',
+    id: "36292c1b-5cd1-48ad-858f-48c95971afc4",
+    name: "Yokopi",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Nato pack 30 BIO.',
-    loyalty_tier: 'gold',
+    address: "",
+    allergens: "",
+    notes: "Nato pack 30.",
+    loyalty_tier: "gold",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 30',
-    created_at: '2026-09-16T15:53:11.758Z'
+    favorite_dish: "Nato pack 30",
+    created_at: "2026-08-18T16:20:31.901+00:00"
   },
   {
-    id: 'cust_isabelbio_gold',
-    name: 'Isabel / BIO 🍀',
-    phone: '',
-    email: '',
+    id: "ee1faa48-167e-435f-b647-96d02e1a24cf",
+    name: "Isabel / BIO 🍀",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Nato pack 30 BIO.',
-    loyalty_tier: 'gold',
+    address: "",
+    allergens: "",
+    notes: "Nato pack 30 BIO.",
+    loyalty_tier: "gold",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 30',
-    created_at: '2026-09-16T15:53:51.972Z'
+    favorite_dish: "Nato pack 30",
+    created_at: "2026-09-16T15:53:51.972+00:00"
   },
   {
-    id: 'cust_yukachan_gold',
-    name: 'ゆーかちゃん　黄／黒',
-    phone: '',
-    email: '',
+    id: "b38ca9ae-abbe-467f-8c98-8f5a0ed1efa9",
+    name: "ゆーかちゃん　黄／黒",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Nato pack 30.',
-    loyalty_tier: 'gold',
+    address: "",
+    allergens: "",
+    notes: "Nato pack 30.",
+    loyalty_tier: "gold",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 30',
-    created_at: '2026-09-18T19:49:25.703Z'
+    favorite_dish: "Nato pack 30",
+    created_at: "2026-09-18T19:49:25.703+00:00"
   },
   {
-    id: 'cust_bea_frequent',
-    name: 'Bea',
-    phone: '',
-    email: '',
+    id: "e793fcc2-ab0a-4308-969a-99ca37d5a0a6",
+    name: "Bea",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Oyakodon.',
-    loyalty_tier: 'frequent',
+    address: "",
+    allergens: "",
+    notes: "Oyakodon.",
+    loyalty_tier: "frequent",
     discount_percent: 0,
-    favorite_dish: 'Oyakodon',
-    created_at: '2026-04-18T12:32:12.352Z'
+    favorite_dish: "Oyakodon",
+    created_at: "2026-04-18T12:32:12.352+00:00"
   },
   {
-    id: 'cust_nuria_frequent',
-    name: 'Nuria',
-    phone: '',
-    email: '',
+    id: "9bdd86b1-14dd-457b-bc58-14634d216603",
+    name: "Nuria",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Nato pack 3.',
-    loyalty_tier: 'frequent',
+    address: "",
+    allergens: "",
+    notes: "Nato pack 3.",
+    loyalty_tier: "frequent",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 3',
-    created_at: '2026-04-18T12:30:52.199Z'
+    favorite_dish: "Nato pack 3",
+    created_at: "2026-04-18T12:30:52.199+00:00"
   },
   {
-    id: 'cust_nuriasprinter_frequent',
-    name: 'Nuria Sprinter',
-    phone: '',
-    email: '',
+    id: "c1624c5f-648b-4975-83fa-216209378ab8",
+    name: "Nuria Sprinter",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Bento Tonkatsu.',
-    loyalty_tier: 'frequent',
+    address: "",
+    allergens: "",
+    notes: "Bento Tonkatsu.",
+    loyalty_tier: "frequent",
     discount_percent: 0,
-    favorite_dish: 'Bento Tonkatsu',
-    created_at: '2026-04-18T12:35:30.804Z'
+    favorite_dish: "Bento Tonkatsu",
+    created_at: "2026-04-18T12:35:30.804+00:00"
   },
   {
-    id: 'cust_nuriasusana_frequent',
-    name: 'Nuria& susana',
-    phone: '',
-    email: '',
+    id: "c48853f9-d0ae-4594-9977-8cbc2184ef1a",
+    name: "Nuria& susana",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Bento Sushi 18 piezas.',
-    loyalty_tier: 'frequent',
+    address: "",
+    allergens: "",
+    notes: "Bento Sushi 18 piezas.",
+    loyalty_tier: "frequent",
     discount_percent: 0,
-    favorite_dish: 'Bento Sushi 18 piezas',
-    created_at: '2026-04-29T05:58:43.216Z'
+    favorite_dish: "Bento Sushi 18 piezas",
+    created_at: "2026-04-29T05:58:43.216+00:00"
   },
   {
-    id: 'cust_raultima_frequent',
-    name: 'RAULTIMA',
-    phone: '',
-    email: '',
+    id: "7f655bc3-d0d1-4c8d-9ee2-c6022374fefb",
+    name: "RAULTIMA",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Bento Sushi 18 piezas.',
-    loyalty_tier: 'frequent',
+    address: "",
+    allergens: "",
+    notes: "Bento Sushi 18 piezas.",
+    loyalty_tier: "frequent",
     discount_percent: 0,
-    favorite_dish: 'Bento Sushi 18 piezas',
-    created_at: '2026-04-30T10:18:45.369Z'
+    favorite_dish: "Bento Sushi 18 piezas",
+    created_at: "2026-04-30T10:18:45.369+00:00"
   },
   {
-    id: 'cust_suzuna_frequent',
-    name: 'Suzuna',
-    phone: '',
-    email: '',
+    id: "722e75db-ed37-4473-9ee8-3dd5eb7eac7f",
+    name: "Suzuna",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Nato pack 9.',
-    loyalty_tier: 'frequent',
+    address: "",
+    allergens: "",
+    notes: "Nato pack 9.",
+    loyalty_tier: "frequent",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 9',
-    created_at: '2026-04-26T10:12:41.132Z'
+    favorite_dish: "Nato pack 9",
+    created_at: "2026-04-26T10:12:41.132+00:00"
   },
   {
-    id: 'cust_chika_frequent',
-    name: 'Chika',
-    phone: '',
-    email: '',
+    id: "1bf0b3a1-ad28-4823-b95a-955a7ca04516",
+    name: "Chika",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Nato pack 9.',
-    loyalty_tier: 'frequent',
+    address: "",
+    allergens: "",
+    notes: "Nato pack 9.",
+    loyalty_tier: "frequent",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 9',
-    created_at: '2026-06-11T05:02:57.245Z'
+    favorite_dish: "Nato pack 9",
+    created_at: "2026-06-11T05:02:57.245+00:00"
   },
   {
-    id: 'cust_mantenimiento_frequent',
-    name: 'Mantenimiento',
-    phone: '',
-    email: '',
+    id: "3867d2c9-02ed-4ee9-b77d-7faeeec5c7ae",
+    name: "Mantenimiento",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Bento cumpleaños.',
-    loyalty_tier: 'frequent',
+    address: "",
+    allergens: "",
+    notes: "Bento cumpleaños.",
+    loyalty_tier: "frequent",
     discount_percent: 0,
-    favorite_dish: 'Bento cumpleaños',
-    created_at: '2026-07-30T03:52:21.958Z'
+    favorite_dish: "Bento cumpleaños",
+    created_at: "2026-07-30T03:52:21.958+00:00"
   },
   {
-    id: 'cust_sasaki_frequent',
-    name: '佐々木さん　お試し',
-    phone: '',
-    email: '',
+    id: "9cc9a9a3-df76-4b66-9521-89196476790b",
+    name: "佐々木さん　お試し",
+    phone: "",
+    email: "",
     birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Nato pack 3.',
-    loyalty_tier: 'frequent',
+    address: "",
+    allergens: "",
+    notes: "Nato pack 3.",
+    loyalty_tier: "frequent",
     discount_percent: 0,
-    favorite_dish: 'Nato pack 3',
-    created_at: '2026-09-05T14:32:16.758Z'
-  },
-  {
-    id: 'cust_delivery_vip',
-    name: 'Cliente Delivery',
-    phone: '',
-    email: '',
-    birthday: null,
-    address: '',
-    allergens: '',
-    notes: 'Pedidos agrupados de Delivery general (8 pedidos acumulados).',
-    loyalty_tier: 'vip',
-    discount_percent: 0,
-    favorite_dish: 'Bento cumpleaños',
-    created_at: '2026-04-18T12:31:19.660Z'
+    favorite_dish: "Nato pack 3",
+    created_at: "2026-09-05T14:32:16.758+00:00"
   }
 ];
 
 // Helper to get local data & clean out obsolete demo seeds
 function getLocalCustomers() {
   try {
-    // Purge old demo key if exists
     localStorage.removeItem('bachan_customers_v1');
+    localStorage.removeItem('bachan_customers_real_v2');
 
     const raw = localStorage.getItem(LOCAL_CUSTOMERS_KEY);
     if (!raw) {
@@ -382,7 +368,6 @@ function getLocalCustomers() {
       return INITIAL_REAL_CUSTOMERS;
     }
     const parsed = JSON.parse(raw);
-    // Filter out old demo mock names just in case
     const cleaned = parsed.filter(c => !['Marta Soler', 'Carlos Mendoza', 'Lucía Fernández'].includes(c.name));
     if (cleaned.length === 0) {
       localStorage.setItem(LOCAL_CUSTOMERS_KEY, JSON.stringify(INITIAL_REAL_CUSTOMERS));
@@ -404,6 +389,31 @@ function saveLocalCustomers(customers) {
   }
 }
 
+// ── Strict PostgreSQL Payload Sanitizer ──────────────────────────────────────
+export function sanitizeCustomerPayload(data) {
+  const payload = {};
+  
+  if (data.name !== undefined) payload.name = (data.name || '').trim();
+  if (data.phone !== undefined) payload.phone = (data.phone || '').trim();
+  if (data.email !== undefined) payload.email = (data.email || '').trim();
+  
+  // PostgreSQL DATE type strictly requires null when empty or invalid string
+  if (data.birthday !== undefined) {
+    const b = typeof data.birthday === 'string' ? data.birthday.trim() : data.birthday;
+    payload.birthday = b && b.length >= 8 ? b : null;
+  }
+  
+  if (data.address !== undefined) payload.address = (data.address || '').trim();
+  if (data.allergens !== undefined) payload.allergens = (data.allergens || '').trim();
+  if (data.notes !== undefined) payload.notes = (data.notes || '').trim();
+  if (data.loyalty_tier !== undefined) payload.loyalty_tier = data.loyalty_tier || 'standard';
+  if (data.discount_percent !== undefined) payload.discount_percent = Number(data.discount_percent || 0);
+  if (data.favorite_dish !== undefined) payload.favorite_dish = (data.favorite_dish || '').trim();
+  
+  payload.updated_at = new Date().toISOString();
+  return payload;
+}
+
 // ── CRUD Operations ────────────────────────────────────────────────────────
 export async function getCustomers() {
   try {
@@ -413,10 +423,11 @@ export async function getCustomers() {
       .order('name', { ascending: true });
 
     if (!error && data && data.length > 0) {
-      // Filter out any mock names
       const realOnly = data.filter(c => !['Marta Soler', 'Carlos Mendoza', 'Lucía Fernández'].includes(c.name));
       saveLocalCustomers(realOnly);
       return { success: true, data: realOnly };
+    } else if (error) {
+      console.warn('Supabase customers query error:', error);
     }
   } catch (err) {
     console.warn('Supabase customers fetch fallback to localStorage:', err);
@@ -428,98 +439,92 @@ export async function getCustomers() {
 }
 
 export async function createCustomer(customerData) {
-  const newId = crypto.randomUUID ? crypto.randomUUID() : `cust_${Date.now()}`;
   const now = new Date().toISOString();
-  
-  const customer = {
-    id: newId,
-    name: customerData.name?.trim() || 'Cliente Sin Nombre',
-    phone: customerData.phone?.trim() || '',
-    email: customerData.email?.trim() || '',
-    birthday: customerData.birthday || null,
-    address: customerData.address?.trim() || '',
-    allergens: customerData.allergens?.trim() || '',
-    notes: customerData.notes?.trim() || '',
-    loyalty_tier: customerData.loyalty_tier || 'standard',
-    discount_percent: Number(customerData.discount_percent || 0),
-    favorite_dish: customerData.favorite_dish?.trim() || '',
-    created_at: now,
-    updated_at: now
-  };
+  const payload = sanitizeCustomerPayload(customerData);
+  payload.created_at = customerData.created_at || now;
 
   // Try Supabase first
   try {
     const { data, error } = await supabase
       .from('customers')
-      .insert([customer])
+      .insert([payload])
       .select()
       .single();
 
     if (!error && data) {
       const current = getLocalCustomers();
-      saveLocalCustomers([data, ...current.filter(c => c.id !== data.id)]);
+      saveLocalCustomers([data, ...current.filter(c => c.id !== data.id && c.name.toLowerCase() !== data.name.toLowerCase())]);
       return { success: true, data };
+    } else if (error) {
+      console.error('Supabase customer insert error:', error);
     }
   } catch (err) {
-    console.warn('Supabase customer insert fallback to local:', err);
+    console.warn('Supabase customer insert exception:', err);
   }
 
   // Local fallback
+  const newId = crypto.randomUUID ? crypto.randomUUID() : `cust_${Date.now()}`;
+  const localObj = { ...payload, id: newId };
   const current = getLocalCustomers();
-  const updated = [customer, ...current.filter(c => c.id !== customer.id)];
+  const updated = [localObj, ...current.filter(c => c.id !== newId)];
   saveLocalCustomers(updated);
-  return { success: true, data: customer, isLocalFallback: true };
+  return { success: true, data: localObj, isLocalFallback: true };
 }
 
 export async function updateCustomer(id, customerData) {
-  const now = new Date().toISOString();
-  const cleanData = {
-    ...customerData,
-    updated_at: now
-  };
+  const payload = sanitizeCustomerPayload(customerData);
 
   try {
-    const { data, error } = await supabase
-      .from('customers')
-      .update(cleanData)
-      .eq('id', id)
-      .select()
-      .single();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    
+    let query = supabase.from('customers').update(payload);
+    if (isUuid) {
+      query = query.eq('id', id);
+    } else {
+      query = query.eq('name', customerData.name || '');
+    }
+
+    const { data, error } = await query.select().single();
 
     if (!error && data) {
       const current = getLocalCustomers();
-      const updated = current.map(c => c.id === id ? data : c);
+      const updated = current.map(c => (c.id === id || c.id === data.id || (data.name && c.name.toLowerCase() === data.name.toLowerCase())) ? data : c);
       saveLocalCustomers(updated);
       return { success: true, data };
+    } else if (error) {
+      console.error('Supabase customer update error:', error);
     }
   } catch (err) {
-    console.warn('Supabase customer update fallback to local:', err);
+    console.warn('Supabase customer update exception:', err);
   }
 
   // Local fallback
   const current = getLocalCustomers();
   const updated = current.map(c => {
-    if (c.id === id) {
-      return { ...c, ...cleanData };
+    if (c.id === id || (customerData.name && c.name.toLowerCase() === customerData.name.toLowerCase())) {
+      return { ...c, ...payload };
     }
     return c;
   });
   saveLocalCustomers(updated);
-  const updatedObj = updated.find(c => c.id === id);
+  const updatedObj = updated.find(c => c.id === id || (customerData.name && c.name.toLowerCase() === customerData.name.toLowerCase()));
   return { success: true, data: updatedObj, isLocalFallback: true };
 }
 
 export async function deleteCustomer(id) {
   try {
-    const { error } = await supabase
-      .from('customers')
-      .delete()
-      .eq('id', id);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (isUuid) {
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', id);
 
-    if (!error) {
-      const current = getLocalCustomers();
-      saveLocalCustomers(current.filter(c => c.id !== id));
-      return { success: true };
+      if (!error) {
+        const current = getLocalCustomers();
+        saveLocalCustomers(current.filter(c => c.id !== id));
+        return { success: true };
+      }
     }
   } catch (err) {
     console.warn('Supabase customer delete fallback to local:', err);
@@ -603,7 +608,6 @@ export async function syncCustomersFromOrders(allOrders = []) {
       else if (c.orders_count >= 1) tier = 'frequent';
 
       newCustomersToCreate.push({
-        id: crypto.randomUUID ? crypto.randomUUID() : `cust_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
         name: c.name,
         phone: c.phone || '',
         email: '',
@@ -626,15 +630,20 @@ export async function syncCustomersFromOrders(allOrders = []) {
     } catch (err) {
       console.warn('Sync to Supabase insert warning:', err);
     }
-    const combined = [...newCustomersToCreate, ...existingCustomers];
-    saveLocalCustomers(combined);
+    const currentListRes = await getCustomers();
+    return {
+      success: true,
+      countCreated: newCustomersToCreate.length,
+      totalExisting: (currentListRes.data || []).length,
+      newCustomers: newCustomersToCreate
+    };
   }
 
   return {
     success: true,
-    countCreated: newCustomersToCreate.length,
+    countCreated: 0,
     totalExisting: existingCustomers.length,
-    newCustomers: newCustomersToCreate
+    newCustomers: []
   };
 }
 
