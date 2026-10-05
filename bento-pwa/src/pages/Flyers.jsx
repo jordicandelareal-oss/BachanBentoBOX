@@ -118,17 +118,8 @@ export default function Flyers() {
       alert('Se recomienda un máximo de 4 platos para mantener la proporción visual perfecta del flyer.');
       return;
     }
-    const newDish = {
-      id: `dish_${Date.now()}`,
-      name: 'Kare Japonés',
-      tpvPrice: 13.5,
-      price: '13,5€',
-      description: '(Estofado japonés de verduras y carne con base de curry suave)',
-      badge: 'puro sabor casero',
-      imageUrl: '/dishes/kare.png'
-    };
-    setWeeklyData({ ...weeklyData, dishes: [...weeklyData.dishes, newDish] });
-    showToast('🍱 Plato añadido a la carta');
+    // Abrir directamente el selector de platos del catálogo del TPV
+    setShowCatalogModal('new');
   };
 
   const handleRemoveDish = (index) => {
@@ -140,29 +131,45 @@ export default function Flyers() {
     setWeeklyData({ ...weeklyData, dishes: updated });
   };
 
-  // Asignar plato seleccionado desde el catálogo del TPV
+  // Asignar o añadir plato seleccionado desde el catálogo del TPV
   const handleSelectTPVItem = (item) => {
     if (showCatalogModal !== null) {
-      const idx = showCatalogModal;
-      const updated = [...weeklyData.dishes];
-      
       const itemPrice = Number(item.price || 0);
       const formattedPrice = itemPrice > 0 ? `${itemPrice.toFixed(1).replace('.', ',')}€` : '10,0€';
       const resolvedImg = item.image_url || resolveDishImage(item);
+      const dishDesc = item.description || `(Elaborado fresco artesanalmente por la abuela BaChan)`;
 
-      updated[idx] = {
-        ...updated[idx],
-        name: item.name,
-        tpvPrice: itemPrice,
-        price: formattedPrice,
-        imageUrl: resolvedImg,
-        description: item.description || updated[idx].description || `(Elaborado fresco por la abuela BaChan)`,
-        badge: updated[idx].badge || 'especialidad'
-      };
+      if (showCatalogModal === 'new' || showCatalogModal >= weeklyData.dishes.length) {
+        // Añadir nuevo plato al final desde el TPV
+        const newDish = {
+          id: `dish_${Date.now()}`,
+          name: item.name,
+          tpvPrice: itemPrice,
+          price: formattedPrice,
+          imageUrl: resolvedImg,
+          description: dishDesc,
+          badge: 'especialidad'
+        };
+        setWeeklyData(prev => ({ ...prev, dishes: [...prev.dishes, newDish] }));
+        showToast(`🍱 ${item.name} añadido a la carta desde el TPV (${formattedPrice})`);
+      } else {
+        // Sustituir plato existente en el slot idx
+        const idx = showCatalogModal;
+        const updated = [...weeklyData.dishes];
+        updated[idx] = {
+          ...updated[idx],
+          name: item.name,
+          tpvPrice: itemPrice,
+          price: formattedPrice,
+          imageUrl: resolvedImg,
+          description: item.description || updated[idx].description || dishDesc,
+          badge: updated[idx].badge || 'especialidad'
+        };
+        setWeeklyData(prev => ({ ...prev, dishes: updated }));
+        showToast(`🍱 ${item.name} asignado desde el TPV (${formattedPrice})`);
+      }
 
-      setWeeklyData({ ...weeklyData, dishes: updated });
       setShowCatalogModal(null);
-      showToast(`🍱 ${item.name} asignado desde el TPV (${formattedPrice})`);
     }
   };
 
@@ -959,7 +966,9 @@ export default function Flyers() {
 
             <div className="modal-body-custom" style={{ maxHeight: '480px', overflowY: 'auto' }}>
               <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                Selecciona un plato del TPV para asignarlo al slot #{showCatalogModal + 1}. Se cargará su nombre, foto e importe base del TPV:
+                {showCatalogModal === 'new'
+                  ? 'Selecciona un plato de tu TPV para añadirlo como nuevo plato al flyer. Se cargará su nombre, foto e importe base del TPV:'
+                  : `Selecciona un plato del TPV para asignarlo al slot #${Number(showCatalogModal) + 1}. Se cargará su nombre, foto e importe base del TPV:`}
               </p>
 
               {/* Buscador y Filtros */}
