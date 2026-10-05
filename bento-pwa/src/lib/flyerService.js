@@ -308,12 +308,21 @@ export async function getFlyerBlob(elementId, format = 'png') {
     throw new Error('Elemento del flyer no encontrado en el DOM');
   }
 
+  // Dimensiones fijas virtuales para renderizado ultra-nítido sin importar
+  // si el usuario está en móvil (340px) o pantalla grande (1920px).
+  // Evita el solapamiento de textos causado por el cálculo de altura en WebKit.
   const exportOptions = {
     pixelRatio: 3.0,
     cacheBust: true,
     quality: 0.98,
+    width: 440,
     style: {
-      transform: 'none'
+      transform: 'none',
+      width: '440px',
+      maxWidth: '440px',
+      minWidth: '440px',
+      margin: '0',
+      boxSizing: 'border-box'
     }
   };
 
@@ -340,8 +349,14 @@ export async function downloadFlyerImage(elementId, fileName = 'carta-semanal-ba
     pixelRatio: 3.0,
     cacheBust: true,
     quality: 0.98,
+    width: 440,
     style: {
-      transform: 'none'
+      transform: 'none',
+      width: '440px',
+      maxWidth: '440px',
+      minWidth: '440px',
+      margin: '0',
+      boxSizing: 'border-box'
     }
   };
 

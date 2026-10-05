@@ -326,13 +326,13 @@ export default function Flyers() {
       {/* ── HEADER BANNER ──────────────────────────────────────────────────── */}
       <section className="flyers-header-card">
         <div className="flyers-title-group">
-          <h1><Sparkles size={32} color="#f5e6c8" /> Creador de Cartas Semanales & Flyers BaChan</h1>
+          <h1><Sparkles size={24} color="#f5e6c8" /> Creador de Cartas Semanales & Flyers BaChan</h1>
           <p>Conecta platos de tu TPV, aplica precios y promociones especiales (Estudiantes, Academia Maru, Empresas) y descarga en HD</p>
         </div>
 
         <button 
-          className="btn-export-action copy" 
-          style={{ width: 'auto', background: 'rgba(255,255,255,0.1)', color: '#ffffff', borderColor: 'rgba(255,255,255,0.2)' }}
+          type="button"
+          className="btn-save-template-header"
           onClick={handleSaveCurrentTemplate}
         >
           💾 Guardar Carta
@@ -390,12 +390,12 @@ export default function Flyers() {
           <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)' }} />
 
           {/* ── SECCIÓN PROMOCIÓN ESPECIAL / COLECTIVOS ─────────────────────── */}
-          <div style={{ background: '#fdf8ec', padding: '16px', borderRadius: '12px', border: '1.5px solid #fde68a' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <div style={{ background: '#fdf8ec', padding: '14px', borderRadius: '12px', border: '1.5px solid #fde68a' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
               <label className="editor-section-title" style={{ color: '#92400e' }}>
                 <Tag size={16} /> Promoción Especial / Colectivo
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 'bold', color: '#78350f', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 'bold', color: '#78350f', cursor: 'pointer' }}>
                 <input 
                   type="checkbox"
                   checked={weeklyData.showPromoBanner || false}
@@ -407,7 +407,7 @@ export default function Flyers() {
             </div>
 
             {/* Presets Rápidos */}
-            <div style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: 'bold', marginTop: '6px' }}>
+            <div style={{ fontSize: '0.75rem', color: '#b45309', fontWeight: 'bold', marginTop: '6px' }}>
               Promociones preconfiguradas (1-clic):
             </div>
             <div className="promo-preset-pills">
@@ -425,7 +425,7 @@ export default function Flyers() {
 
             {/* Inputs de configuración del banner promocional */}
             {weeklyData.showPromoBanner && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
                 <div className="form-group-custom">
                   <label style={{ color: '#78350f' }}>Título del Banner Promocional</label>
                   <input 
@@ -464,7 +464,7 @@ export default function Flyers() {
             <label className="editor-section-title">
               <Sparkles size={16} /> Textos de Cabecera
             </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
               <div className="form-group-custom">
                 <label>Título Superior</label>
                 <input 
@@ -496,21 +496,21 @@ export default function Flyers() {
 
           {/* ── PLATOS DE LA CARTA SEMANAL ─────────────────────────────────── */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
               <label className="editor-section-title">
                 <Utensils size={16} /> Platos de la Carta ({weeklyData.dishes.length})
               </label>
               <button 
                 type="button" 
                 className="btn-card-action primary"
-                style={{ width: 'auto', padding: '6px 12px', fontSize: '0.78rem' }}
+                style={{ width: 'auto', padding: '5px 10px', fontSize: '0.78rem' }}
                 onClick={handleAddDish}
               >
                 <Plus size={14} /> Añadir Plato
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {weeklyData.dishes.map((dish, idx) => {
                 const dishImgUrl = resolveDishImage(dish);
                 const isPriceModified = dish.tpvPrice !== undefined && `${Number(dish.tpvPrice).toFixed(1).replace('.', ',')}€` !== dish.price && `${Number(dish.tpvPrice).toFixed(2).replace('.', ',')}€` !== dish.price;
@@ -519,7 +519,7 @@ export default function Flyers() {
                   <div key={dish.id || idx} className="dish-editor-card">
                     <div className="dish-editor-header">
                       <span className="dish-badge-num">Plato #{idx + 1}</span>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div className="dish-editor-actions">
                         <button 
                           type="button" 
                           className="btn-choose-catalog"
@@ -528,20 +528,19 @@ export default function Flyers() {
                             setCatalogSearch('');
                           }}
                         >
-                          <ChefHat size={14} /> Elegir del TPV
+                          <ChefHat size={13} /> TPV
                         </button>
                         <button 
                           type="button" 
-                          className="btn-choose-catalog"
-                          style={{ color: '#d97706' }}
+                          className="btn-choose-catalog btn-choose-illu"
                           onClick={() => setShowIllustrationGalleryModal(idx)}
                         >
-                          <Grid size={14} /> Ilustración
+                          <Grid size={13} /> Foto
                         </button>
                         <button 
                           type="button" 
+                          className="btn-dish-remove"
                           onClick={() => handleRemoveDish(idx)}
-                          style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
                           title="Eliminar este plato"
                         >
                           <Trash2 size={15} />
@@ -549,22 +548,12 @@ export default function Flyers() {
                       </div>
                     </div>
 
-                    {/* Fila con Foto, Nombre y Precio Editable */}
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    {/* Fila con Foto, Nombre y Precio Editable (100% Mobile Fluid Grid) */}
+                    <div className="dish-primary-row">
                       <div 
                         onClick={() => setShowIllustrationGalleryModal(idx)}
-                        style={{
-                          width: '56px',
-                          height: '56px',
-                          borderRadius: '10px',
-                          overflow: 'hidden',
-                          border: '2px solid #3d2b1f',
-                          background: '#fff',
-                          cursor: 'pointer',
-                          flexShrink: 0,
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
-                        }}
-                        title="Haz clic para cambiar la ilustración"
+                        className="dish-editor-thumb-box"
+                        title="Haz clic para cambiar la foto"
                       >
                         <img 
                           src={dishImgUrl} 
@@ -573,7 +562,7 @@ export default function Flyers() {
                         />
                       </div>
 
-                      <div className="form-group-custom" style={{ flex: 1 }}>
+                      <div className="form-group-custom">
                         <label>Nombre del Plato</label>
                         <input 
                           type="text" 
@@ -583,8 +572,8 @@ export default function Flyers() {
                         />
                       </div>
 
-                      <div className="form-group-custom" style={{ width: '105px' }}>
-                        <label>Precio Flyer</label>
+                      <div className="form-group-custom">
+                        <label>Precio</label>
                         <input 
                           type="text" 
                           value={dish.price}
@@ -598,19 +587,19 @@ export default function Flyers() {
                     {dish.tpvPrice !== undefined && (
                       <div className="tpv-price-row">
                         <span className="tpv-price-badge">
-                          <Store size={12} /> Precio Base TPV: {Number(dish.tpvPrice).toFixed(2)}€
+                          <Store size={11} /> Base TPV: {Number(dish.tpvPrice).toFixed(2)}€
                         </span>
                         {isPriceModified && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ color: '#ea580c', fontWeight: 'bold' }}>🔥 Precio especial flyer</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ color: '#ea580c', fontWeight: 'bold' }}>🔥 Especial flyer</span>
                             <button 
                               type="button" 
                               className="btn-reset-price"
                               onClick={() => handleResetToTPVPrice(idx)}
                               title="Restablecer precio original del TPV"
                             >
-                              <RotateCcw size={11} style={{ display: 'inline', marginRight: '2px' }} />
-                              Restablecer
+                              <RotateCcw size={10} style={{ display: 'inline', marginRight: '2px' }} />
+                              Reset
                             </button>
                           </div>
                         )}
@@ -624,7 +613,7 @@ export default function Flyers() {
                         type="text" 
                         value={dish.description}
                         onChange={e => handleDishChange(idx, 'description', e.target.value)}
-                        placeholder="Ej: (Chuleta de cerdo crujiente con arroz, sopa miso y acompañamientos)"
+                        placeholder="Ej: (Chuleta de cerdo crujiente con arroz, sopa miso...)"
                       />
                     </div>
 
@@ -638,7 +627,7 @@ export default function Flyers() {
                         placeholder="Ej: el clásico crujiente, 🎓 Promo Estudiante..."
                       />
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
-                        {['el clásico crujiente', '🎓 Promo Estudiante', '⭐ Recomendado', '🔥 Oferta de la Semana', '🌱 Vegano', '🏫 Tarifa Maru'].map(sugg => (
+                        {['el clásico crujiente', '🎓 Promo Estudiante', '⭐ Recomendado', '🔥 Oferta', '🌱 Vegano', '🏫 Tarifa Maru'].map(sugg => (
                           <button
                             key={sugg}
                             type="button"
@@ -646,7 +635,7 @@ export default function Flyers() {
                             style={{
                               background: '#f1f5f9',
                               border: '1px solid #e2e8f0',
-                              fontSize: '0.7rem',
+                              fontSize: '0.68rem',
                               padding: '2px 6px',
                               borderRadius: '4px',
                               cursor: 'pointer',
@@ -672,7 +661,7 @@ export default function Flyers() {
             <label className="editor-section-title">
               <Phone size={16} /> Contacto WhatsApp
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px' }}>
+            <div className="contact-inputs-grid" style={{ marginTop: '8px' }}>
               <div className="form-group-custom">
                 <label>Nombre de Contacto</label>
                 <input 
