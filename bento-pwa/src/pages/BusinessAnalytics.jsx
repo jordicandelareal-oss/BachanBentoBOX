@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { getCustomers, createCustomer } from '../lib/customerService';
 import {
   TrendingUp,
   TrendingDown,
@@ -26,7 +27,15 @@ import {
   Wallet,
   LayoutGrid,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Pencil,
+  Check,
+  X,
+  UserCheck,
+  Search,
+  Phone,
+  UtensilsCrossed,
+  FileText
 } from 'lucide-react';
 
 import '../styles/Common.css';
@@ -38,6 +47,7 @@ export default function BusinessAnalytics() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('today'); // today, 7d, 30d, all
   const [menuItems, setMenuItems] = useState([]);
+  const [customerList, setCustomerList] = useState([]);
   const [expanded, setExpanded] = useState({
     kpis: true,
     popularity: true,
@@ -45,6 +55,20 @@ export default function BusinessAnalytics() {
     engineering: true,
     history: true
   });
+
+  // Ticket editing state
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [editForm, setEditForm] = useState({
+    customer_name: '',
+    customer_phone: '',
+    customer_id: null,
+    payment_method: 'bizum',
+    table_id: 'Delivery',
+    notes: ''
+  });
+  const [custSearchQuery, setCustSearchQuery] = useState('');
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
 
   const toggleSection = (section) => {
     setExpanded(prev => ({ ...prev, [section]: !prev[section] }));
@@ -58,7 +82,7 @@ export default function BusinessAnalytics() {
   async function fetchData() {
     setLoading(true);
     try {
-      const [ordersRes, menuRes] = await Promise.all([
+      const [ordersRes, menuRes, custRes] = await Promise.all([
         supabase
           .from('orders')
           .select('*')
@@ -67,7 +91,8 @@ export default function BusinessAnalytics() {
         supabase
           .from('menu_items')
           .select('*')
-          .eq('active', true)
+          .eq('active', true),
+        getCustomers()
       ]);
 
       if (ordersRes.error) throw ordersRes.error;
@@ -76,12 +101,97 @@ export default function BusinessAnalytics() {
       console.log('📊 [Analytics] Órdenes recuperadas:', ordersRes.data?.length || 0);
       setOrders(ordersRes.data || []);
       setMenuItems(menuRes.data || []);
+      if (custRes?.data) setCustomerList(custRes.data);
     } catch (err) {
       console.error('Error fetching analytics data:', err);
     } finally {
       setLoading(false);
     }
   }
+
+  // ── Open Edit Ticket Modal ──────────────────────
+  const handleOpenEditOrder = (order) => {
+    setEditingOrder(order);
+    setEditForm({
+      customer_name: order.customer_name || 'Mostrador',
+      customer_phone: order.customer_phone || '',
+      customer_id: order.customer_id || null,
+      payment_method: order.payment_method || 'bizum',
+      table_id: order.table_id || 'Delivery',
+      notes: order.notes || ''
+    });
+    setCustSearchQuery('');
+  };
+
+  // ── Save Edited Order ──────────────────────────
+  const handleSaveEditedOrder = async (e) => {
+    e.preventDefault();
+    if (!editingOrder) return;
+    setIsSavingOrder(true);
+
+    try {
+      const finalName = editForm.customer_name?.trim() || 'Mostrador';
+      const finalPhone = editForm.customer_phone?.trim() || null;
+      const finalCustomerId = editForm.customer_id || null;
+      const finalPayment = editForm.payment_method || 'bizum';
+      const finalTableId = editForm.table_id || null;
+      const finalNotes = editForm.notes?.trim() || null;
+      const nowIso = new Date().toISOString();
+
+      const updateData = {
+        customer_name: finalName,
+        customer_phone: finalPhone,
+        customer_id: finalCustomerId,
+        payment_method: finalPayment,
+        table_id: finalTableId,
+        notes: finalNotes,
+        updated_at: nowIso
+      };
+
+      // 1. Update Supabase orders table
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', editingOrder.id);
+
+      if (error) {
+        console.error('Error updating order in Supabase:', error);
+        throw error;
+      }
+
+      // 2. Update local state
+      setOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, ...updateData } : o));
+
+      // 3. Auto-sync with CRM customer if it's a real name and doesn't exist yet
+      if (finalName && finalName !== 'Mostrador' && finalName !== 'Mostrador General') {
+        const existingCust = customerList.find(c => c.name.toLowerCase() === finalName.toLowerCase());
+        if (!existingCust) {
+          try {
+            const newCustRes = await createCustomer({
+              name: finalName,
+              phone: finalPhone || '',
+              notes: 'Ficha creada automáticamente desde asignación de ticket en Analítica.'
+            });
+            if (newCustRes?.data) {
+              setCustomerList(prev => [newCustRes.data, ...prev]);
+            }
+          } catch (cErr) {
+            console.warn('Auto-create CRM customer warning:', cErr);
+          }
+        }
+      }
+
+      const ticketShort = editingOrder.ticket_number?.split('-').pop() || editingOrder.id?.slice(-4);
+      setToastMessage(`✅ Ticket #${ticketShort} actualizado con cliente "${finalName}"`);
+      setTimeout(() => setToastMessage(null), 4000);
+      setEditingOrder(null);
+    } catch (err) {
+      console.error('Error saving edited order:', err);
+      alert('Error al guardar los cambios del ticket: ' + (err.message || err));
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
 
   // ── Period Filter ──────────────────────────────
   const filteredOrders = useMemo(() => {
@@ -598,11 +708,12 @@ export default function BusinessAnalytics() {
                 <div className="ranking-list" style={{ gap: 0 }}>
                   {filteredOrders.filter(o => ['completed', 'paid', 'delivered', 'finalizado'].includes(o.status)).length > 0 && (
                     <div className="flex items-center px-2 py-3 border-b-2 border-slate-200 text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 rounded-t-xl shrink-0">
-                      <div style={{ flexBasis: '22%' }}>Fecha/Hora</div>
-                      <div style={{ flexBasis: '28%' }}>Cliente & Ticket</div>
-                      <div style={{ flexBasis: '20%' }} className="text-center">Método</div>
-                      <div style={{ flexBasis: '15%' }} className="text-right">Desc.</div>
-                      <div style={{ flexBasis: '15%' }} className="text-right pr-2">Total</div>
+                      <div style={{ flexBasis: '18%' }}>Fecha/Hora</div>
+                      <div style={{ flexBasis: '26%' }}>Cliente & Ticket</div>
+                      <div style={{ flexBasis: '16%' }} className="text-center">Método</div>
+                      <div style={{ flexBasis: '12%' }} className="text-right">Desc.</div>
+                      <div style={{ flexBasis: '14%' }} className="text-right pr-2">Total</div>
+                      <div style={{ flexBasis: '14%' }} className="text-center">Acción</div>
                     </div>
                   )}
 
@@ -626,21 +737,20 @@ export default function BusinessAnalytics() {
                       return (
                         <div 
                           key={order.id} 
-                          className={`flex justify-between items-center px-2 py-3 border-b border-slate-100 last:border-0 hover:bg-sky-50 transition-colors w-full ${index % 2 !== 0 ? 'bg-slate-50/60' : 'bg-white'}`}
-                          style={{ cursor: 'default' }}
+                          className={`flex justify-between items-center px-2 py-3 border-b border-slate-100 last:border-0 hover:bg-sky-50/70 transition-colors w-full group ${index % 2 !== 0 ? 'bg-slate-50/60' : 'bg-white'}`}
                         >
                           {/* 1. Fecha y Hora */}
-                          <div className="text-[9px] lg:text-xs text-slate-500 font-bold whitespace-nowrap overflow-hidden text-ellipsis pr-2" style={{ flexBasis: '22%', flexShrink: 0 }}>
+                          <div className="text-[9px] lg:text-xs text-slate-500 font-bold whitespace-nowrap overflow-hidden text-ellipsis pr-2" style={{ flexBasis: '18%', flexShrink: 0 }}>
                             {formattedDate}
                           </div>
                           
                           {/* 2. Cliente + #Ticket */}
-                          <div className="text-[10px] lg:text-sm font-black text-slate-800 uppercase truncate pr-2" style={{ flexBasis: '28%', flexShrink: 1, minWidth: 0 }}>
+                          <div className="text-[10px] lg:text-sm font-black text-slate-800 uppercase truncate pr-2" style={{ flexBasis: '26%', flexShrink: 1, minWidth: 0 }}>
                             {order.customer_name || 'Mostrador'} <span className="text-slate-400 font-bold">#{ticketShort}</span>
                           </div>
 
                           {/* 3. Tipo de Pago */}
-                          <div className="text-center px-1" style={{ flexBasis: '20%', flexShrink: 0 }}>
+                          <div className="text-center px-1" style={{ flexBasis: '16%', flexShrink: 0 }}>
                             <span 
                               className="px-2 lg:px-3 py-1 rounded-full text-[8px] lg:text-[10px] font-black uppercase tracking-widest whitespace-nowrap inline-block"
                               style={{ backgroundColor: pStyles.bg, color: pStyles.color }}
@@ -650,7 +760,7 @@ export default function BusinessAnalytics() {
                           </div>
 
                           {/* 4. Descuento */}
-                          <div className="text-right pr-2" style={{ flexBasis: '15%', flexShrink: 0 }}>
+                          <div className="text-right pr-2" style={{ flexBasis: '12%', flexShrink: 0 }}>
                             {discount > 0 ? (
                               <span className="text-[9px] lg:text-[11px] font-bold text-red-500">-{discount.toFixed(2)}€</span>
                             ) : (
@@ -659,10 +769,23 @@ export default function BusinessAnalytics() {
                           </div>
 
                           {/* 5. Importe Total */}
-                          <div className="text-right whitespace-nowrap pr-2" style={{ flexBasis: '15%', flexShrink: 0 }}>
+                          <div className="text-right whitespace-nowrap pr-2" style={{ flexBasis: '14%', flexShrink: 0 }}>
                             <div className="text-[11px] lg:text-base font-black text-slate-900">
                               {Number(order.total).toFixed(2)}€
                             </div>
+                          </div>
+
+                          {/* 6. Acción Editar Ticket */}
+                          <div className="text-center px-1" style={{ flexBasis: '14%', flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditOrder(order)}
+                              className="btn-edit-ticket-row"
+                              title="Editar cliente y datos del ticket"
+                            >
+                              <Pencil size={11} />
+                              <span className="text-[9px] lg:text-[11px] font-bold">Editar</span>
+                            </button>
                           </div>
                         </div>
                       );
@@ -678,6 +801,265 @@ export default function BusinessAnalytics() {
             )}
           </div>
         </>
+      )}
+
+      {/* ── Modal de Edición de Ticket ────────────────────────── */}
+      {editingOrder && (
+        <div className="analytics-modal-overlay" onClick={() => !isSavingOrder && setEditingOrder(null)}>
+          <div className="analytics-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="analytics-modal-header">
+              <div className="flex items-center gap-3">
+                <div className="ticket-modal-icon-badge">
+                  <Ticket size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 leading-tight">
+                    Editar Ticket #{editingOrder.ticket_number?.split('-').pop() || editingOrder.id?.slice(-4)}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    {new Date(editingOrder.sold_at || editingOrder.created_at).toLocaleString('es-ES', { 
+                      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                    })} • Total: <strong className="text-slate-800 font-bold">{Number(editingOrder.total || 0).toFixed(2)}€</strong>
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                className="btn-modal-close-custom" 
+                onClick={() => !isSavingOrder && setEditingOrder(null)}
+                title="Cerrar"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditedOrder}>
+              <div className="analytics-modal-body space-y-4">
+                
+                {/* 1. Asignación de Cliente */}
+                <div className="ticket-edit-card-section">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                      <User size={15} className="text-sky-600" /> Asignar Cliente al Ticket
+                    </label>
+                    {editForm.customer_name && editForm.customer_name !== 'Mostrador' && (
+                      <button
+                        type="button"
+                        onClick={() => setEditForm(prev => ({ ...prev, customer_name: 'Mostrador', customer_phone: '', customer_id: null }))}
+                        className="text-[11px] font-bold text-amber-600 hover:text-amber-800 underline transition-colors"
+                      >
+                        Desvincular (Mostrador)
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Nombre y Teléfono */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Nombre / Alias del Cliente:</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej. Alina, DanielSan, Sergio..."
+                        value={editForm.customer_name}
+                        onChange={e => setEditForm(prev => ({ ...prev, customer_name: e.target.value }))}
+                        className="analytics-input w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Teléfono / WhatsApp:</label>
+                      <div className="relative">
+                        <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="tel"
+                          placeholder="Ej. 612345678"
+                          value={editForm.customer_phone}
+                          onChange={e => setEditForm(prev => ({ ...prev, customer_phone: e.target.value }))}
+                          className="analytics-input w-full pl-8"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Selector Rápido de Clientes Registrados */}
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <div className="flex items-center justify-between mb-2 gap-2">
+                      <span className="text-[11px] font-black text-slate-700 flex items-center gap-1.5">
+                        <UserCheck size={14} className="text-emerald-600" /> Clientes Registrados en BaChan:
+                      </span>
+                      <div className="relative">
+                        <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Buscar..."
+                          value={custSearchQuery}
+                          onChange={e => setCustSearchQuery(e.target.value)}
+                          className="text-[11px] pl-6 pr-2 py-1 rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-sky-500 w-28 md:w-36"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+                      {customerList
+                        .filter(c => !custSearchQuery || c.name.toLowerCase().includes(custSearchQuery.toLowerCase()))
+                        .map(c => {
+                          const isSelected = editForm.customer_name?.trim().toLowerCase() === c.name?.trim().toLowerCase();
+                          return (
+                            <button
+                              key={c.id || c.name}
+                              type="button"
+                              onClick={() => {
+                                setEditForm(prev => ({
+                                  ...prev,
+                                  customer_name: c.name,
+                                  customer_phone: c.phone || prev.customer_phone,
+                                  customer_id: c.id || null
+                                }));
+                              }}
+                              className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
+                                isSelected
+                                  ? 'bg-sky-600 text-white shadow-sm ring-2 ring-sky-300'
+                                  : 'bg-white text-slate-700 border border-slate-200 hover:border-sky-400 hover:bg-sky-50'
+                              }`}
+                            >
+                              <span>{c.name}</span>
+                              {c.loyalty_tier === 'vip' && <span className="text-[10px]" title="Cliente VIP">👑</span>}
+                              {isSelected && <Check size={12} />}
+                            </button>
+                          );
+                        })}
+                      {customerList.length === 0 && (
+                        <span className="text-xs text-slate-400 italic">No hay clientes en la lista</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Método de Pago y Canal */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="ticket-edit-card-section">
+                    <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-2 flex items-center gap-1.5">
+                      <CreditCard size={14} className="text-indigo-600" /> Método de Pago
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { id: 'bizum', label: 'Bizum', color: '#1d4ed8', bg: '#eff6ff' },
+                        { id: 'cash', label: 'Efectivo', color: '#15803d', bg: '#f0fdf4' },
+                        { id: 'card', label: 'Tarjeta', color: '#7e22ce', bg: '#faf5ff' }
+                      ].map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setEditForm(prev => ({ ...prev, payment_method: p.id }))}
+                          className={`py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all border text-center ${
+                            editForm.payment_method === p.id
+                              ? 'ring-2 ring-sky-500 shadow-sm border-transparent'
+                              : 'border-slate-200 hover:border-slate-300 opacity-60'
+                          }`}
+                          style={{
+                            backgroundColor: editForm.payment_method === p.id ? p.bg : '#ffffff',
+                            color: editForm.payment_method === p.id ? p.color : '#64748b'
+                          }}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="ticket-edit-card-section">
+                    <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-2 flex items-center gap-1.5">
+                      <Package size={14} className="text-amber-600" /> Canal / Mesa
+                    </label>
+                    <select
+                      value={editForm.table_id || 'Delivery'}
+                      onChange={e => setEditForm(prev => ({ ...prev, table_id: e.target.value }))}
+                      className="analytics-input w-full"
+                    >
+                      <option value="Delivery">🛵 Delivery</option>
+                      <option value="Para Llevar">🛍️ Para Llevar / Take Away</option>
+                      <option value="Mesa 1">🍽️ Mesa 1</option>
+                      <option value="Mesa 2">🍽️ Mesa 2</option>
+                      <option value="Mesa 3">🍽️ Mesa 3</option>
+                      <option value="Mesa 4">🍽️ Mesa 4</option>
+                      <option value="Mostrador">🏬 Mostrador</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* 3. Notas del Ticket */}
+                <div className="ticket-edit-card-section">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-1.5 flex items-center gap-1.5">
+                    <FileText size={14} className="text-slate-500" /> Notas u Observaciones del Ticket
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Entregar con palillos extra, sin gluten, cliente habitual..."
+                    value={editForm.notes}
+                    onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                    className="analytics-input w-full"
+                  />
+                </div>
+
+                {/* 4. Desglose de Platos del Ticket */}
+                {editingOrder.items && Array.isArray(editingOrder.items) && editingOrder.items.length > 0 && (
+                  <div className="bg-amber-50/50 p-3.5 rounded-2xl border border-amber-200/70">
+                    <span className="text-[11px] font-black text-amber-950 flex items-center gap-1.5 mb-2 uppercase tracking-wide">
+                      <UtensilsCrossed size={14} className="text-amber-700" /> Platos Incluidos en este Ticket:
+                    </span>
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                      {editingOrder.items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs text-slate-700 bg-white/70 px-2.5 py-1.5 rounded-lg border border-amber-100">
+                          <span className="font-medium">
+                            <strong className="text-amber-900 font-bold">{item.quantity || 1}x</strong> {item.name || item.id}
+                            {item.modifier && <span className="text-slate-500 text-[10px] ml-1">({item.modifier})</span>}
+                          </span>
+                          <span className="font-black text-slate-900">
+                            {((Number(item.price) || 0) * (Number(item.quantity) || 1)).toFixed(2)}€
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="analytics-modal-footer">
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
+                  onClick={() => setEditingOrder(null)}
+                  disabled={isSavingOrder}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-modal-save"
+                  disabled={isSavingOrder}
+                >
+                  {isSavingOrder ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={16} /> Guardar Cambios del Ticket
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Toast Notification ─────────────────────────────────── */}
+      {toastMessage && (
+        <div className="analytics-toast-notification">
+          {toastMessage}
+        </div>
       )}
     </div>
   );
