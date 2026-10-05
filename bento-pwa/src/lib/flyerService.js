@@ -345,6 +345,90 @@ function getLocalFlyers() {
   }
 }
 
+export const LOCAL_FLYER_HEADER_KEY = 'bachan_flyer_header_custom_v1';
+
+export function getSavedFlyerHeaderSettings() {
+  try {
+    const raw = localStorage.getItem(LOCAL_FLYER_HEADER_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          headerTitle: parsed.headerTitle || DEFAULT_WEEKLY_MENU.headerTitle,
+          headerSubtitle: parsed.headerSubtitle || DEFAULT_WEEKLY_MENU.headerSubtitle,
+          headerTagline: parsed.headerTagline || DEFAULT_WEEKLY_MENU.headerTagline,
+          contactName: parsed.contactName || DEFAULT_WEEKLY_MENU.contactName,
+          contactPhone: parsed.contactPhone || DEFAULT_WEEKLY_MENU.contactPhone,
+          updated_at: parsed.updated_at
+        };
+      }
+    }
+  } catch (err) {
+    console.error('Error reading saved header settings:', err);
+  }
+  return {
+    headerTitle: DEFAULT_WEEKLY_MENU.headerTitle,
+    headerSubtitle: DEFAULT_WEEKLY_MENU.headerSubtitle,
+    headerTagline: DEFAULT_WEEKLY_MENU.headerTagline,
+    contactName: DEFAULT_WEEKLY_MENU.contactName,
+    contactPhone: DEFAULT_WEEKLY_MENU.contactPhone
+  };
+}
+
+export async function saveFlyerHeaderSettings(headerData) {
+  const payload = {
+    headerTitle: (headerData.headerTitle ?? DEFAULT_WEEKLY_MENU.headerTitle).trim(),
+    headerSubtitle: (headerData.headerSubtitle ?? DEFAULT_WEEKLY_MENU.headerSubtitle).trim(),
+    headerTagline: (headerData.headerTagline ?? DEFAULT_WEEKLY_MENU.headerTagline).trim(),
+    contactName: (headerData.contactName ?? DEFAULT_WEEKLY_MENU.contactName).trim(),
+    contactPhone: (headerData.contactPhone ?? DEFAULT_WEEKLY_MENU.contactPhone).trim(),
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    localStorage.setItem(LOCAL_FLYER_HEADER_KEY, JSON.stringify(payload));
+  } catch (err) {
+    console.error('Error writing local header settings:', err);
+  }
+
+  // Sincronizar también con Supabase en la tabla flyer_templates si está disponible
+  try {
+    const { data, error } = await supabase
+      .from('flyer_templates')
+      .upsert([
+        {
+          id: '00000000-0000-0000-0000-000000000001',
+          title: 'Configuración de Cabecera Predeterminada',
+          type: 'header_settings',
+          content: payload,
+          updated_at: new Date().toISOString()
+        }
+      ]);
+    if (!error) {
+      return { success: true, data: payload, syncedSupabase: true };
+    }
+  } catch (err) {
+    console.warn('Supabase flyer header settings sync fallback:', err);
+  }
+
+  return { success: true, data: payload, syncedSupabase: false };
+}
+
+export function resetFlyerHeaderSettings() {
+  try {
+    localStorage.removeItem(LOCAL_FLYER_HEADER_KEY);
+  } catch (err) {
+    console.error('Error resetting flyer header settings:', err);
+  }
+  return {
+    headerTitle: DEFAULT_WEEKLY_MENU.headerTitle,
+    headerSubtitle: DEFAULT_WEEKLY_MENU.headerSubtitle,
+    headerTagline: DEFAULT_WEEKLY_MENU.headerTagline,
+    contactName: DEFAULT_WEEKLY_MENU.contactName,
+    contactPhone: DEFAULT_WEEKLY_MENU.contactPhone
+  };
+}
+
 function saveLocalFlyers(flyers) {
   try {
     localStorage.setItem(LOCAL_FLYERS_KEY, JSON.stringify(flyers));

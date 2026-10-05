@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useFlyers } from '../hooks/useFlyers';
 import { 
   FLYER_THEMES, 
@@ -10,7 +10,10 @@ import {
   downloadFlyerImage, 
   generateWhatsAppWeeklyText,
   copyFlyerImageToClipboard,
-  shareFlyerToWhatsApp
+  shareFlyerToWhatsApp,
+  getSavedFlyerHeaderSettings,
+  saveFlyerHeaderSettings,
+  resetFlyerHeaderSettings
 } from '../lib/flyerService';
 import { 
   Sparkles, 
@@ -30,18 +33,19 @@ import {
   X, 
   Upload, 
   Wand2, 
-  Grid,
-  Search,
-  Tag,
-  GraduationCap,
-  Store,
-  RotateCcw,
-  BadgePercent,
-  Sliders,
-  Send,
-  CheckCircle2,
-  HelpCircle,
-  ExternalLink
+  Grid, 
+  Search, 
+  Tag, 
+  GraduationCap, 
+  Store, 
+  RotateCcw, 
+  BadgePercent, 
+  Sliders, 
+  Send, 
+  CheckCircle2, 
+  HelpCircle, 
+  ExternalLink,
+  Save
 } from 'lucide-react';
 import './Flyers.css';
 
@@ -233,13 +237,45 @@ const WhatsAppIconSVG = () => (
 );
 
 export default function Flyers() {
-  const { menuItems, categories, saveTemplate, saveDishDescription } = useFlyers();
+  const { 
+    menuItems, 
+    categories, 
+    headerSettings, 
+    saveTemplate, 
+    saveDishDescription, 
+    saveHeaders, 
+    resetHeaders 
+  } = useFlyers();
 
   const [selectedThemeId, setSelectedThemeId] = useState('bachan_classic');
   const [customLogoUrl, setCustomLogoUrl] = useState('');
 
-  // Carta Semanal Data
-  const [weeklyData, setWeeklyData] = useState(DEFAULT_WEEKLY_MENU);
+  // Carta Semanal Data (iniciada con la cabecera guardada en local / base de datos)
+  const [weeklyData, setWeeklyData] = useState(() => {
+    const savedHeaders = getSavedFlyerHeaderSettings();
+    return {
+      ...DEFAULT_WEEKLY_MENU,
+      headerTitle: savedHeaders.headerTitle || DEFAULT_WEEKLY_MENU.headerTitle,
+      headerSubtitle: savedHeaders.headerSubtitle || DEFAULT_WEEKLY_MENU.headerSubtitle,
+      headerTagline: savedHeaders.headerTagline || DEFAULT_WEEKLY_MENU.headerTagline,
+      contactName: savedHeaders.contactName || DEFAULT_WEEKLY_MENU.contactName,
+      contactPhone: savedHeaders.contactPhone || DEFAULT_WEEKLY_MENU.contactPhone
+    };
+  });
+
+  // Sincronizar si llegan cabeceras personalizadas de Supabase
+  useEffect(() => {
+    if (headerSettings) {
+      setWeeklyData(prev => ({
+        ...prev,
+        headerTitle: headerSettings.headerTitle || prev.headerTitle,
+        headerSubtitle: headerSettings.headerSubtitle || prev.headerSubtitle,
+        headerTagline: headerSettings.headerTagline || prev.headerTagline,
+        contactName: headerSettings.contactName || prev.contactName,
+        contactPhone: headerSettings.contactPhone || prev.contactPhone
+      }));
+    }
+  }, [headerSettings]);
 
   // Modals & Feedback
   const [showCatalogModal, setShowCatalogModal] = useState(null); // index of dish to assign from TPV catalog
@@ -258,6 +294,41 @@ export default function Flyers() {
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3500);
+  };
+
+  // ── Guardar Textos de Cabecera desde el Front ─────────────────────────────
+  const handleSaveHeaderSettings = async () => {
+    try {
+      const res = await saveHeaders({
+        headerTitle: weeklyData.headerTitle,
+        headerSubtitle: weeklyData.headerSubtitle,
+        headerTagline: weeklyData.headerTagline,
+        contactName: weeklyData.contactName,
+        contactPhone: weeklyData.contactPhone
+      });
+      if (res.success) {
+        showToast('💾 Textos de cabecera guardados con éxito como predeterminados');
+      } else {
+        showToast('⚠️ No se pudieron guardar los textos');
+      }
+    } catch (err) {
+      console.error('Error saving header settings:', err);
+      showToast('❌ Error al guardar cabecera');
+    }
+  };
+
+  // ── Restablecer Textos de Cabecera al Original de Fábrica ─────────────────
+  const handleResetHeaderSettings = () => {
+    const defaults = resetHeaders();
+    setWeeklyData(prev => ({
+      ...prev,
+      headerTitle: defaults.headerTitle,
+      headerSubtitle: defaults.headerSubtitle,
+      headerTagline: defaults.headerTagline,
+      contactName: defaults.contactName,
+      contactPhone: defaults.contactPhone
+    }));
+    showToast('🔄 Textos de cabecera restablecidos al diseño original');
   };
 
   // ── Modificar Platos de la Carta Semanal ──────────────────────────────────
@@ -671,17 +742,66 @@ export default function Flyers() {
           <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)' }} />
 
           {/* ── TEXTOS DE CABECERA ─────────────────────────────────────────── */}
-          <div>
-            <label className="editor-section-title">
-              <Sparkles size={16} /> Textos de Cabecera
-            </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+          <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
+              <label className="editor-section-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sparkles size={16} /> Textos de Cabecera
+              </label>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={handleSaveHeaderSettings}
+                  style={{
+                    background: 'var(--color-navy)',
+                    color: '#f5e6c8',
+                    border: '1.5px solid rgba(245, 230, 200, 0.4)',
+                    fontSize: '0.74rem',
+                    fontWeight: '800',
+                    padding: '5px 11px',
+                    borderRadius: '7px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    boxShadow: '0 2px 6px rgba(12, 28, 46, 0.18)',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Guardar estos textos para que se mantengan siempre como predeterminados en todos los flyers"
+                >
+                  <Save size={13} /> Guardar Cabecera
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetHeaderSettings}
+                  style={{
+                    background: '#ffffff',
+                    color: '#64748b',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.74rem',
+                    fontWeight: '700',
+                    padding: '5px 9px',
+                    borderRadius: '7px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Restablecer los textos a los valores de fábrica de BaChan"
+                >
+                  <RotateCcw size={12} /> Reset
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div className="form-group-custom">
                 <label>Título Superior</label>
                 <input 
                   type="text" 
                   value={weeklyData.headerTitle}
                   onChange={e => setWeeklyData({ ...weeklyData, headerTitle: e.target.value })}
+                  placeholder="Ej: ¡PEDIDOS ABIERTOS PARA BENTOS!"
                 />
               </div>
               <div className="form-group-custom">
@@ -690,6 +810,7 @@ export default function Flyers() {
                   type="text" 
                   value={weeklyData.headerSubtitle}
                   onChange={e => setWeeklyData({ ...weeklyData, headerSubtitle: e.target.value })}
+                  placeholder="Ej: Platos auténticos hechos con amor por la abuela"
                 />
               </div>
               <div className="form-group-custom">
@@ -698,6 +819,7 @@ export default function Flyers() {
                   rows={2}
                   value={weeklyData.headerTagline}
                   onChange={e => setWeeklyData({ ...weeklyData, headerTagline: e.target.value })}
+                  placeholder="Ej: En Bachan Bentobox, ¡haz tu pedido hoy! Deliciosos. Tradicionales. Hechos a mano."
                 />
               </div>
             </div>

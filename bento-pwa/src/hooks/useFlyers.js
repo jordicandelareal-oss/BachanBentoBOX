@@ -3,7 +3,10 @@ import {
   getFlyerTemplates, 
   saveFlyerTemplate, 
   deleteFlyerTemplate,
-  saveDishDescriptionToTPV
+  saveDishDescriptionToTPV,
+  getSavedFlyerHeaderSettings,
+  saveFlyerHeaderSettings,
+  resetFlyerHeaderSettings
 } from '../lib/flyerService';
 import { supabase } from '../lib/supabaseClient';
 
@@ -11,6 +14,7 @@ export function useFlyers() {
   const [templates, setTemplates] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [headerSettings, setHeaderSettings] = useState(() => getSavedFlyerHeaderSettings());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -43,6 +47,10 @@ export function useFlyers() {
 
       if (flyersRes.data) {
         setTemplates(flyersRes.data);
+        const remoteHeaders = flyersRes.data.find(t => t.type === 'header_settings');
+        if (remoteHeaders?.content) {
+          setHeaderSettings(remoteHeaders.content);
+        }
       }
 
       if (menuRes.data) {
@@ -88,15 +96,33 @@ export function useFlyers() {
     return res;
   };
 
+  const saveHeaders = async (headerData) => {
+    const res = await saveFlyerHeaderSettings(headerData);
+    if (res.success) {
+      setHeaderSettings(res.data);
+    }
+    return res;
+  };
+
+  const resetHeaders = () => {
+    const defaults = resetFlyerHeaderSettings();
+    setHeaderSettings(defaults);
+    return defaults;
+  };
+
   return {
     templates,
     menuItems,
     categories,
+    headerSettings,
     loading,
     error,
     refresh: loadData,
     saveTemplate,
     removeTemplate,
-    saveDishDescription
+    saveDishDescription,
+    saveHeaders,
+    resetHeaders,
+    getSavedFlyerHeaderSettings
   };
 }
