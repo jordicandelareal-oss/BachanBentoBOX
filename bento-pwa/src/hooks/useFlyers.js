@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   getFlyerTemplates, 
   saveFlyerTemplate, 
-  deleteFlyerTemplate
+  deleteFlyerTemplate,
+  saveDishDescriptionToTPV
 } from '../lib/flyerService';
 import { supabase } from '../lib/supabaseClient';
 
@@ -21,7 +22,17 @@ export function useFlyers() {
         getFlyerTemplates(),
         supabase
           .from('menu_items')
-          .select('*')
+          .select(`
+            id, name, description, price, image_url, recipe_id, menu_category_id,
+            recipe:recipes (
+              id, name, recipe_type, notes,
+              recipe_ingredients:recipe_ingredients!recipe_ingredients_recipe_id_fkey (
+                id, quantity,
+                ingredient:ingredients (id, name),
+                child:recipes!recipe_ingredients_child_recipe_id_fkey (id, name)
+              )
+            )
+          `)
           .eq('active', true)
           .order('name', { ascending: true }),
         supabase
@@ -69,6 +80,14 @@ export function useFlyers() {
     return res;
   };
 
+  const saveDishDescription = async (menuItemId, description) => {
+    const res = await saveDishDescriptionToTPV(menuItemId, description);
+    if (res.success) {
+      await loadData();
+    }
+    return res;
+  };
+
   return {
     templates,
     menuItems,
@@ -77,6 +96,7 @@ export function useFlyers() {
     error,
     refresh: loadData,
     saveTemplate,
-    removeTemplate
+    removeTemplate,
+    saveDishDescription
   };
 }

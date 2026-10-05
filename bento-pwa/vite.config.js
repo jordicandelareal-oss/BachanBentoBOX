@@ -12,11 +12,11 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        // ── Cache Bust v14 ─────────────────────────────────────────────────────
+        // ── Cache Bust v15 ─────────────────────────────────────────────────────
         // Cambiar este prefijo fuerza a TODOS los Service Workers instalados
         // a invalidar sus cachés y descargar la versión más reciente.
         // Imprescindible cuando el SW antiguo sigue sirviendo código roto.
-        cacheId: 'BACHAN_CACHE_FINAL_V14',
+        cacheId: 'BACHAN_CACHE_FINAL_V15',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/, /\/supabase\//],

@@ -31,6 +31,133 @@ export function resolveDishImage(dish) {
   return matched ? matched.url : '/dishes/tonkatsu.png';
 }
 
+const PACKAGING_WORDS = [
+  'bento box', 'caja', 'bolsa', 'tarrina', 'envase', 'palillo', 'palillos',
+  'servilleta', 'tapa', 'film', 'cubierto', 'bol', 'vaso'
+];
+
+const STAPLE_WORDS = ['sal', 'agua', 'aceite girasol', 'aceite de girasol', 'aceite oliva'];
+
+// ── Motor Inteligente de Descripciones y Claims de Sabor desde Elaboraciones ──
+export function generateSmartDishDescriptor(item) {
+  if (!item) return { description: '', badge: 'especialidad', childNames: [], ingredientNames: [] };
+
+  const name = (item.name || '').trim();
+  const nameLower = name.toLowerCase();
+  const recipe = item.recipe || {};
+  const recipeIngredients = recipe.recipe_ingredients || [];
+
+  // Extraer elaboraciones y alimentos reales
+  const childNames = [];
+  const ingredientNames = [];
+
+  recipeIngredients.forEach(ri => {
+    if (ri.child?.name) {
+      const cName = ri.child.name.trim();
+      const cLower = cName.toLowerCase();
+      if (!PACKAGING_WORDS.some(w => cLower.includes(w))) {
+        childNames.push(cName);
+      }
+    } else if (ri.ingredient?.name) {
+      const iName = ri.ingredient.name.trim();
+      const iLower = iName.toLowerCase();
+      if (!PACKAGING_WORDS.some(w => iLower.includes(w)) && !STAPLE_WORDS.some(w => iLower === w)) {
+        ingredientNames.push(iName);
+      }
+    }
+  });
+
+  let description = '';
+  let badge = 'especialidad';
+
+  // 1. Detección por platos icónicos japoneses y sus combinaciones
+  if (nameLower.includes('tonkatsu') && (nameLower.includes('bento') || recipe.recipe_type === 'bento')) {
+    description = '(Lomo de cerdo crujiente empanado en panko con arroz, tsukemono y ensalada fresca)';
+    badge = 'el clásico crujiente';
+  } else if (nameLower.includes('katsudon')) {
+    description = '(Cuenco de arroz con crujiente tonkatsu, huevo meloso y cebolla pochada en salsa dashi)';
+    badge = 'confort en cada bocado';
+  } else if (nameLower.includes('oyakodon')) {
+    description = '(Pollo jugoso y huevo tierno estofados sobre arroz con cebolla en salsa dulce)';
+    badge = 'tradición & ternura';
+  } else if (nameLower.includes('karaage') || nameLower.includes('pollo frito')) {
+    description = '(Pollo marinado al estilo japonés frito crujiente con arroz y salsa especial)';
+    badge = 'jugoso & crujiente';
+  } else if (nameLower.includes('salmon') || nameLower.includes('salmón')) {
+    if (nameLower.includes('maki') || nameLower.includes('sushi') || nameLower.includes('hosomaki') || nameLower.includes('futomaki') || nameLower.includes('nigiri')) {
+      description = '(Piezas frescas de arroz sazonado con salmón noruego y alga nori)';
+      badge = 'fresco del día';
+    } else {
+      description = '(Lomo de salmón fresco glaseado con salsa teriyaki dulce sobre cama de arroz)';
+      badge = 'glaseado teriyaki';
+    }
+  } else if (nameLower.includes('onigiri')) {
+    if (childNames.length > 1) {
+      const nonRice = childNames.filter(c => !c.toLowerCase().includes('arroz'));
+      description = `(Triángulos de arroz japonés sazonado envueltos en alga nori con ${nonRice.slice(0, 2).join(' y ')})`;
+    } else {
+      description = '(Triángulos de arroz japonés artesanal sazonado envueltos en alga nori)';
+    }
+    badge = 'hecho a mano';
+  } else if (nameLower.includes('kare') || nameLower.includes('curry')) {
+    description = '(Curry japonés aromático cocinado a fuego lento con verduras tiernas y arroz)';
+    badge = 'aroma & calidez';
+  } else if (nameLower.includes('gyoza')) {
+    description = '(Empanadillas artesanales rellenas de cerdo y verduras doradas a la plancha)';
+    badge = 'doradas al punto';
+  } else if (nameLower.includes('yakimeshi')) {
+    description = '(Arroz salteado al wok teppanyaki con vegetales de temporada y toque de soja)';
+    badge = 'salteado al wok';
+  } else if (nameLower.includes('natto') || nameLower.includes('nato')) {
+    description = '(Habas de soja fermentadas tradicionales de Japón, superalimento nutritivo)';
+    badge = '100% tradicional';
+  } else if (nameLower.includes('sushi') || nameLower.includes('chirashi')) {
+    description = '(Selección de nigiris y makis frescos elaborados artesanalmente al momento)';
+    badge = 'selección premium';
+  } else if (nameLower.includes('atun') || nameLower.includes('atún') || nameLower.includes('corvina') || nameLower.includes('langostino') || nameLower.includes('surimi') || nameLower.includes('maki') || nameLower.includes('nigiri') || nameLower.includes('roll')) {
+    const mainFillings = [...childNames, ...ingredientNames].filter(f => !f.toLowerCase().includes('arroz'));
+    if (mainFillings.length > 0) {
+      description = `(Piezas preparadas con ${mainFillings.slice(0, 3).join(', ')} y arroz de sushi)`;
+    } else {
+      description = '(Piezas artesanales de sushi fresco elaboradas al momento)';
+    }
+    badge = 'fresco del día';
+  } else if (nameLower.includes('coca') || nameLower.includes('fanta') || nameLower.includes('ramune') || nameLower.includes('cerveza') || nameLower.includes('refresco') || /\b(te|té|agua)\b/i.test(nameLower)) {
+    description = '(Bebida fría refrescante para acompañar tu bento box favorito)';
+    badge = 'refrescante';
+  } else if (nameLower.includes('bento') && childNames.length >= 2) {
+    description = `(Menú completo con ${childNames.slice(0, 3).join(', ')} y guarnición casera)`;
+    badge = 'el favorito de BaChan';
+  } else if (childNames.length > 0) {
+    description = `(Elaborado con ${childNames.slice(0, 3).join(', ')} y guarnición de la casa)`;
+    badge = 'receta de la abuela';
+  } else if (ingredientNames.length > 0) {
+    description = `(Elaboración artesanal con ${ingredientNames.slice(0, 3).join(', ')})`;
+    badge = 'hecho con cariño';
+  } else {
+    description = `(Especialidad artesanal recién elaborada con ingredientes seleccionados)`;
+    badge = 'especialidad BaChan';
+  }
+
+  return { description, badge, childNames, ingredientNames };
+}
+
+export async function saveDishDescriptionToTPV(menuItemId, description) {
+  if (!menuItemId) return { success: false, error: 'ID de plato no proporcionado' };
+  try {
+    const { error } = await supabase
+      .from('menu_items')
+      .update({ description })
+      .eq('id', menuItemId);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (err) {
+    console.error('Error guardando descripción en TPV:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 export const FLYER_THEMES = [
   {
     id: 'bachan_classic',
