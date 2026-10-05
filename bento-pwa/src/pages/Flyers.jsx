@@ -45,32 +45,185 @@ import {
 } from 'lucide-react';
 import './Flyers.css';
 
-// ── Sakura Vector Ornament Component ──────────────────────────────────────────
-const SakuraFlowers = ({ color = '#3d2b1f', opacity = 0.6 }) => (
-  <svg viewBox="0 0 100 100" fill={color} style={{ width: '100%', height: '100%', opacity }}>
-    {/* Flor principal */}
-    <g transform="translate(30,30)">
-      <path d="M0,0 C-10,-20 10,-20 0,0" />
-      <path d="M0,0 C20,-10 20,10 0,0" />
-      <path d="M0,0 C10,20 -10,20 0,0" />
-      <path d="M0,0 C-20,10 -20,-10 0,0" />
-      <path d="M0,0 C-15,-15 -5,-25 0,0" />
-      <circle cx="0" cy="0" r="3" fill="#d4af37" />
-    </g>
-    {/* Pétalos dispersos */}
-    <path d="M70,20 Q80,15 75,30 Q65,25 70,20" />
-    <path d="M85,50 Q95,45 90,60 Q80,55 85,50" />
-    <path d="M40,80 Q50,75 45,90 Q35,85 40,80" />
-    {/* Flor secundaria pequeña */}
-    <g transform="translate(75,75) scale(0.6)">
-      <path d="M0,0 C-10,-20 10,-20 0,0" />
-      <path d="M0,0 C20,-10 20,10 0,0" />
-      <path d="M0,0 C10,20 -10,20 0,0" />
-      <path d="M0,0 C-20,10 -20,-10 0,0" />
-      <circle cx="0" cy="0" r="2" fill="#d4af37" />
-    </g>
-  </svg>
-);
+// ── Sakura Authentic Japanese Cherry Blossom Corner Component ─────────────────
+const SakuraFlowers = ({ color = '#8b4513', themeId = 'bachan_classic' }) => {
+  let petalColor = '#e11d48'; // Rose 600
+  let petalHighlight = '#fecdd3'; // Rose 200
+  let petalOpacity = 0.88;
+  let centerColor = '#f59e0b'; // Amber 500
+  let branchColor = '#78350f'; // Warm wood chestnut
+  let stamenDotColor = '#b45309';
+
+  if (themeId === 'bachan_classic') {
+    petalColor = '#e11d48'; // carmesí flor cerezo tradicional
+    petalHighlight = '#fecdd3';
+    petalOpacity = 0.88;
+    centerColor = '#f59e0b';
+    branchColor = '#78350f';
+    stamenDotColor = '#b45309';
+  } else if (themeId === 'cherry_minimal') {
+    petalColor = '#ec4899'; // rosa sakura vibrante
+    petalHighlight = '#fbcfe8';
+    petalOpacity = 0.9;
+    centerColor = '#fbbf24';
+    branchColor = '#831843';
+    stamenDotColor = '#f59e0b';
+  } else if (themeId === 'navy_gold') {
+    petalColor = '#f59e0b'; // oro imperial
+    petalHighlight = '#fef08a';
+    petalOpacity = 0.85;
+    centerColor = '#ffffff';
+    branchColor = '#d4af37';
+    stamenDotColor = '#fef08a';
+  } else if (themeId === 'neo_tokyo') {
+    petalColor = '#38bdf8'; // cian neón
+    petalHighlight = '#e0f2fe';
+    petalOpacity = 0.85;
+    centerColor = '#f43f5e';
+    branchColor = '#0284c7';
+    stamenDotColor = '#fda4af';
+  }
+
+  return (
+    <svg 
+      viewBox="0 0 100 100" 
+      style={{ width: '100%', height: '100%', overflow: 'visible', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' }}
+    >
+      <defs>
+        <linearGradient id={`branchGrad-${themeId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={branchColor} stopOpacity="0.9" />
+          <stop offset="100%" stopColor={branchColor} stopOpacity="0.5" />
+        </linearGradient>
+      </defs>
+
+      {/* ── Rama Leñosa Japonesa con brotes ── */}
+      <path 
+        d="M 2,2 C 10,8 20,18 34,30 C 48,42 64,48 82,46" 
+        fill="none" 
+        stroke={`url(#branchGrad-${themeId})`}
+        strokeWidth="2.4" 
+        strokeLinecap="round" 
+      />
+      <path 
+        d="M 32,28 C 38,42 44,56 52,70" 
+        fill="none" 
+        stroke={branchColor} 
+        strokeWidth="1.6" 
+        strokeLinecap="round" 
+        opacity={0.65} 
+      />
+      <path 
+        d="M 16,14 C 22,10 30,8 38,8" 
+        fill="none" 
+        stroke={branchColor} 
+        strokeWidth="1.2" 
+        strokeLinecap="round" 
+        opacity={0.55} 
+      />
+
+      {/* Brote / Botón Sakura en twig superior */}
+      <g transform="translate(38, 8) rotate(-15) scale(0.4)">
+        <path d="M 0,0 C -4,-8 0,-16 6,-18 C 12,-16 16,-8 12,0 Z" fill={petalColor} opacity={petalOpacity} />
+        <path d="M -2,0 C -2,-5 2,-7 6,-8" fill="none" stroke={branchColor} strokeWidth="1.5" />
+      </g>
+
+      {/* ── Flor Principal de 5 Pétalos con Muesca Sakura (34, 30) ── */}
+      <g transform="translate(34, 30)">
+        {[0, 72, 144, 216, 288].map((angle, i) => (
+          <g key={i} transform={`rotate(${angle})`}>
+            {/* Pétalo exterior */}
+            <path
+              d="M 0,0 C -6,-6 -14,-14 -8,-22 C -4,-25 -1,-22 0,-21 C 1,-22 4,-25 8,-22 C 14,-14 6,-6 0,0 Z"
+              fill={petalColor}
+              opacity={petalOpacity}
+            />
+            {/* Brillo / Sombra interior del pétalo */}
+            <path
+              d="M 0,0 C -3,-5 -8,-11 -4,-16 C -2,-18 0,-15 0,-15 C 0,-15 2,-18 4,-16 C 8,-11 3,-5 0,0 Z"
+              fill={petalHighlight}
+              opacity={0.45}
+            />
+          </g>
+        ))}
+
+        {/* Estambres radiantes */}
+        {[0, 72, 144, 216, 288].map((angle, i) => (
+          <g key={`stamen-${i}`} transform={`rotate(${angle + 36})`}>
+            <line
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="-9"
+              stroke={centerColor}
+              strokeWidth="1"
+              strokeLinecap="round"
+            />
+            <circle
+              cx="0"
+              cy="-9.5"
+              r="1.2"
+              fill={stamenDotColor}
+            />
+          </g>
+        ))}
+        {/* Pistilo central */}
+        <circle cx="0" cy="0" r="2.8" fill={centerColor} />
+        <circle cx="0" cy="0" r="1.3" fill={petalColor} />
+      </g>
+
+      {/* ── Flor Secundaria en Rama Superior Derecha (80, 46) ── */}
+      <g transform="translate(80, 46) rotate(25) scale(0.62)">
+        {[0, 72, 144, 216, 288].map((angle, i) => (
+          <path
+            key={`sub-${i}`}
+            d="M 0,0 C -6,-6 -14,-14 -8,-22 C -4,-25 -1,-22 0,-21 C 1,-22 4,-25 8,-22 C 14,-14 6,-6 0,0 Z"
+            fill={petalColor}
+            opacity={petalOpacity * 0.95}
+            transform={`rotate(${angle})`}
+          />
+        ))}
+        <circle cx="0" cy="0" r="2.4" fill={centerColor} />
+      </g>
+
+      {/* ── Flor Terciaria Pequeña en Rama Inferior (52, 70) ── */}
+      <g transform="translate(52, 70) rotate(-20) scale(0.48)">
+        {[0, 72, 144, 216, 288].map((angle, i) => (
+          <path
+            key={`sub2-${i}`}
+            d="M 0,0 C -6,-6 -14,-14 -8,-22 C -4,-25 -1,-22 0,-21 C 1,-22 4,-25 8,-22 C 14,-14 6,-6 0,0 Z"
+            fill={petalColor}
+            opacity={petalOpacity * 0.9}
+            transform={`rotate(${angle})`}
+          />
+        ))}
+        <circle cx="0" cy="0" r="2" fill={centerColor} />
+      </g>
+
+      {/* ── Pétalos Flotantes en el Viento (Sakura Fubuki) ── */}
+      <g transform="translate(86, 18) rotate(40) scale(0.55)">
+        <path
+          d="M 0,0 C -5,-5 -11,-11 -6,-17 C -3,-19 0,-17 0,-17 C 0,-17 3,-19 6,-17 C 11,-11 5,-5 0,0 Z"
+          fill={petalColor}
+          opacity={petalOpacity * 0.85}
+        />
+      </g>
+      <g transform="translate(20, 78) rotate(-35) scale(0.5)">
+        <path
+          d="M 0,0 C -5,-5 -11,-11 -6,-17 C -3,-19 0,-17 0,-17 C 0,-17 3,-19 6,-17 C 11,-11 5,-5 0,0 Z"
+          fill={petalColor}
+          opacity={petalOpacity * 0.8}
+        />
+      </g>
+      <g transform="translate(76, 82) rotate(15) scale(0.42)">
+        <path
+          d="M 0,0 C -5,-5 -11,-11 -6,-17 C -3,-19 0,-17 0,-17 C 0,-17 3,-19 6,-17 C 11,-11 5,-5 0,0 Z"
+          fill={petalColor}
+          opacity={petalOpacity * 0.75}
+        />
+      </g>
+    </svg>
+  );
+};
 
 // Icono WhatsApp en SVG puro
 const WhatsAppIconSVG = () => (
@@ -414,9 +567,20 @@ export default function Flyers() {
           
           {/* Selector de Tema Visual */}
           <div>
-            <label className="editor-section-title">
-              <Layers size={16} /> Estilo Visual del Flyer
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label className="editor-section-title">
+                <Layers size={16} /> Estilo Visual del Flyer
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 'bold', color: 'var(--color-navy)', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox"
+                  checked={weeklyData.showSakura !== false}
+                  onChange={e => setWeeklyData({ ...weeklyData, showSakura: e.target.checked })}
+                  style={{ width: '16px', height: '16px' }}
+                />
+                🌸 Flores Sakura
+              </label>
+            </div>
             <div className="theme-selector-grid" style={{ marginTop: '8px' }}>
               {FLYER_THEMES.map(theme => (
                 <div 
@@ -861,198 +1025,261 @@ export default function Flyers() {
           </div>
 
           {/* ── CANVAS RENDERIZADO VISUAL EN VIVO ──────────────────────────── */}
-          <div className="flyer-canvas-wrapper">
-            <div 
-              id="bachan-flyer-canvas"
-              className="bachan-authentic-poster"
-              style={{
-                backgroundColor: currentTheme.bg,
-                color: currentTheme.textPrimary
-              }}
-            >
-              
-              {/* Marco exterior doble japonés */}
-              <div 
-                className="poster-inner-frame"
-                style={{
-                  borderColor: currentTheme.border
-                }}
-              >
-                
-                {/* Contenedor interior con esquinas japonesas y flores sakura */}
+          {(() => {
+            const dishCount = weeklyData.dishes?.length || 3;
+            const hasPromo = !!(weeklyData.showPromoBanner && weeklyData.promoBannerTitle);
+
+            let dynamicLogoSize = 130;
+            let dynamicDishesGap = '10px';
+            let dynamicHeaderMarginBottom = '10px';
+            let dynamicDishPadding = '9px 12px';
+            let dynamicThumbSize = '62px';
+            let dynamicTitleSize = '1.05rem';
+            let dynamicDescSize = '0.72rem';
+            let dynamicPriceSize = '1.35rem';
+
+            if (dishCount <= 1) {
+              dynamicLogoSize = hasPromo ? 142 : 162;
+              dynamicDishesGap = '18px';
+              dynamicHeaderMarginBottom = '16px';
+              dynamicDishPadding = '14px 16px';
+              dynamicThumbSize = '72px';
+              dynamicTitleSize = '1.18rem';
+              dynamicDescSize = '0.82rem';
+              dynamicPriceSize = '1.5rem';
+            } else if (dishCount === 2) {
+              dynamicLogoSize = hasPromo ? 128 : 146;
+              dynamicDishesGap = '14px';
+              dynamicHeaderMarginBottom = '12px';
+              dynamicDishPadding = '12px 14px';
+              dynamicThumbSize = '68px';
+              dynamicTitleSize = '1.12rem';
+              dynamicDescSize = '0.76rem';
+              dynamicPriceSize = '1.42rem';
+            } else if (dishCount === 3) {
+              dynamicLogoSize = hasPromo ? 112 : 130;
+              dynamicDishesGap = hasPromo ? '8px' : '10px';
+              dynamicHeaderMarginBottom = hasPromo ? '6px' : '10px';
+              dynamicDishPadding = '9px 12px';
+              dynamicThumbSize = '62px';
+              dynamicTitleSize = '1.05rem';
+              dynamicDescSize = '0.72rem';
+              dynamicPriceSize = '1.35rem';
+            } else if (dishCount >= 4) {
+              dynamicLogoSize = hasPromo ? 74 : 84;
+              dynamicDishesGap = '6px';
+              dynamicHeaderMarginBottom = '4px';
+              dynamicDishPadding = '6px 9px';
+              dynamicThumbSize = '54px';
+              dynamicTitleSize = '0.96rem';
+              dynamicDescSize = '0.66rem';
+              dynamicPriceSize = '1.22rem';
+            }
+
+            return (
+              <div className="flyer-canvas-wrapper">
                 <div 
-                  className="poster-notched-container"
+                  id="bachan-flyer-canvas"
+                  className="bachan-authentic-poster"
                   style={{
-                    borderColor: currentTheme.border
+                    backgroundColor: currentTheme.bg,
+                    color: currentTheme.textPrimary
                   }}
                 >
                   
-                  {/* Flores de Sakura vectoriales en las esquinas */}
-                  <div className="sakura-corner top-left">
-                    <SakuraFlowers color={currentTheme.accent} />
-                  </div>
-                  <div className="sakura-corner top-right">
-                    <SakuraFlowers color={currentTheme.accent} />
-                  </div>
-                  <div className="sakura-corner bottom-left">
-                    <SakuraFlowers color={currentTheme.accent} />
-                  </div>
-                  <div className="sakura-corner bottom-right">
-                    <SakuraFlowers color={currentTheme.accent} />
-                  </div>
-
-                  {/* ── CABECERA: Logo oficial de la abuela y Titulares ─────── */}
-                  <div className="poster-header-section">
-                    <img 
-                      src={activeLogo} 
-                      alt="BaChan BentoBox" 
-                      className="poster-logo-seal"
-                      onError={(e) => {
-                        if (e.currentTarget.src !== '/logo-bachan.png') {
-                          e.currentTarget.src = '/logo-bachan.png';
-                        }
-                      }}
-                    />
-
-                    <h2 
-                      className="poster-main-title"
-                      style={{ color: currentTheme.textPrimary }}
-                    >
-                      {weeklyData.headerTitle}
-                    </h2>
-
-                    <h3 
-                      className="poster-subtitle"
-                      style={{ color: currentTheme.textPrimary }}
-                    >
-                      {weeklyData.headerSubtitle}
-                    </h3>
-
-                    <p 
-                      className="poster-tagline"
-                      style={{ color: currentTheme.textSecondary }}
-                    >
-                      {weeklyData.headerTagline}
-                    </p>
-                  </div>
-
-                  {/* ── BANNER PROMOCIÓN ESPECIAL (Si está activo) ──────────── */}
-                  {weeklyData.showPromoBanner && weeklyData.promoBannerTitle && (
+                  {/* Marco exterior doble japonés */}
+                  <div 
+                    className="poster-inner-frame"
+                    style={{
+                      borderColor: currentTheme.border
+                    }}
+                  >
+                    
+                    {/* Contenedor interior con esquinas japonesas y flores sakura */}
                     <div 
-                      className="poster-promo-ribbon"
+                      className="poster-notched-container"
                       style={{
-                        backgroundColor: currentTheme.bg === '#0c1c2e' ? '#1e3a5f' : currentTheme.bg === '#0f172a' ? '#1e293b' : '#f5e6c8',
-                        borderColor: currentTheme.accent,
-                        color: currentTheme.textPrimary
+                        borderColor: currentTheme.border
                       }}
                     >
-                      <span className="poster-promo-title" style={{ color: currentTheme.accent }}>
-                        {weeklyData.promoBannerTitle}
-                      </span>
-                      {weeklyData.promoBannerSubtext && (
-                        <span className="poster-promo-subtext" style={{ color: currentTheme.textSecondary }}>
-                          {weeklyData.promoBannerSubtext}
-                        </span>
+                      
+                      {/* Flores de Sakura vectoriales en las esquinas */}
+                      {weeklyData.showSakura !== false && (
+                        <>
+                          <div className="sakura-corner top-left">
+                            <SakuraFlowers color={currentTheme.accent} themeId={selectedThemeId} />
+                          </div>
+                          <div className="sakura-corner top-right">
+                            <SakuraFlowers color={currentTheme.accent} themeId={selectedThemeId} />
+                          </div>
+                          <div className="sakura-corner bottom-left">
+                            <SakuraFlowers color={currentTheme.accent} themeId={selectedThemeId} />
+                          </div>
+                          <div className="sakura-corner bottom-right">
+                            <SakuraFlowers color={currentTheme.accent} themeId={selectedThemeId} />
+                          </div>
+                        </>
                       )}
-                    </div>
-                  )}
 
-                  {/* ── CUERPO: Tarjetas de Platos de la Carta Semanal ──────── */}
-                  <div className="poster-dishes-column">
-                    {weeklyData.dishes.map((dish, i) => {
-                      const dishImg = resolveDishImage(dish);
-
-                      return (
-                        <div 
-                          key={dish.id || i}
-                          className="poster-dish-card"
+                      {/* ── CABECERA: Logo oficial de la abuela y Titulares ─────── */}
+                      <div className="poster-header-section" style={{ marginBottom: dynamicHeaderMarginBottom }}>
+                        <img 
+                          src={activeLogo} 
+                          alt="BaChan BentoBox" 
+                          className="poster-logo-seal"
                           style={{
-                            backgroundColor: currentTheme.cardBg,
-                            borderColor: currentTheme.border
+                            width: `${dynamicLogoSize}px`,
+                            height: `${dynamicLogoSize}px`
+                          }}
+                          onError={(e) => {
+                            if (e.currentTarget.src !== '/logo-bachan.png') {
+                              e.currentTarget.src = '/logo-bachan.png';
+                            }
+                          }}
+                        />
+
+                        <h2 
+                          className="poster-main-title"
+                          style={{ color: currentTheme.textPrimary }}
+                        >
+                          {weeklyData.headerTitle}
+                        </h2>
+
+                        <h3 
+                          className="poster-subtitle"
+                          style={{ color: currentTheme.textPrimary }}
+                        >
+                          {weeklyData.headerSubtitle}
+                        </h3>
+
+                        <p 
+                          className="poster-tagline"
+                          style={{ color: currentTheme.textSecondary }}
+                        >
+                          {weeklyData.headerTagline}
+                        </p>
+                      </div>
+
+                      {/* ── BANNER PROMOCIÓN ESPECIAL (Si está activo) ──────────── */}
+                      {weeklyData.showPromoBanner && weeklyData.promoBannerTitle && (
+                        <div 
+                          className="poster-promo-ribbon"
+                          style={{
+                            backgroundColor: currentTheme.bg === '#0c1c2e' ? '#1e3a5f' : currentTheme.bg === '#0f172a' ? '#1e293b' : '#f5e6c8',
+                            borderColor: currentTheme.accent,
+                            color: currentTheme.textPrimary
                           }}
                         >
-                          {/* Thumbnail de la ilustración en alta resolución */}
-                          <div className="dish-thumbnail-box">
-                            <img 
-                              src={dishImg} 
-                              alt={dish.name} 
-                              className="dish-thumbnail-img"
-                              onError={(e) => {
-                                if (!e.currentTarget.src.includes('tonkatsu.png')) {
-                                  e.currentTarget.src = '/dishes/tonkatsu.png';
-                                }
-                              }}
-                            />
-                          </div>
-
-                          {/* Nombre y Descripción */}
-                          <div className="dish-info-middle">
-                            <h4 
-                              className="dish-title-text"
-                              style={{ color: currentTheme.textPrimary }}
-                            >
-                              {dish.name}
-                            </h4>
-                            <p 
-                              className="dish-desc-text"
-                              style={{ color: currentTheme.textSecondary }}
-                            >
-                              {dish.description}
-                            </p>
-                          </div>
-
-                          {/* Precio y Pastilla de Sabor */}
-                          <div className="dish-price-badge-col">
-                            <span 
-                              className="dish-price-val"
-                              style={{ color: currentTheme.textPrimary }}
-                            >
-                              {dish.price}
+                          <span className="poster-promo-title" style={{ color: currentTheme.accent }}>
+                            {weeklyData.promoBannerTitle}
+                          </span>
+                          {weeklyData.promoBannerSubtext && (
+                            <span className="poster-promo-subtext" style={{ color: currentTheme.textSecondary }}>
+                              {weeklyData.promoBannerSubtext}
                             </span>
-                            {dish.badge && (
-                              <span 
-                                className="dish-flavor-badge"
-                                style={{
-                                  backgroundColor: currentTheme.bg === '#0f172a' ? '#38bdf8' : '#1a1815',
-                                  color: currentTheme.bg === '#0f172a' ? '#0f172a' : '#ffffff'
-                                }}
-                              >
-                                {dish.badge}
-                              </span>
-                            )}
-                          </div>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
+                      )}
 
-                  {/* ── NOTA DE CONDICIONES / COLECTIVO ─────────────────────── */}
-                  {weeklyData.promoCallout && (
-                    <div 
-                      className="poster-promo-callout"
-                      style={{ color: currentTheme.textSecondary }}
-                    >
-                      {weeklyData.promoCallout}
-                    </div>
-                  )}
+                      {/* ── CUERPO: Tarjetas de Platos de la Carta Semanal ──────── */}
+                      <div className="poster-dishes-column" style={{ gap: dynamicDishesGap }}>
+                        {weeklyData.dishes.map((dish, i) => {
+                          const dishImg = resolveDishImage(dish);
 
-                  {/* ── PIE: Botón / Pill de WhatsApp ───────────────────────── */}
-                  <div className="poster-footer-whatsapp">
-                    <div className="poster-whatsapp-pill">
-                      <div className="whatsapp-green-icon">
-                        <WhatsAppIconSVG />
+                          return (
+                            <div 
+                              key={dish.id || i}
+                              className="poster-dish-card"
+                              style={{
+                                backgroundColor: currentTheme.cardBg,
+                                borderColor: currentTheme.border,
+                                padding: dynamicDishPadding
+                              }}
+                            >
+                              {/* Thumbnail de la ilustración en alta resolución */}
+                              <div className="dish-thumbnail-box" style={{ width: dynamicThumbSize, height: dynamicThumbSize }}>
+                                <img 
+                                  src={dishImg} 
+                                  alt={dish.name} 
+                                  className="dish-thumbnail-img"
+                                  onError={(e) => {
+                                    if (!e.currentTarget.src.includes('tonkatsu.png')) {
+                                      e.currentTarget.src = '/dishes/tonkatsu.png';
+                                    }
+                                  }}
+                                />
+                              </div>
+
+                              {/* Nombre y Descripción */}
+                              <div className="dish-info-middle">
+                                <h4 
+                                  className="dish-title-text"
+                                  style={{ color: currentTheme.textPrimary, fontSize: dynamicTitleSize }}
+                                >
+                                  {dish.name}
+                                </h4>
+                                <p 
+                                  className="dish-desc-text"
+                                  style={{ color: currentTheme.textSecondary, fontSize: dynamicDescSize }}
+                                >
+                                  {dish.description}
+                                </p>
+                              </div>
+
+                              {/* Precio y Pastilla de Sabor */}
+                              <div className="dish-price-badge-col">
+                                <span 
+                                  className="dish-price-val"
+                                  style={{ color: currentTheme.textPrimary, fontSize: dynamicPriceSize }}
+                                >
+                                  {dish.price}
+                                </span>
+                                {dish.badge && (
+                                  <span 
+                                    className="dish-flavor-badge"
+                                    style={{
+                                      backgroundColor: currentTheme.bg === '#0f172a' ? '#38bdf8' : '#1a1815',
+                                      color: currentTheme.bg === '#0f172a' ? '#0f172a' : '#ffffff'
+                                    }}
+                                  >
+                                    {dish.badge}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <span>
-                        WhatsApp: {weeklyData.contactName} {weeklyData.contactPhone}
-                      </span>
+
+                      {/* ── NOTA DE CONDICIONES / COLECTIVO ─────────────────────── */}
+                      {weeklyData.promoCallout && (
+                        <div 
+                          className="poster-promo-callout"
+                          style={{ color: currentTheme.textSecondary }}
+                        >
+                          {weeklyData.promoCallout}
+                        </div>
+                      )}
+
+                      {/* ── PIE: Botón / Pill de WhatsApp ───────────────────────── */}
+                      <div className="poster-footer-whatsapp">
+                        <div className="poster-whatsapp-pill">
+                          <div className="whatsapp-green-icon">
+                            <WhatsAppIconSVG />
+                          </div>
+                          <span>
+                            WhatsApp: {weeklyData.contactName} {weeklyData.contactPhone}
+                          </span>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
 
                 </div>
               </div>
-
-            </div>
-          </div>
+            );
+          })()}
 
         </div>
 
