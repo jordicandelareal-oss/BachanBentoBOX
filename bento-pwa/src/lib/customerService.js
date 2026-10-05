@@ -2,6 +2,12 @@ import { supabase } from './supabaseClient';
 
 const LOCAL_CUSTOMERS_KEY = 'bachan_customers_real_v3';
 
+export const CUSTOMER_LANGUAGES = [
+  { code: 'es', label: 'Español', flag: '🇪🇸', short: 'ES' },
+  { code: 'en', label: 'English', flag: '🇬🇧', short: 'EN' },
+  { code: 'ja', label: '日本語 (Japonés)', flag: '🇯🇵', short: 'JA' }
+];
+
 // ── Clientes Reales sincronizados desde Supabase con UUIDs reales ─────────────
 export const INITIAL_REAL_CUSTOMERS = [
   {
@@ -16,6 +22,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "vip",
     discount_percent: 0,
     favorite_dish: "Nato pack 30",
+    language: "es",
     created_at: "2026-04-18T12:36:55.624+00:00"
   },
   {
@@ -30,6 +37,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "vip",
     discount_percent: 0,
     favorite_dish: "Nato pack 30",
+    language: "ja",
     created_at: "2026-06-11T04:59:20.999+00:00"
   },
   {
@@ -44,6 +52,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "vip",
     discount_percent: 0,
     favorite_dish: "Bento Sushi 18 piezas",
+    language: "es",
     created_at: "2026-04-30T10:18:18.446+00:00"
   },
   {
@@ -58,6 +67,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "vip",
     discount_percent: 0,
     favorite_dish: "Bento adulto",
+    language: "ja",
     created_at: "2026-04-18T12:30:32.602+00:00"
   },
   {
@@ -72,6 +82,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "vip",
     discount_percent: 0,
     favorite_dish: "Bento Tonkatsu",
+    language: "es",
     created_at: "2026-04-18T12:36:02.868+00:00"
   },
   {
@@ -86,6 +97,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "vip",
     discount_percent: 0,
     favorite_dish: "Bento cumpleaños",
+    language: "es",
     created_at: "2026-04-18T12:31:19.660+00:00"
   },
   {
@@ -100,6 +112,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "gold",
     discount_percent: 0,
     favorite_dish: "Bento Tonkatsu",
+    language: "es",
     created_at: "2026-04-18T12:31:56.937+00:00"
   },
   {
@@ -114,6 +127,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "gold",
     discount_percent: 0,
     favorite_dish: "Bento Sushi 18 piezas",
+    language: "es",
     created_at: "2026-04-28T16:44:55.392+00:00"
   },
   {
@@ -128,6 +142,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "gold",
     discount_percent: 0,
     favorite_dish: "Nato pack 9",
+    language: "ja",
     created_at: "2026-04-18T12:38:31.060+00:00"
   },
   {
@@ -142,6 +157,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "gold",
     discount_percent: 0,
     favorite_dish: "Chirashi Sushi",
+    language: "es",
     created_at: "2026-05-01T07:14:08.322+00:00"
   },
   {
@@ -156,6 +172,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "gold",
     discount_percent: 0,
     favorite_dish: "Katsudon",
+    language: "es",
     created_at: "2026-04-18T12:35:03.876+00:00"
   },
   {
@@ -170,6 +187,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "gold",
     discount_percent: 0,
     favorite_dish: "Nato pack 30",
+    language: "ja",
     created_at: "2026-06-11T05:01:16.840+00:00"
   },
   {
@@ -184,6 +202,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "gold",
     discount_percent: 0,
     favorite_dish: "Nato pack 30",
+    language: "ja",
     created_at: "2026-06-11T05:02:31.335+00:00"
   },
   {
@@ -198,6 +217,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "gold",
     discount_percent: 0,
     favorite_dish: "Nato pack 30",
+    language: "ja",
     created_at: "2026-08-18T16:20:31.901+00:00"
   },
   {
@@ -212,6 +232,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "gold",
     discount_percent: 0,
     favorite_dish: "Nato pack 30",
+    language: "es",
     created_at: "2026-09-16T15:53:51.972+00:00"
   },
   {
@@ -226,6 +247,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "gold",
     discount_percent: 0,
     favorite_dish: "Nato pack 30",
+    language: "ja",
     created_at: "2026-09-18T19:49:25.703+00:00"
   },
   {
@@ -240,6 +262,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "frequent",
     discount_percent: 0,
     favorite_dish: "Oyakodon",
+    language: "es",
     created_at: "2026-04-18T12:32:12.352+00:00"
   },
   {
@@ -254,6 +277,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "frequent",
     discount_percent: 0,
     favorite_dish: "Nato pack 3",
+    language: "es",
     created_at: "2026-04-18T12:30:52.199+00:00"
   },
   {
@@ -268,6 +292,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "frequent",
     discount_percent: 0,
     favorite_dish: "Bento Tonkatsu",
+    language: "es",
     created_at: "2026-04-18T12:35:30.804+00:00"
   },
   {
@@ -282,6 +307,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "frequent",
     discount_percent: 0,
     favorite_dish: "Bento Sushi 18 piezas",
+    language: "es",
     created_at: "2026-04-29T05:58:43.216+00:00"
   },
   {
@@ -296,6 +322,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "frequent",
     discount_percent: 0,
     favorite_dish: "Bento Sushi 18 piezas",
+    language: "es",
     created_at: "2026-04-30T10:18:45.369+00:00"
   },
   {
@@ -310,6 +337,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "frequent",
     discount_percent: 0,
     favorite_dish: "Nato pack 9",
+    language: "ja",
     created_at: "2026-04-26T10:12:41.132+00:00"
   },
   {
@@ -324,6 +352,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "frequent",
     discount_percent: 0,
     favorite_dish: "Nato pack 9",
+    language: "ja",
     created_at: "2026-06-11T05:02:57.245+00:00"
   },
   {
@@ -338,6 +367,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "frequent",
     discount_percent: 0,
     favorite_dish: "Bento cumpleaños",
+    language: "es",
     created_at: "2026-07-30T03:52:21.958+00:00"
   },
   {
@@ -352,6 +382,7 @@ export const INITIAL_REAL_CUSTOMERS = [
     loyalty_tier: "frequent",
     discount_percent: 0,
     favorite_dish: "Nato pack 3",
+    language: "ja",
     created_at: "2026-09-05T14:32:16.758+00:00"
   }
 ];
@@ -409,6 +440,7 @@ export function sanitizeCustomerPayload(data) {
   if (data.loyalty_tier !== undefined) payload.loyalty_tier = data.loyalty_tier || 'standard';
   if (data.discount_percent !== undefined) payload.discount_percent = Number(data.discount_percent || 0);
   if (data.favorite_dish !== undefined) payload.favorite_dish = (data.favorite_dish || '').trim();
+  if (data.language !== undefined) payload.language = data.language || 'es';
   
   payload.updated_at = new Date().toISOString();
   return payload;
@@ -772,7 +804,7 @@ export function checkBirthdayStatus(birthdayStr) {
   }
 }
 
-// ── Generador de Enlaces de WhatsApp ────────────────────────────────────────
+// ── Generador de Enlaces de WhatsApp con Soporte Multilingüe (ES, EN, JA) ──
 export function buildWhatsAppLink(phone, type, options = {}) {
   if (!phone) return null;
 
@@ -782,25 +814,59 @@ export function buildWhatsAppLink(phone, type, options = {}) {
     cleanPhone = '34' + cleanPhone;
   }
 
-  const { customerName = 'Hola', discount = 10, favoriteDish = 'tu bento favorito', customText = '' } = options;
+  const { 
+    customerName = 'Hola', 
+    discount = 10, 
+    favoriteDish = 'tu bento favorito', 
+    customText = '',
+    language = 'es'
+  } = options;
+
+  const lang = ['es', 'en', 'ja'].includes(language) ? language : 'es';
 
   let message = '';
   switch (type) {
     case 'birthday':
-      message = `¡Hola ${customerName}! 🎂🎉\n\nDe parte de todo el equipo de *BaChan BentoBox*, ¡te deseamos un muy feliz cumpleaños! 🥢🍱\n\nPara celebrarlo juntos, tienes una invitación muy especial: un *${discount}% de descuento* (o un postre de la casa de regalo) en tu próximo pedido.\n\n¡Esperamos verte muy pronto! Que tengas un día genial. ✨`;
+      if (lang === 'ja') {
+        message = `${customerName}様 🎂🎉\n\nお誕生日おめでとうございます！\n*BaChan BentoBox* スタッフ一同より、心よりお祝い申し上げます。🥢🍱\n\nお祝いと日頃の感謝を込めまして、次回のご注文で使える【*${discount}%割引クーポン*】（または特製デザートサービス）をプレゼントいたします。\n\n素敵なお誕生日をお過ごしください。ご来店・ご注文を心よりお待ちしております。✨`;
+      } else if (lang === 'en') {
+        message = `Hello ${customerName}! 🎂🎉\n\nFrom everyone at *BaChan BentoBox*, we wish you a very Happy Birthday! 🥢🍱\n\nTo celebrate together, here is a special gift for you: *${discount}% off* (or a complimentary homemade dessert) on your next order.\n\nWe hope you have a wonderful day! See you very soon. ✨`;
+      } else {
+        message = `¡Hola ${customerName}! 🎂🎉\n\nDe parte de todo el equipo de *BaChan BentoBox*, ¡te deseamos un muy feliz cumpleaños! 🥢🍱\n\nPara celebrarlo juntos, tienes una invitación muy especial: un *${discount}% de descuento* (o un postre de la casa de regalo) en tu próximo pedido.\n\n¡Esperamos verte muy pronto! Que tengas un día genial. ✨`;
+      }
       break;
 
     case 'offer':
-      message = `¡Hola ${customerName}! 🍱🥢\n\nTe echamos de menos por *BaChan*. Hoy tenemos listo tu plato favorito: *${favoriteDish}* recién preparado con todo el cariño de BaChan.\n\nSi pides hoy, tienes un *${discount}% de descuento exclusivo* diciendo el código *BACHAN${discount}*.\n\n¿Te preparamos tu bento para hoy? 🍣✨`;
+      if (lang === 'ja') {
+        message = `${customerName}様 🍱🥢\n\nいつもBaChan BentoBoxをご利用いただきありがとうございます！\n本日、${customerName}様のお気に入り【*${favoriteDish}*】をご用意しております。\n\n本日限定の特別プロモーションとして、ご注文時にコード【*BACHAN${discount}*】で【*${discount}%割引*】を適用いたします。\n\n本日の美味しいお弁当をご用意いたしましょうか？🍣✨`;
+      } else if (lang === 'en') {
+        message = `Hello ${customerName}! 🍱🥢\n\nWe miss you at *BaChan*! Today we have your favorite dish freshly prepared: *${favoriteDish}*.\n\nOrder today and enjoy an *exclusive ${discount}% discount* with code *BACHAN${discount}*.\n\nShall we get your bento ready for today? 🍣✨`;
+      } else {
+        message = `¡Hola ${customerName}! 🍱🥢\n\nTe echamos de menos por *BaChan*. Hoy tenemos listo tu plato favorito: *${favoriteDish}* recién preparado con todo el cariño de BaChan.\n\nSi pides hoy, tienes un *${discount}% de descuento exclusivo* diciendo el código *BACHAN${discount}*.\n\n¿Te preparamos tu bento para hoy? 🍣✨`;
+      }
       break;
 
     case 'weekly_menu':
-      message = `¡Hola ${customerName}! 🍱🥢\n\nYa está disponible el *Nuevo Menú Semanal de BaChan BentoBox*.\n\nDescubre los bentos y platos de esta semana recién elaborados. ¿Te reservamos alguno para hoy?\n\n¡Take Away y Delivery disponible! 🛵`;
+      if (lang === 'ja') {
+        message = `${customerName}様 🍱🥢\n\n*BaChan BentoBox* 今週の【新作ウィークリーメニュー】のご案内です。\n\n旬の食材を使った手作り弁当や特別メニューを多数ご用意しております。本日のお取り置き・ご予約はいかがでしょうか？\n\nテイクアウト＆デリバリーも承っております！🛵`;
+      } else if (lang === 'en') {
+        message = `Hello ${customerName}! 🍱🥢\n\nThe *New Weekly Menu from BaChan BentoBox* is now available!\n\nDiscover this week's freshly crafted bentos and seasonal dishes. Would you like to reserve yours for today?\n\nTake Away & Delivery available! 🛵`;
+      } else {
+        message = `¡Hola ${customerName}! 🍱🥢\n\nYa está disponible el *Nuevo Menú Semanal de BaChan BentoBox*.\n\nDescubre los bentos y platos de esta semana recién elaborados. ¿Te reservamos alguno para hoy?\n\n¡Take Away y Delivery disponible! 🛵`;
+      }
       break;
 
     case 'custom':
     default:
-      message = customText || `¡Hola ${customerName}! Te escribimos desde BaChan BentoBox 🍱`;
+      if (customText) {
+        message = customText;
+      } else if (lang === 'ja') {
+        message = `${customerName}様、BaChan BentoBoxよりご連絡いたしました 🍱`;
+      } else if (lang === 'en') {
+        message = `Hello ${customerName}! We are reaching out from BaChan BentoBox 🍱`;
+      } else {
+        message = `¡Hola ${customerName}! Te escribimos desde BaChan BentoBox 🍱`;
+      }
       break;
   }
 

@@ -5,7 +5,8 @@ import {
   checkBirthdayStatus,
   pickContactFromPhone,
   pastePhoneFromClipboard,
-  parseVCard
+  parseVCard,
+  CUSTOMER_LANGUAGES
 } from '../lib/customerService';
 import { 
   Users, 
@@ -40,7 +41,9 @@ import {
   ClipboardPaste,
   Info,
   FileUp,
-  Apple
+  Apple,
+  Languages,
+  Globe
 } from 'lucide-react';
 import './Customers.css';
 
@@ -66,6 +69,7 @@ export default function Customers() {
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [selectedCustomerDetail, setSelectedCustomerDetail] = useState(null);
   const [whatsappModalCustomer, setWhatsappModalCustomer] = useState(null);
+  const [whatsappLanguage, setWhatsappLanguage] = useState('es');
   const [customDiscount, setCustomDiscount] = useState(10);
   const [toastMessage, setToastMessage] = useState('');
 
@@ -80,7 +84,8 @@ export default function Customers() {
     notes: '',
     loyalty_tier: 'standard',
     discount_percent: 0,
-    favorite_dish: ''
+    favorite_dish: '',
+    language: 'es'
   });
 
   const showToast = (msg) => {
@@ -149,7 +154,8 @@ export default function Customers() {
       notes: '',
       loyalty_tier: 'standard',
       discount_percent: 0,
-      favorite_dish: ''
+      favorite_dish: '',
+      language: 'es'
     });
     setShowAddEditModal(true);
   };
@@ -166,9 +172,15 @@ export default function Customers() {
       notes: customer.notes || '',
       loyalty_tier: customer.loyalty_tier || 'standard',
       discount_percent: customer.discount_percent || 0,
-      favorite_dish: customer.favorite_dish || ''
+      favorite_dish: customer.favorite_dish || '',
+      language: customer.language || 'es'
     });
     setShowAddEditModal(true);
+  };
+
+  const handleOpenWhatsAppModal = (customer) => {
+    setWhatsappModalCustomer(customer);
+    setWhatsappLanguage(customer.language || 'es');
   };
 
   const handleSaveCustomer = async (e) => {
@@ -182,7 +194,7 @@ export default function Customers() {
       if (editingCustomer) {
         const res = await editCustomer(editingCustomer.id, formData);
         if (res.success) {
-          showToast('✅ Ficha y teléfono de cliente guardados');
+          showToast('✅ Ficha y datos de cliente guardados');
           if (selectedCustomerDetail?.id === editingCustomer.id) {
             setSelectedCustomerDetail(prev => ({ ...prev, ...formData }));
           }
@@ -285,7 +297,8 @@ export default function Customers() {
     const url = buildWhatsAppLink(whatsappModalCustomer.phone, type, {
       customerName: whatsappModalCustomer.name,
       discount: customDiscount || whatsappModalCustomer.discount_percent || 10,
-      favoriteDish: whatsappModalCustomer.stats?.favoriteDish || whatsappModalCustomer.favorite_dish || 'Bento BaChan'
+      favoriteDish: whatsappModalCustomer.stats?.favoriteDish || whatsappModalCustomer.favorite_dish || 'Bento BaChan',
+      language: whatsappLanguage || whatsappModalCustomer.language || 'es'
     });
 
     if (url) {
@@ -374,7 +387,7 @@ export default function Customers() {
               style={{ width: 'auto', padding: '8px 16px' }}
               onClick={() => {
                 const bdayCust = customers.find(c => c.birthdayStatus?.isToday);
-                if (bdayCust) setWhatsappModalCustomer(bdayCust);
+                if (bdayCust) handleOpenWhatsAppModal(bdayCust);
               }}
             >
               <Cake size={16} /> Felicitar ahora
@@ -495,9 +508,17 @@ export default function Customers() {
                   <div className="customer-main-info">
                     <div className="customer-name-row">
                       <span className="customer-name">{customer.name}</span>
-                      <span className={`loyalty-badge ${customer.loyalty_tier}`}>
-                        {customer.loyalty_tier === 'vip' ? '👑 VIP' : customer.loyalty_tier === 'gold' ? '⭐ Gold' : customer.loyalty_tier === 'frequent' ? '🥢 Habitual' : 'Estándar'}
-                      </span>
+                      <div className="customer-badges-group">
+                        <span className={`loyalty-badge ${customer.loyalty_tier}`}>
+                          {customer.loyalty_tier === 'vip' ? '👑 VIP' : customer.loyalty_tier === 'gold' ? '⭐ Gold' : customer.loyalty_tier === 'frequent' ? '🥢 Habitual' : 'Estándar'}
+                        </span>
+                        <span 
+                          className="customer-lang-pill" 
+                          title={`Idioma de contacto: ${customer.language === 'ja' ? 'Japonés' : customer.language === 'en' ? 'English' : 'Español'}`}
+                        >
+                          {customer.language === 'ja' ? '🇯🇵 日本語' : customer.language === 'en' ? '🇬🇧 EN' : '🇪🇸 ES'}
+                        </span>
+                      </div>
                     </div>
                     <div className="customer-contact-quick">
                       {customer.phone ? (
@@ -568,7 +589,7 @@ export default function Customers() {
 
                   <button 
                     className="btn-card-action whatsapp"
-                    onClick={() => setWhatsappModalCustomer(customer)}
+                    onClick={() => handleOpenWhatsAppModal(customer)}
                     title="Enviar promoción o felicitación por WhatsApp"
                   >
                     <MessageSquare size={14} /> WhatsApp
@@ -630,8 +651,8 @@ export default function Customers() {
 
             <div className="modal-body-custom" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               
-              {/* Info de Contacto */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+              {/* Info de Contacto y Preferencias */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
                 <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px' }}>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>📞 CONTACTO</div>
                   <div style={{ fontWeight: 'bold', marginTop: '2px' }}>{selectedCustomerDetail.phone || 'Sin teléfono registrado'}</div>
@@ -646,6 +667,14 @@ export default function Customers() {
                   {selectedCustomerDetail.birthdayStatus?.isToday && (
                     <span style={{ color: '#e11d48', fontSize: '0.8rem', fontWeight: 'bold' }}>🎉 ¡Cumpleaños hoy!</span>
                   )}
+                </div>
+
+                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>🌐 IDIOMA DE TRATO</div>
+                  <div style={{ fontWeight: 'bold', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {selectedCustomerDetail.language === 'ja' ? '🇯🇵 日本語 (Japonés)' : selectedCustomerDetail.language === 'en' ? '🇬🇧 English' : '🇪🇸 Español'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#0369a1' }}>Mensajes automáticos en este idioma</div>
                 </div>
 
                 <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px' }}>
@@ -754,7 +783,7 @@ export default function Customers() {
                   className="btn-card-action whatsapp" 
                   style={{ width: 'auto', padding: '10px 18px' }}
                   onClick={() => {
-                    setWhatsappModalCustomer(selectedCustomerDetail);
+                    handleOpenWhatsAppModal(selectedCustomerDetail);
                   }}
                 >
                   <MessageSquare size={16} /> Enviar Oferta WhatsApp
@@ -789,9 +818,25 @@ export default function Customers() {
             </div>
 
             <div className="modal-body-custom">
-              <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                Selecciona una plantilla para enviar directamente al WhatsApp del cliente con 1 clic:
-              </p>
+              {/* Barra de Selección Dinámica de Idioma */}
+              <div className="whatsapp-lang-bar">
+                <span className="whatsapp-lang-title">
+                  <Languages size={16} color="#0f766e" /> Idioma del mensaje:
+                </span>
+                <div className="whatsapp-lang-tabs">
+                  {CUSTOMER_LANGUAGES.map(lang => (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      className={`whatsapp-lang-tab ${whatsappLanguage === lang.code ? 'active' : ''}`}
+                      onClick={() => setWhatsappLanguage(lang.code)}
+                    >
+                      <span className="lang-tab-flag">{lang.flag}</span>
+                      <span className="lang-tab-label">{lang.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Ajustar % Descuento para las ofertas */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f8fafc', padding: '10px 14px', borderRadius: '10px' }}>
@@ -810,22 +855,47 @@ export default function Customers() {
 
               {/* Plantilla 1: Cumpleaños */}
               <div className="whatsapp-template-card" onClick={() => handleSendWhatsApp('birthday')}>
-                <h4>🎂 Felicitación de Cumpleaños + Regalo</h4>
-                <p>Envía felicitación formal de cumpleaños con un {customDiscount}% de descuento o postre de regalo en su próximo pedido.</p>
+                <h4>
+                  🎂 {whatsappLanguage === 'ja' ? 'お誕生日お祝いメッセージ + プレゼント' : whatsappLanguage === 'en' ? 'Birthday Greeting + Gift Offer' : 'Felicitación de Cumpleaños + Regalo'}
+                </h4>
+                <p>
+                  {whatsappLanguage === 'ja'
+                    ? `「${whatsappModalCustomer.name}様、お誕生日おめでとうございます！...」次回【${customDiscount}%割引】または特製デザートプレゼント`
+                    : whatsappLanguage === 'en'
+                    ? `Send a warm birthday wish with an exclusive ${customDiscount}% discount or complimentary dessert.`
+                    : `Envía felicitación formal de cumpleaños con un ${customDiscount}% de descuento o postre de regalo en su próximo pedido.`
+                  }
+                </p>
               </div>
 
               {/* Plantilla 2: Oferta Producto Favorito */}
               <div className="whatsapp-template-card" onClick={() => handleSendWhatsApp('offer')}>
-                <h4>🍱 Oferta de su Plato Favorito</h4>
+                <h4>
+                  🍱 {whatsappLanguage === 'ja' ? 'お気に入り料理の限定プロモーション' : whatsappLanguage === 'en' ? 'Favorite Dish Special Offer' : 'Oferta de su Plato Favorito'}
+                </h4>
                 <p>
-                  Promoción personalizada de su plato más pedido ({whatsappModalCustomer.stats?.favoriteDish || whatsappModalCustomer.favorite_dish || 'Bento BaChan'}) con un {customDiscount}% de descuento.
+                  {whatsappLanguage === 'ja'
+                    ? `「${whatsappModalCustomer.name}様のお気に入り【${whatsappModalCustomer.stats?.favoriteDish || whatsappModalCustomer.favorite_dish || 'Bento BaChan'}】をご用意...」コード【BACHAN${customDiscount}】で${customDiscount}%OFF`
+                    : whatsappLanguage === 'en'
+                    ? `Personalized promotion for their top dish (${whatsappModalCustomer.stats?.favoriteDish || whatsappModalCustomer.favorite_dish || 'Bento BaChan'}) with a ${customDiscount}% discount.`
+                    : `Promoción personalizada de su plato más pedido (${whatsappModalCustomer.stats?.favoriteDish || whatsappModalCustomer.favorite_dish || 'Bento BaChan'}) con un ${customDiscount}% de descuento.`
+                  }
                 </p>
               </div>
 
               {/* Plantilla 3: Nuevo Menú Semanal */}
               <div className="whatsapp-template-card" onClick={() => handleSendWhatsApp('weekly_menu')}>
-                <h4>🥢 Aviso de Nuevo Menú Semanal</h4>
-                <p>Informa al cliente de que ya está disponible el menú semanal con platos frescos para reservar con antelación.</p>
+                <h4>
+                  🥢 {whatsappLanguage === 'ja' ? '新作ウィークリーメニューのご案内' : whatsappLanguage === 'en' ? 'New Weekly Menu Announcement' : 'Aviso de Nuevo Menú Semanal'}
+                </h4>
+                <p>
+                  {whatsappLanguage === 'ja'
+                    ? `「BaChan BentoBox 今週の新作ウィークリーメニューのご案内...」お取り置き＆テイクアウト/デリバリー対応`
+                    : whatsappLanguage === 'en'
+                    ? `Inform the customer about this week's freshly prepared bentos and seasonal dishes available for order.`
+                    : `Informa al cliente de que ya está disponible el menú semanal con platos frescos para reservar con antelación.`
+                  }
+                </p>
               </div>
             </div>
 
@@ -881,6 +951,29 @@ export default function Customers() {
                   <button type="button" className="btn-open-agenda" onClick={(e) => { e.stopPropagation(); handlePickContact(); }}>
                     <Smartphone size={14} /> Abrir Agenda
                   </button>
+                </div>
+
+                {/* Idioma de Comunicación */}
+                <div className="form-group-custom lang-selector-group">
+                  <label className="lang-section-label">
+                    <Languages size={16} color="#0c1c2e" /> Idioma de Comunicación con el Cliente *
+                  </label>
+                  <div className="lang-selector-segmented">
+                    {CUSTOMER_LANGUAGES.map(lang => (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        className={`lang-btn ${formData.language === lang.code ? 'active' : ''}`}
+                        onClick={() => setFormData({ ...formData, language: lang.code })}
+                      >
+                        <span className="lang-flag">{lang.flag}</span>
+                        <span className="lang-name">{lang.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <span className="lang-helper-text">
+                    💬 Los mensajes de WhatsApp (cumpleaños, ofertas y avisos) se enviarán redactados en este idioma.
+                  </span>
                 </div>
 
                 {/* Nombre y Teléfono */}

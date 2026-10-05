@@ -947,3 +947,169 @@
   background: #f1f5f9;
   border-color: #94a3b8;
 }
+
+/* ── Customer Language Selector & Badges ─────────────────────────────────── */
+.customer-badges-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.customer-lang-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.lang-selector-group {
+  background: #fafaf9;
+  border: 1.5px solid #e7e5e4;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lang-section-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #0c1c2e !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.02em;
+}
+
+.lang-selector-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.lang-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1.5px solid #d6d3d1;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #44403c;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lang-btn:hover {
+  background: #f5f5f4;
+  border-color: #a8a29e;
+}
+
+.lang-btn.active {
+  background: var(--color-navy);
+  color: #f5e6c8;
+  border-color: var(--color-navy);
+  box-shadow: 0 3px 10px rgba(12, 28, 46, 0.2);
+}
+
+.lang-flag {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.lang-name {
+  white-space: nowrap;
+}
+
+.lang-helper-text {
+  font-size: 0.74rem;
+  color: #78716c;
+  line-height: 1.35;
+}
+
+/* ── WhatsApp Modal Dynamic Language Bar ──────────────────────────────────── */
+.whatsapp-lang-bar {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.whatsapp-lang-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.whatsapp-lang-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.whatsapp-lang-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #334155;
+  transition: all 0.15s ease;
+}
+
+.whatsapp-lang-tab:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.whatsapp-lang-tab.active {
+  background: #128c7e;
+  color: #ffffff;
+  border-color: #128c7e;
+  box-shadow: 0 2px 6px rgba(18, 140, 126, 0.3);
+}
+
+.lang-tab-flag {
+  font-size: 1.1rem;
+}
+
+.lang-tab-label {
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .lang-selector-segmented {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .whatsapp-lang-tabs {
+    grid-template-columns: 1fr;
+  }
+}

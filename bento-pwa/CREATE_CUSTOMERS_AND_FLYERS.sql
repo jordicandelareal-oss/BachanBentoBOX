@@ -16,9 +16,13 @@ CREATE TABLE IF NOT EXISTS public.customers (
     loyalty_tier TEXT DEFAULT 'standard', -- standard, frequent, vip, gold
     discount_percent NUMERIC(5,2) DEFAULT 0,
     favorite_dish TEXT,
+    language TEXT DEFAULT 'es', -- 'es' (Español), 'en' (English), 'ja' (Japonés)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Migración segura por si la tabla ya existe
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'es';
 
 -- Índices de búsqueda rápida
 CREATE INDEX IF NOT EXISTS idx_customers_phone ON public.customers(phone);
