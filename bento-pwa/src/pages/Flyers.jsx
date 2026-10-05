@@ -394,12 +394,14 @@ export default function Flyers() {
     if (showCatalogModal !== null) {
       const itemPrice = Number(item.price || 0);
       const formattedPrice = itemPrice > 0 ? `${itemPrice.toFixed(1).replace('.', ',')}€` : '10,0€';
-      const resolvedImg = item.image_url || resolveDishImage(item);
+      const resolvedImg = (item.image_url && item.image_url.trim() !== '') 
+        ? item.image_url 
+        : resolveDishImage(item, menuItems);
       const smartDesc = generateSmartDishDescriptor(item);
       const dishDesc = (item.description && item.description.trim() !== '')
         ? item.description
         : smartDesc.description;
-      const dishBadge = smartDesc.badge || 'especialidad';
+      const dishBadge = smartDesc.badge || '';
 
       if (showCatalogModal === 'new' || showCatalogModal >= weeklyData.dishes.length) {
         // Añadir nuevo plato al final desde el TPV
@@ -845,7 +847,7 @@ export default function Flyers() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {weeklyData.dishes.map((dish, idx) => {
-                const dishImgUrl = resolveDishImage(dish);
+                const dishImgUrl = resolveDishImage(dish, menuItems);
                 const isPriceModified = dish.tpvPrice !== undefined && `${Number(dish.tpvPrice).toFixed(1).replace('.', ',')}€` !== dish.price && `${Number(dish.tpvPrice).toFixed(2).replace('.', ',')}€` !== dish.price;
 
                 return (
@@ -996,16 +998,52 @@ export default function Flyers() {
 
                     {/* Badge / Claim y Sugerencias Inteligentes */}
                     <div className="form-group-custom">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                        <label style={{ margin: 0 }}>Pastilla / Claim de Sabor</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
+                        <label style={{ margin: 0 }}>Pastilla / Claim de Sabor <span style={{ fontWeight: 'normal', color: '#94a3b8' }}>(Opcional)</span></label>
+                        {dish.badge && dish.badge.trim() !== '' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDishChange(idx, 'badge', '')}
+                            style={{
+                              background: '#fef2f2',
+                              border: '1px solid #fecaca',
+                              color: '#dc2626',
+                              fontSize: '0.68rem',
+                              fontWeight: 'bold',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                            title="Borrar pastilla para dejarla en blanco"
+                          >
+                            ✕ Dejar en blanco
+                          </button>
+                        )}
                       </div>
                       <input 
                         type="text" 
                         value={dish.badge || ''}
                         onChange={e => handleDishChange(idx, 'badge', e.target.value)}
-                        placeholder="Ej: el clásico crujiente, 🎓 Promo Estudiante..."
+                        placeholder="Dejar en blanco o escribir ej: el clásico crujiente, 🎓 Promo..."
                       />
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleDishChange(idx, 'badge', '')}
+                          style={{
+                            background: !dish.badge || dish.badge.trim() === '' ? '#fee2e2' : '#f1f5f9',
+                            border: `1px solid ${!dish.badge || dish.badge.trim() === '' ? '#f87171' : '#cbd5e1'}`,
+                            fontSize: '0.68rem',
+                            padding: '2px 7px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            color: !dish.badge || dish.badge.trim() === '' ? '#991b1b' : '#64748b',
+                            fontWeight: !dish.badge || dish.badge.trim() === '' ? 'bold' : 'normal'
+                          }}
+                          title="Sin pastilla de sabor"
+                        >
+                          🚫 Sin pastilla
+                        </button>
                         {(() => {
                           const matched = menuItems.find(m => m.id === dish.menuItemId || (m.name || '').toLowerCase() === (dish.name || '').toLowerCase()) || { name: dish.name };
                           const smart = generateSmartDishDescriptor(matched);
@@ -1306,7 +1344,7 @@ export default function Flyers() {
                       {/* ── CUERPO: Tarjetas de Platos de la Carta Semanal ──────── */}
                       <div className="poster-dishes-column" style={{ gap: dynamicDishesGap }}>
                         {weeklyData.dishes.map((dish, i) => {
-                          const dishImg = resolveDishImage(dish);
+                          const dishImg = resolveDishImage(dish, menuItems);
 
                           return (
                             <div 
@@ -1356,7 +1394,7 @@ export default function Flyers() {
                                 >
                                   {dish.price}
                                 </span>
-                                {dish.badge && (
+                                {dish.badge && dish.badge.trim() !== '' && (
                                   <span 
                                     className="dish-flavor-badge"
                                     style={{
@@ -1456,7 +1494,7 @@ export default function Flyers() {
               {/* Grid de Platos del TPV */}
               <div className="catalog-tpv-grid">
                 {filteredCatalogItems.map(item => {
-                  const img = item.image_url || resolveDishImage(item);
+                  const img = (item.image_url && item.image_url.trim() !== '') ? item.image_url : resolveDishImage(item, menuItems);
                   return (
                     <div 
                       key={item.id}
@@ -1509,10 +1547,56 @@ export default function Flyers() {
               </button>
             </div>
 
-            <div className="modal-body-custom" style={{ maxHeight: '450px', overflowY: 'auto' }}>
+            <div className="modal-body-custom" style={{ maxHeight: '480px', overflowY: 'auto' }}>
               <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                Selecciona una ilustración artística para el plato #{showIllustrationGalleryModal + 1}:
+                Selecciona una ilustración artística o la foto original del TPV para el plato #{showIllustrationGalleryModal + 1}:
               </p>
+
+              {/* Si el plato tiene foto oficial en el catálogo del TPV, mostrarla como opción directa */}
+              {(() => {
+                const currentDish = weeklyData.dishes[showIllustrationGalleryModal];
+                const matchedTPV = currentDish && menuItems.find(m => 
+                  (currentDish.menuItemId && m.id === currentDish.menuItemId) || 
+                  (m.name && currentDish.name && m.name.toLowerCase().trim() === currentDish.name.toLowerCase().trim())
+                );
+
+                if (matchedTPV?.image_url && matchedTPV.image_url.trim() !== '') {
+                  return (
+                    <div style={{ marginBottom: '14px', background: '#f0fdf4', padding: '10px', borderRadius: '10px', border: '1.5px solid #86efac' }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 'bold', color: '#166534', marginBottom: '6px' }}>
+                        📸 Foto oficial del plato en el TPV:
+                      </div>
+                      <div 
+                        onClick={() => {
+                          handleDishChange(showIllustrationGalleryModal, 'imageUrl', matchedTPV.image_url);
+                          setShowIllustrationGalleryModal(null);
+                          showToast(`📸 Foto oficial del TPV asignada`);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          background: '#ffffff',
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #bbf7d0',
+                          cursor: 'pointer',
+                          transition: 'transform 0.15s ease'
+                        }}
+                      >
+                        <div style={{ width: '48px', height: '48px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+                          <img src={matchedTPV.image_url} alt={matchedTPV.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 'bold', color: '#1e293b' }}>{matchedTPV.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#16a34a' }}>Hacer clic para usar esta foto del TPV</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px' }}>
                 {PRELOADED_DISH_ILLUSTRATIONS.map(item => (

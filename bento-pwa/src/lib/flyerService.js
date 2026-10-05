@@ -18,11 +18,25 @@ export const PRELOADED_DISH_ILLUSTRATIONS = [
   { id: 'natto30', name: 'Natto 30 Packs', url: '/dishes/natto_30.png', tags: ['natto', 'familiar'] }
 ];
 
-export function resolveDishImage(dish) {
+export function resolveDishImage(dish, menuItems = []) {
   if (dish?.imageUrl && dish.imageUrl.trim() !== '') {
     return dish.imageUrl;
   }
+  if (dish?.image_url && dish.image_url.trim() !== '') {
+    return dish.image_url;
+  }
   
+  // Si tenemos acceso al catálogo del TPV, buscar si este plato tiene foto oficial
+  if (menuItems && menuItems.length > 0) {
+    const matched = menuItems.find(m => 
+      (dish?.menuItemId && m.id === dish.menuItemId) || 
+      (m.name && dish?.name && m.name.toLowerCase().trim() === dish.name.toLowerCase().trim())
+    );
+    if (matched?.image_url && matched.image_url.trim() !== '') {
+      return matched.image_url;
+    }
+  }
+
   const nameLower = (dish?.name || '').toLowerCase();
   const matched = PRELOADED_DISH_ILLUSTRATIONS.find(item => 
     item.tags.some(tag => nameLower.includes(tag)) || nameLower.includes(item.id)
