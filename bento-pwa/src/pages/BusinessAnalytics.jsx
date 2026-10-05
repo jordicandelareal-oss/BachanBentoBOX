@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { getCustomers, createCustomer } from '../lib/customerService';
+import { getCustomers, createCustomer, pickContactFromPhone, pastePhoneFromClipboard } from '../lib/customerService';
 import {
   TrendingUp,
   TrendingDown,
@@ -35,7 +35,9 @@ import {
   Search,
   Phone,
   UtensilsCrossed,
-  FileText
+  FileText,
+  BookUser,
+  ClipboardPaste
 } from 'lucide-react';
 
 import '../styles/Common.css';
@@ -867,7 +869,43 @@ export default function BusinessAnalytics() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Teléfono / WhatsApp:</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-bold text-slate-600">Teléfono / WhatsApp:</label>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const res = await pickContactFromPhone();
+                              if (res.supported && res.success && res.contact) {
+                                setEditForm(prev => ({
+                                  ...prev,
+                                  customer_phone: res.contact.phone || prev.customer_phone,
+                                  customer_name: (!prev.customer_name || prev.customer_name === 'Mostrador') && res.contact.name ? res.contact.name : prev.customer_name
+                                }));
+                              } else if (!res.supported) {
+                                alert('Para abrir la agenda directamente usa Google Chrome en Android. En iPhone puedes copiar el número de contactos y darle a Pegar.');
+                              }
+                            }}
+                            className="text-[10px] font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-1.5 py-0.5 rounded flex items-center gap-1"
+                            title="Buscar en la agenda del teléfono"
+                          >
+                            <BookUser size={11} /> Agenda
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const res = await pastePhoneFromClipboard();
+                              if (res.success && res.phone) {
+                                setEditForm(prev => ({ ...prev, customer_phone: res.phone }));
+                              }
+                            }}
+                            className="text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 rounded flex items-center gap-1"
+                            title="Pegar número copiado"
+                          >
+                            <ClipboardPaste size={11} /> Pegar
+                          </button>
+                        </div>
+                      </div>
                       <div className="relative">
                         <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input

@@ -806,3 +806,79 @@ export function buildWhatsAppLink(phone, type, options = {}) {
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }
+
+// ── Contact Picker API & Portapapeles para Agenda del Teléfono ───────────────
+export async function pickContactFromPhone() {
+  const isSupported = typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window;
+
+  if (!isSupported) {
+    return {
+      supported: false,
+      message: 'La función de abrir la agenda del teléfono mediante la web requiere Chrome en Android o un navegador compatible con la Contact Picker API. En Safari iOS puedes usar la opción de pegar con 1 clic.'
+    };
+  }
+
+  try {
+    const props = ['name', 'tel', 'email'];
+    const opts = { multiple: false };
+    const contacts = await navigator.contacts.select(props, opts);
+
+    if (contacts && contacts.length > 0) {
+      const contact = contacts[0];
+      const rawName = contact.name && contact.name.length > 0 ? contact.name[0] : '';
+      let rawPhone = contact.tel && contact.tel.length > 0 ? contact.tel[0] : '';
+      const rawEmail = contact.email && contact.email.length > 0 ? contact.email[0] : '';
+
+      let cleanPhone = rawPhone.trim();
+      if (cleanPhone) {
+        const hasPlus = cleanPhone.startsWith('+');
+        const digits = cleanPhone.replace(/\D/g, '');
+        cleanPhone = hasPlus ? `+${digits}` : digits;
+      }
+
+      return {
+        supported: true,
+        success: true,
+        contact: {
+          name: rawName,
+          phone: cleanPhone,
+          email: rawEmail
+        }
+      };
+    }
+    return {
+      supported: true,
+      cancelled: true
+    };
+  } catch (err) {
+    if (err.name === 'AbortError' || err.name === 'SecurityError') {
+      return { supported: true, cancelled: true };
+    }
+    return {
+      supported: true,
+      error: err.message || 'Error al acceder a la agenda de contactos'
+    };
+  }
+}
+
+export async function pastePhoneFromClipboard() {
+  try {
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) {
+        const raw = text.trim();
+        const hasPlus = raw.startsWith('+');
+        const digits = raw.replace(/\D/g, '');
+        if (digits.length >= 6) {
+          return {
+            success: true,
+            phone: hasPlus ? `+${digits}` : digits
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Clipboard read error:', err);
+  }
+  return { success: false };
+}

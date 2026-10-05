@@ -2,7 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useCustomers } from '../hooks/useCustomers';
 import { 
   buildWhatsAppLink, 
-  checkBirthdayStatus 
+  checkBirthdayStatus,
+  pickContactFromPhone,
+  pastePhoneFromClipboard
 } from '../lib/customerService';
 import { 
   Users, 
@@ -31,7 +33,11 @@ import {
   Clock,
   Heart,
   RefreshCw,
-  Receipt
+  Receipt,
+  BookUser,
+  Smartphone,
+  ClipboardPaste,
+  Info
 } from 'lucide-react';
 import './Customers.css';
 
@@ -53,6 +59,7 @@ export default function Customers() {
   
   // Modals state
   const [showAddEditModal, setShowAddEditModal] = useState(false);
+  const [showAgendaGuideModal, setShowAgendaGuideModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [selectedCustomerDetail, setSelectedCustomerDetail] = useState(null);
   const [whatsappModalCustomer, setWhatsappModalCustomer] = useState(null);
@@ -202,6 +209,36 @@ export default function Customers() {
       if (selectedCustomerDetail?.id === id) {
         setSelectedCustomerDetail(null);
       }
+    }
+  };
+
+  // ── Contact Picker API (Agenda del Móvil) ─────────────────────────────────
+  const handlePickContact = async () => {
+    const res = await pickContactFromPhone();
+    if (res.supported && res.success && res.contact) {
+      const { name, phone, email } = res.contact;
+      setFormData(prev => ({
+        ...prev,
+        phone: phone || prev.phone,
+        name: (!prev.name.trim() || prev.name === 'Nuevo Cliente') && name ? name : prev.name,
+        email: !prev.email && email ? email : prev.email
+      }));
+      showToast(`📱 Teléfono de ${name || phone} cargado desde tu agenda`);
+    } else if (!res.supported) {
+      // Navegador sin Contact Picker API directa (ej. Safari iOS)
+      setShowAgendaGuideModal(true);
+    } else if (res.error) {
+      showToast('⚠️ No se pudo acceder a la agenda');
+    }
+  };
+
+  const handlePastePhone = async () => {
+    const res = await pastePhoneFromClipboard();
+    if (res.success && res.phone) {
+      setFormData(prev => ({ ...prev, phone: res.phone }));
+      showToast(`📋 Teléfono pegado: ${res.phone}`);
+    } else {
+      showToast('ℹ️ Copia primero un número de tu agenda o WhatsApp');
     }
   };
 
@@ -798,6 +835,20 @@ export default function Customers() {
             <form onSubmit={handleSaveCustomer}>
               <div className="modal-body-custom">
                 
+                {/* Banner Rápido de Acceso a Agenda del Teléfono */}
+                <div className="agenda-banner-card" onClick={handlePickContact}>
+                  <div className="agenda-banner-icon">
+                    <BookUser size={22} color="#0284c7" />
+                  </div>
+                  <div className="agenda-banner-text">
+                    <strong>¿Buscar en la Agenda de tu Teléfono?</strong>
+                    <span>Toca aquí para seleccionar un contacto y autorrellenar su nombre y móvil</span>
+                  </div>
+                  <button type="button" className="btn-open-agenda" onClick={(e) => { e.stopPropagation(); handlePickContact(); }}>
+                    <Smartphone size={14} /> Abrir Agenda
+                  </button>
+                </div>
+
                 {/* Nombre y Teléfono */}
                 <div className="form-row-custom">
                   <div className="form-group-custom">
@@ -810,14 +861,38 @@ export default function Customers() {
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
                     />
                   </div>
+
                   <div className="form-group-custom">
-                    <label>Teléfono / WhatsApp</label>
-                    <input 
-                      type="tel" 
-                      placeholder="Ej: 612345678"
-                      value={formData.phone}
-                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                    />
+                    <div className="label-with-action-row">
+                      <label>Teléfono / WhatsApp</label>
+                      <button
+                        type="button"
+                        className="btn-agenda-chip"
+                        onClick={handlePickContact}
+                        title="Buscar contacto en tu teléfono"
+                      >
+                        <BookUser size={12} />
+                        <span>Agenda Móvil</span>
+                      </button>
+                    </div>
+                    <div className="phone-input-combo">
+                      <input 
+                        type="tel" 
+                        placeholder="Ej: 612345678"
+                        value={formData.phone}
+                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                        className="phone-combo-input"
+                      />
+                      <button
+                        type="button"
+                        className="btn-paste-phone-quick"
+                        onClick={handlePastePhone}
+                        title="Pegar número copiado del portapapeles"
+                      >
+                        <ClipboardPaste size={14} />
+                        <span>Pegar</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -928,6 +1003,67 @@ export default function Customers() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL GUÍA AGENDA DE CONTACTOS (FALLBACK & PASTE) ─────────────── */}
+      {showAgendaGuideModal && (
+        <div className="modal-backdrop-custom" onClick={() => setShowAgendaGuideModal(false)}>
+          <div className="modal-content-custom" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header-custom" style={{ background: '#0c1c2e', color: '#f5e6c8' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <BookUser size={22} color="#f5e6c8" />
+                <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#f5e6c8' }}>Agenda de Contactos del Teléfono</h2>
+              </div>
+              <button className="btn-modal-close" onClick={() => setShowAgendaGuideModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body-custom" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '14px', borderRadius: '12px', display: 'flex', gap: '10px' }}>
+                <Info size={20} color="#0284c7" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ fontSize: '0.86rem', color: '#0369a1', lineHeight: 1.4 }}>
+                  <strong>Compatibilidad de la Agenda:</strong><br />
+                  La apertura directa de la agenda del teléfono funciona en navegadores con soporte Web Contact Picker (Google Chrome en Android). En Safari (iPhone) o Mac, Apple no permite acceso web directo por privacidad.
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '14px', borderRadius: '12px' }}>
+                <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#1e293b', marginBottom: '8px' }}>
+                  📲 Cómo añadirlo en 1 segundo en iPhone / PC:
+                </div>
+                <ol style={{ paddingLeft: '18px', margin: 0, fontSize: '0.84rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <li>Abre tu app de <strong>Contactos</strong> o un chat de <strong>WhatsApp</strong>.</li>
+                  <li>Copia el número del cliente (<em>Copiar</em>).</li>
+                  <li>Toca el botón azul de abajo: <strong>Pegar Número</strong>.</li>
+                </ol>
+              </div>
+
+              <button
+                type="button"
+                className="btn-modal-save"
+                style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                onClick={async () => {
+                  await handlePastePhone();
+                  setShowAgendaGuideModal(false);
+                }}
+              >
+                <ClipboardPaste size={18} /> Pegar Número desde Portapapeles
+              </button>
+            </div>
+
+            <div className="modal-footer-custom">
+              <button
+                type="button"
+                className="btn-modal-cancel"
+                style={{ width: 'auto', padding: '8px 18px' }}
+                onClick={() => setShowAgendaGuideModal(false)}
+              >
+                Entendido
+              </button>
+            </div>
           </div>
         </div>
       )}
