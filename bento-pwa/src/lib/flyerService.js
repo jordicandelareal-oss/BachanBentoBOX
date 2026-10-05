@@ -1,7 +1,7 @@
 import { toPng, toJpeg } from 'html-to-image';
 import { supabase } from './supabaseClient';
 
-const LOCAL_FLYERS_KEY = 'bachan_flyer_templates_v2';
+const LOCAL_FLYERS_KEY = 'bachan_flyer_templates_v3';
 
 export const PRELOADED_DISH_ILLUSTRATIONS = [
   { id: 'tonkatsu', name: 'Tonkatsu Bento', url: '/dishes/tonkatsu.png', tags: ['tonkatsu', 'cerdo', 'panko'] },
@@ -86,10 +86,58 @@ export const FLYER_THEMES = [
   }
 ];
 
+// Presets de promociones rápidas configurables
+export const PROMO_PRESETS = [
+  {
+    id: 'student',
+    label: '🎓 Día del Estudiante',
+    title: '🎓 PROMOCIÓN ESPECIAL DÍA DEL ESTUDIANTE',
+    subtext: '15% de descuento en bentos presentando carnet de estudiante',
+    callout: '* Válido en pedidos de mediodía de lunes a viernes con carnet universitario/estudiante.',
+    badge: '🎓 Promo Estudiante'
+  },
+  {
+    id: 'academia_maru',
+    label: '🏫 Academia Maru',
+    title: '🏷️ TARIFA ESPECIAL ALUMNOS ACADEMIA MARU',
+    subtext: 'Menú exclusivo para alumnos y profesores de Academia Maru',
+    callout: '* Presenta tu acreditación de la Academia Maru para disfrutar de tu precio exclusivo.',
+    badge: '🏫 Tarifa Maru'
+  },
+  {
+    id: 'offices',
+    label: '🏢 Empresas & Oficinas',
+    title: '🏢 MENÚ ESPECIAL EMPRESAS & COWORKING',
+    subtext: 'Pide antes de las 12:00h y te lo llevamos puntual a la oficina',
+    callout: '* Pedidos de grupo a partir de 3 bentos: entrega prioritaria garantizada.',
+    badge: '🏢 Pack Oficina'
+  },
+  {
+    id: 'weekend',
+    label: '🎉 Especial Fin de Semana',
+    title: '🎉 MENÚ DEGUSTACIÓN FIN DE SEMANA',
+    subtext: 'Nuestras especialidades más exclusivas recién preparadas',
+    callout: '* Cantidades limitadas elaboradas artesanalmente. ¡Reserva con antelación!',
+    badge: '⭐ Edición Especial'
+  },
+  {
+    id: 'free_delivery',
+    label: '🛵 Envío Gratis + Regalo',
+    title: '🛵 ENVÍO GRATIS EN PEDIDOS SUPERIORES A 20€',
+    subtext: 'Incluye bebida o aperitivo japonés de cortesía',
+    callout: '* Promoción activa esta semana para pedidos por WhatsApp o local.',
+    badge: '🛵 Envío Gratis'
+  }
+];
+
 export const DEFAULT_WEEKLY_MENU = {
   headerTitle: '¡PEDIDOS ABIERTOS PARA BENTOS!',
   headerSubtitle: '¡NUESTROS PRIMEROS PLATOS AUTÉNTICOS, HECHOS CON AMOR POR LA ABUELA!',
   headerTagline: 'En Bachan Bentobox, ¡haz tu pedido hoy! Deliciosos. Tradicionales. Hechos a mano.',
+  showPromoBanner: false,
+  promoBannerTitle: '🎓 PROMOCIÓN ESPECIAL DÍA DEL ESTUDIANTE',
+  promoBannerSubtext: '15% de descuento presentando tu carnet de estudiante',
+  promoCallout: '',
   contactName: 'Akiko Hirakawa',
   contactPhone: '691 328 095',
   contactPrefix: 'WhatsApp:',
@@ -97,27 +145,30 @@ export const DEFAULT_WEEKLY_MENU = {
   dishes: [
     {
       id: 'dish_1',
-      name: 'Tonkatsu Bento',
-      description: '(Chuleta de cerdo crujiente con arroz, sopa miso y acompañamientos)',
+      name: 'Bento Tonkatsu',
+      tpvPrice: 12.5,
       price: '12,5€',
+      description: '(Chuleta de cerdo crujiente con arroz, sopa miso y acompañamientos)',
       badge: 'el clásico crujiente',
       imageUrl: '/dishes/tonkatsu.png'
     },
     {
       id: 'dish_2',
       name: 'Katsudon Bento',
-      description: '(Cuenco de arroz con Tonkatsu, huevo y cebolla en salsa)',
+      tpvPrice: 14.5,
       price: '14,5€',
+      description: '(Cuenco de arroz con Tonkatsu, huevo y cebolla en salsa tradicional)',
       badge: 'confort en cada bocado',
       imageUrl: '/dishes/katsudon.png'
     },
     {
       id: 'dish_3',
-      name: 'Oyakodon Bento',
-      description: '(Cuenco de arroz con pollo y huevo simmered)',
-      price: '11,5€',
-      badge: 'tierno y sabroso',
-      imageUrl: '/dishes/oyakodon.png'
+      name: 'Bento Sushi 18 piezas',
+      tpvPrice: 19.5,
+      price: '19,5€',
+      description: '(Selección premium de nigiris, makis variados y uramakis frescos)',
+      badge: 'selección premium',
+      imageUrl: '/dishes/sushi.png'
     }
   ]
 };
@@ -288,6 +339,10 @@ export function generateWhatsAppWeeklyText(weeklyData) {
   const {
     headerTitle = '¡PEDIDOS ABIERTOS PARA BENTOS!',
     headerSubtitle = '¡Nuestros platos auténticos hechos con amor por la abuela!',
+    showPromoBanner = false,
+    promoBannerTitle = '',
+    promoBannerSubtext = '',
+    promoCallout = '',
     contactName = 'Akiko Hirakawa',
     contactPhone = '691 328 095',
     dishes = []
@@ -295,9 +350,17 @@ export function generateWhatsAppWeeklyText(weeklyData) {
 
   let text = `🍱 *${headerTitle}* 🍱\n`;
   if (headerSubtitle) text += `_${headerSubtitle}_\n\n`;
+
+  // Promotional Highlight if active
+  if (showPromoBanner && promoBannerTitle) {
+    text += `✨ *${promoBannerTitle}* ✨\n`;
+    if (promoBannerSubtext) text += `📌 _${promoBannerSubtext}_\n`;
+    text += `\n`;
+  }
+
   text += `*CARTA DE ESTA SEMANA:*\n\n`;
 
-  dishes.forEach((d, i) => {
+  dishes.forEach((d) => {
     if (d.name) {
       text += `🥢 *${d.name}* • *${d.price}*\n`;
       if (d.description) text += `   _${d.description}_\n`;
@@ -305,6 +368,10 @@ export function generateWhatsAppWeeklyText(weeklyData) {
       text += `\n`;
     }
   });
+
+  if (promoCallout) {
+    text += `ℹ️ _${promoCallout}_\n\n`;
+  }
 
   text += `🛵 *En Bachan Bentobox, ¡haz tu pedido hoy!*\n`;
   text += `Deliciosos. Tradicionales. Hechos a mano.\n\n`;

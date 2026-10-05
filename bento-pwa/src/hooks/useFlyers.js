@@ -2,15 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   getFlyerTemplates, 
   saveFlyerTemplate, 
-  deleteFlyerTemplate, 
-  DEFAULT_WEEKLY_MENU, 
-  DEFAULT_PRODUCT_FLYER 
+  deleteFlyerTemplate
 } from '../lib/flyerService';
 import { supabase } from '../lib/supabaseClient';
 
 export function useFlyers() {
   const [templates, setTemplates] = useState([]);
-  const [recipes, setRecipes] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -18,11 +17,16 @@ export function useFlyers() {
     setLoading(true);
     setError(null);
     try {
-      const [flyersRes, recipesRes] = await Promise.all([
+      const [flyersRes, menuRes, catRes] = await Promise.all([
         getFlyerTemplates(),
         supabase
-          .from('recipes')
-          .select('id, name, sale_price, image_url, recipe_type, cost_per_portion')
+          .from('menu_items')
+          .select('*')
+          .eq('active', true)
+          .order('name', { ascending: true }),
+        supabase
+          .from('menu_categories')
+          .select('*')
           .order('name', { ascending: true })
       ]);
 
@@ -30,12 +34,16 @@ export function useFlyers() {
         setTemplates(flyersRes.data);
       }
 
-      if (recipesRes.data) {
-        setRecipes(recipesRes.data);
+      if (menuRes.data) {
+        setMenuItems(menuRes.data);
+      }
+
+      if (catRes.data) {
+        setCategories(catRes.data);
       }
     } catch (err) {
       console.error('Error in useFlyers loadData:', err);
-      setError(err.message || 'Error cargando plantillas');
+      setError(err.message || 'Error cargando plantillas o menú');
     } finally {
       setLoading(false);
     }
@@ -63,7 +71,8 @@ export function useFlyers() {
 
   return {
     templates,
-    recipes,
+    menuItems,
+    categories,
     loading,
     error,
     refresh: loadData,

@@ -1,21 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useFlyers } from '../hooks/useFlyers';
 import { 
   FLYER_THEMES, 
+  PROMO_PRESETS,
   DEFAULT_WEEKLY_MENU, 
-  DEFAULT_PRODUCT_FLYER, 
   PRELOADED_DISH_ILLUSTRATIONS,
   resolveDishImage,
   downloadFlyerImage, 
-  generateWhatsAppWeeklyText, 
-  generateWhatsAppProductText 
+  generateWhatsAppWeeklyText 
 } from '../lib/flyerService';
 import { 
   Sparkles, 
   Download, 
   Share2, 
   Copy, 
-  Calendar, 
   Layers, 
   Utensils, 
   Phone, 
@@ -26,10 +24,17 @@ import {
   MessageSquare, 
   Image as ImageIcon,
   Flame, 
-  X,
-  Upload,
-  Wand2,
-  Grid
+  X, 
+  Upload, 
+  Wand2, 
+  Grid,
+  Search,
+  Tag,
+  GraduationCap,
+  Store,
+  RotateCcw,
+  BadgePercent,
+  Sliders
 } from 'lucide-react';
 import './Flyers.css';
 
@@ -68,7 +73,7 @@ const WhatsAppIconSVG = () => (
 );
 
 export default function Flyers() {
-  const { recipes, saveTemplate } = useFlyers();
+  const { menuItems, categories, saveTemplate } = useFlyers();
 
   const [selectedThemeId, setSelectedThemeId] = useState('bachan_classic');
   const [customLogoUrl, setCustomLogoUrl] = useState('');
@@ -77,8 +82,10 @@ export default function Flyers() {
   const [weeklyData, setWeeklyData] = useState(DEFAULT_WEEKLY_MENU);
 
   // Modals & Feedback
-  const [showRecipePickerModal, setShowRecipePickerModal] = useState(null); // index of dish to assign
+  const [showCatalogModal, setShowCatalogModal] = useState(null); // index of dish to assign from TPV catalog
   const [showIllustrationGalleryModal, setShowIllustrationGalleryModal] = useState(null); // index of dish to pick illustration
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogCategoryFilter, setCatalogCategoryFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
@@ -105,8 +112,9 @@ export default function Flyers() {
     const newDish = {
       id: `dish_${Date.now()}`,
       name: 'Kare Japonés',
-      description: '(Estofado japonés de verduras y carne con base de curry)',
+      tpvPrice: 13.5,
       price: '13,5€',
+      description: '(Estofado japonés de verduras y carne con base de curry suave)',
       badge: 'puro sabor casero',
       imageUrl: '/dishes/kare.png'
     };
@@ -123,26 +131,52 @@ export default function Flyers() {
     setWeeklyData({ ...weeklyData, dishes: updated });
   };
 
-  const handleSelectRecipeForDish = (recipe) => {
-    if (showRecipePickerModal !== null) {
-      const idx = showRecipePickerModal;
+  // Asignar plato seleccionado desde el catálogo del TPV
+  const handleSelectTPVItem = (item) => {
+    if (showCatalogModal !== null) {
+      const idx = showCatalogModal;
       const updated = [...weeklyData.dishes];
       
-      // Auto-match illustration from recipe name
-      const tempDish = { name: recipe.name, imageUrl: recipe.image_url };
-      const resolvedImg = resolveDishImage(tempDish);
+      const itemPrice = Number(item.price || 0);
+      const formattedPrice = itemPrice > 0 ? `${itemPrice.toFixed(1).replace('.', ',')}€` : '10,0€';
+      const resolvedImg = item.image_url || resolveDishImage(item);
 
       updated[idx] = {
         ...updated[idx],
-        name: recipe.name,
-        price: recipe.sale_price ? `${Number(recipe.sale_price).toFixed(1).replace('.', ',')}€` : updated[idx].price,
+        name: item.name,
+        tpvPrice: itemPrice,
+        price: formattedPrice,
         imageUrl: resolvedImg,
-        description: recipe.notes || updated[idx].description
+        description: item.description || updated[idx].description || `(Elaborado fresco por la abuela BaChan)`,
+        badge: updated[idx].badge || 'especialidad'
       };
+
       setWeeklyData({ ...weeklyData, dishes: updated });
-      setShowRecipePickerModal(null);
-      showToast(`🍱 ${recipe.name} asignado al flyer`);
+      setShowCatalogModal(null);
+      showToast(`🍱 ${item.name} asignado desde el TPV (${formattedPrice})`);
     }
+  };
+
+  // Restablecer el precio del plato a su precio original del TPV
+  const handleResetToTPVPrice = (index) => {
+    const dish = weeklyData.dishes[index];
+    if (dish && dish.tpvPrice !== undefined) {
+      const resetPrice = `${Number(dish.tpvPrice).toFixed(1).replace('.', ',')}€`;
+      handleDishChange(index, 'price', resetPrice);
+      showToast(`↺ Precio restablecido a ${resetPrice}`);
+    }
+  };
+
+  // Aplicar un Preset de Promoción rápida
+  const handleApplyPromoPreset = (preset) => {
+    setWeeklyData(prev => ({
+      ...prev,
+      showPromoBanner: true,
+      promoBannerTitle: preset.title,
+      promoBannerSubtext: preset.subtext,
+      promoCallout: preset.callout
+    }));
+    showToast(`✨ Promoción aplicada: ${preset.label}`);
   };
 
   const handleSelectIllustration = (illustration) => {
@@ -184,7 +218,7 @@ export default function Flyers() {
   const handleCopyWhatsAppText = () => {
     const text = generateWhatsAppWeeklyText(weeklyData);
     navigator.clipboard.writeText(text);
-    showToast('📋 ¡Texto de la carta copiado con emojis!');
+    showToast('📋 ¡Texto de la carta y promoción copiado con emojis!');
   };
 
   // ── Compartir en WhatsApp ────────────────────────────────────────────────
@@ -196,7 +230,7 @@ export default function Flyers() {
 
   // ── Guardar Plantilla ────────────────────────────────────────────────────
   const handleSaveCurrentTemplate = async () => {
-    const titlePrompt = prompt('Nombre para guardar esta carta semanal:', 'Carta Semanal BaChan');
+    const titlePrompt = prompt('Nombre para guardar esta carta semanal:', weeklyData.promoBannerTitle || 'Carta Semanal BaChan');
     if (!titlePrompt) return;
 
     await saveTemplate({
@@ -207,6 +241,15 @@ export default function Flyers() {
     });
     showToast('💾 Carta semanal guardada con éxito');
   };
+
+  // ── Filtrado del Catálogo del TPV ────────────────────────────────────────
+  const filteredCatalogItems = useMemo(() => {
+    return menuItems.filter(item => {
+      const matchesSearch = !catalogSearch.trim() || item.name.toLowerCase().includes(catalogSearch.toLowerCase());
+      const matchesCat = catalogCategoryFilter === 'all' || String(item.category_id) === String(catalogCategoryFilter);
+      return matchesSearch && matchesCat;
+    });
+  }, [menuItems, catalogSearch, catalogCategoryFilter]);
 
   return (
     <div className="flyers-root">
@@ -234,7 +277,7 @@ export default function Flyers() {
       <section className="flyers-header-card">
         <div className="flyers-title-group">
           <h1><Sparkles size={32} color="#f5e6c8" /> Creador de Cartas Semanales & Flyers BaChan</h1>
-          <p>Genera la pequeña carta semanal con ilustraciones tradicionales japonesas y descárgala en alta definición</p>
+          <p>Conecta platos de tu TPV, aplica precios y promociones especiales (Estudiantes, Academia Maru, Empresas) y descarga en HD</p>
         </div>
 
         <button 
@@ -272,6 +315,76 @@ export default function Flyers() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)' }} />
+
+          {/* ── SECCIÓN PROMOCIÓN ESPECIAL / COLECTIVOS ─────────────────────── */}
+          <div style={{ background: '#fdf8ec', padding: '16px', borderRadius: '12px', border: '1.5px solid #fde68a' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label className="editor-section-title" style={{ color: '#92400e' }}>
+                <Tag size={16} /> Promoción Especial / Colectivo
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 'bold', color: '#78350f', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox"
+                  checked={weeklyData.showPromoBanner || false}
+                  onChange={e => setWeeklyData({ ...weeklyData, showPromoBanner: e.target.checked })}
+                  style={{ width: '16px', height: '16px' }}
+                />
+                Activar Banner Promo
+              </label>
+            </div>
+
+            {/* Presets Rápidos */}
+            <div style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: 'bold', marginTop: '6px' }}>
+              Promociones preconfiguradas (1-clic):
+            </div>
+            <div className="promo-preset-pills">
+              {PROMO_PRESETS.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`promo-preset-pill ${weeklyData.promoBannerTitle === p.title ? 'active' : ''}`}
+                  onClick={() => handleApplyPromoPreset(p)}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Inputs de configuración del banner promocional */}
+            {weeklyData.showPromoBanner && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                <div className="form-group-custom">
+                  <label style={{ color: '#78350f' }}>Título del Banner Promocional</label>
+                  <input 
+                    type="text" 
+                    value={weeklyData.promoBannerTitle || ''}
+                    onChange={e => setWeeklyData({ ...weeklyData, promoBannerTitle: e.target.value })}
+                    placeholder="Ej: 🎓 PROMOCIÓN ESPECIAL DÍA DEL ESTUDIANTE"
+                  />
+                </div>
+                <div className="form-group-custom">
+                  <label style={{ color: '#78350f' }}>Subtexto de la Oferta</label>
+                  <input 
+                    type="text" 
+                    value={weeklyData.promoBannerSubtext || ''}
+                    onChange={e => setWeeklyData({ ...weeklyData, promoBannerSubtext: e.target.value })}
+                    placeholder="Ej: 15% de dto. para alumnos y profesores de Academia Maru"
+                  />
+                </div>
+                <div className="form-group-custom">
+                  <label style={{ color: '#78350f' }}>Condiciones / Nota al Pie del Flyer</label>
+                  <input 
+                    type="text" 
+                    value={weeklyData.promoCallout || ''}
+                    onChange={e => setWeeklyData({ ...weeklyData, promoCallout: e.target.value })}
+                    placeholder="Ej: * Válido de lunes a viernes en pedidos para llevar o delivery"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)' }} />
@@ -330,6 +443,7 @@ export default function Flyers() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {weeklyData.dishes.map((dish, idx) => {
                 const dishImgUrl = resolveDishImage(dish);
+                const isPriceModified = dish.tpvPrice !== undefined && `${Number(dish.tpvPrice).toFixed(1).replace('.', ',')}€` !== dish.price && `${Number(dish.tpvPrice).toFixed(2).replace('.', ',')}€` !== dish.price;
 
                 return (
                   <div key={dish.id || idx} className="dish-editor-card">
@@ -339,9 +453,12 @@ export default function Flyers() {
                         <button 
                           type="button" 
                           className="btn-choose-catalog"
-                          onClick={() => setShowRecipePickerModal(idx)}
+                          onClick={() => {
+                            setShowCatalogModal(idx);
+                            setCatalogSearch('');
+                          }}
                         >
-                          <ChefHat size={14} /> Catálogo
+                          <ChefHat size={14} /> Elegir del TPV
                         </button>
                         <button 
                           type="button" 
@@ -349,7 +466,7 @@ export default function Flyers() {
                           style={{ color: '#d97706' }}
                           onClick={() => setShowIllustrationGalleryModal(idx)}
                         >
-                          <Grid size={14} /> Ilustraciones IA
+                          <Grid size={14} /> Ilustración
                         </button>
                         <button 
                           type="button" 
@@ -362,7 +479,7 @@ export default function Flyers() {
                       </div>
                     </div>
 
-                    {/* Fila con Foto y Nombre */}
+                    {/* Fila con Foto, Nombre y Precio Editable */}
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                       <div 
                         onClick={() => setShowIllustrationGalleryModal(idx)}
@@ -392,12 +509,12 @@ export default function Flyers() {
                           type="text" 
                           value={dish.name}
                           onChange={e => handleDishChange(idx, 'name', e.target.value)}
-                          placeholder="Ej: Tonkatsu Bento"
+                          placeholder="Ej: Bento Tonkatsu"
                         />
                       </div>
 
-                      <div className="form-group-custom" style={{ width: '85px' }}>
-                        <label>Precio</label>
+                      <div className="form-group-custom" style={{ width: '105px' }}>
+                        <label>Precio Flyer</label>
                         <input 
                           type="text" 
                           value={dish.price}
@@ -406,6 +523,29 @@ export default function Flyers() {
                         />
                       </div>
                     </div>
+
+                    {/* Indicador de Precio TPV vs Precio Modificado */}
+                    {dish.tpvPrice !== undefined && (
+                      <div className="tpv-price-row">
+                        <span className="tpv-price-badge">
+                          <Store size={12} /> Precio Base TPV: {Number(dish.tpvPrice).toFixed(2)}€
+                        </span>
+                        {isPriceModified && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: '#ea580c', fontWeight: 'bold' }}>🔥 Precio especial flyer</span>
+                            <button 
+                              type="button" 
+                              className="btn-reset-price"
+                              onClick={() => handleResetToTPVPrice(idx)}
+                              title="Restablecer precio original del TPV"
+                            >
+                              <RotateCcw size={11} style={{ display: 'inline', marginRight: '2px' }} />
+                              Restablecer
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Descripción entre paréntesis */}
                     <div className="form-group-custom">
@@ -418,73 +558,34 @@ export default function Flyers() {
                       />
                     </div>
 
-                    {/* Badge de Sabor y Botón Subir */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      <div className="form-group-custom">
-                        <label>Pastilla / Claim de Sabor</label>
-                        <input 
-                          type="text" 
-                          value={dish.badge}
-                          onChange={e => handleDishChange(idx, 'badge', e.target.value)}
-                          placeholder="Ej: el clásico crujiente"
-                        />
-                      </div>
-
-                      <div className="form-group-custom">
-                        <label>Cambiar Foto</label>
-                        <div style={{ display: 'flex', gap: '6px' }}>
+                    {/* Badge / Claim y Sugerencias Rápidas */}
+                    <div className="form-group-custom">
+                      <label>Pastilla / Claim de Sabor</label>
+                      <input 
+                        type="text" 
+                        value={dish.badge || ''}
+                        onChange={e => handleDishChange(idx, 'badge', e.target.value)}
+                        placeholder="Ej: el clásico crujiente, 🎓 Promo Estudiante..."
+                      />
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        {['el clásico crujiente', '🎓 Promo Estudiante', '⭐ Recomendado', '🔥 Oferta de la Semana', '🌱 Vegano', '🏫 Tarifa Maru'].map(sugg => (
                           <button
+                            key={sugg}
                             type="button"
-                            onClick={() => setShowIllustrationGalleryModal(idx)}
+                            onClick={() => handleDishChange(idx, 'badge', sugg)}
                             style={{
-                              flex: 1,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px',
-                              padding: '8px',
-                              background: '#fef3c7',
-                              color: '#b45309',
-                              border: '1px solid #fde68a',
-                              borderRadius: '8px',
+                              background: '#f1f5f9',
+                              border: '1px solid #e2e8f0',
+                              fontSize: '0.7rem',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
                               cursor: 'pointer',
-                              fontSize: '0.75rem',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            <Wand2 size={13} /> Galería
-                          </button>
-
-                          <label 
-                            style={{
-                              flex: 1,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px',
-                              padding: '8px',
-                              background: '#ffffff',
-                              border: '1px dashed #cbd5e1',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              fontSize: '0.75rem',
-                              fontWeight: 'bold',
                               color: '#475569'
                             }}
                           >
-                            <Upload size={13} /> Subir
-                            <input 
-                              type="file" 
-                              accept="image/*"
-                              style={{ display: 'none' }}
-                              onChange={e => {
-                                if (e.target.files?.[0]) {
-                                  handleImageUploadForDish(idx, e.target.files[0]);
-                                }
-                              }}
-                            />
-                          </label>
-                        </div>
+                            +{sugg}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
@@ -625,6 +726,27 @@ export default function Flyers() {
                     </p>
                   </div>
 
+                  {/* ── BANNER PROMOCIÓN ESPECIAL (Si está activo) ──────────── */}
+                  {weeklyData.showPromoBanner && weeklyData.promoBannerTitle && (
+                    <div 
+                      className="poster-promo-ribbon"
+                      style={{
+                        backgroundColor: currentTheme.bg === '#0c1c2e' ? '#1e3a5f' : currentTheme.bg === '#0f172a' ? '#1e293b' : '#f5e6c8',
+                        borderColor: currentTheme.accent,
+                        color: currentTheme.textPrimary
+                      }}
+                    >
+                      <span className="poster-promo-title" style={{ color: currentTheme.accent }}>
+                        {weeklyData.promoBannerTitle}
+                      </span>
+                      {weeklyData.promoBannerSubtext && (
+                        <span className="poster-promo-subtext" style={{ color: currentTheme.textSecondary }}>
+                          {weeklyData.promoBannerSubtext}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* ── CUERPO: Tarjetas de Platos de la Carta Semanal ──────── */}
                   <div className="poster-dishes-column">
                     {weeklyData.dishes.map((dish, i) => {
@@ -690,6 +812,16 @@ export default function Flyers() {
                     })}
                   </div>
 
+                  {/* ── NOTA DE CONDICIONES / COLECTIVO ─────────────────────── */}
+                  {weeklyData.promoCallout && (
+                    <div 
+                      className="poster-promo-callout"
+                      style={{ color: currentTheme.textSecondary }}
+                    >
+                      {weeklyData.promoCallout}
+                    </div>
+                  )}
+
                   {/* ── PIE: Botón / Pill de WhatsApp ───────────────────────── */}
                   <div className="poster-footer-whatsapp">
                     <div className="poster-whatsapp-pill">
@@ -711,6 +843,95 @@ export default function Flyers() {
         </div>
 
       </div>
+
+      {/* ── MODAL SELECTOR DEL CATÁLOGO TPV (Platos Reales del TPV) ─────────── */}
+      {showCatalogModal !== null && (
+        <div className="modal-backdrop-custom" onClick={() => setShowCatalogModal(null)}>
+          <div className="modal-content-custom" style={{ maxWidth: '680px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header-custom">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ChefHat size={22} color="#f5e6c8" />
+                <h2 style={{ margin: 0 }}>Platos del Catálogo TPV BaChan</h2>
+              </div>
+              <button className="btn-modal-close" onClick={() => setShowCatalogModal(null)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body-custom" style={{ maxHeight: '480px', overflowY: 'auto' }}>
+              <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                Selecciona un plato del TPV para asignarlo al slot #{showCatalogModal + 1}. Se cargará su nombre, foto e importe base del TPV:
+              </p>
+
+              {/* Buscador y Filtros */}
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px', marginBottom: '8px' }}>
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <input 
+                    type="text"
+                    placeholder="Buscar plato del TPV por nombre..."
+                    value={catalogSearch}
+                    onChange={e => setCatalogSearch(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                  />
+                </div>
+                {categories.length > 0 && (
+                  <select
+                    value={catalogCategoryFilter}
+                    onChange={e => setCatalogCategoryFilter(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                  >
+                    <option value="all">Todas las categorías</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Grid de Platos del TPV */}
+              <div className="catalog-tpv-grid">
+                {filteredCatalogItems.map(item => {
+                  const img = item.image_url || resolveDishImage(item);
+                  return (
+                    <div 
+                      key={item.id}
+                      className="catalog-dish-card"
+                      onClick={() => handleSelectTPVItem(item)}
+                    >
+                      <div className="catalog-dish-thumb">
+                        <img src={img} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                      <div className="catalog-dish-info">
+                        <span className="catalog-dish-name" title={item.name}>{item.name}</span>
+                        <span className="catalog-dish-price">
+                          {Number(item.price || 0).toFixed(2)}€
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Precio TPV</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {filteredCatalogItems.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                  No se encontraron platos que coincidan con la búsqueda.
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer-custom">
+              <button 
+                className="btn-card-action secondary" 
+                style={{ width: 'auto', padding: '10px 18px' }}
+                onClick={() => setShowCatalogModal(null)}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── MODAL GALERÍA DE ILUSTRACIONES TRADICIONALES BACHAN ─────────────── */}
       {showIllustrationGalleryModal !== null && (
@@ -765,58 +986,6 @@ export default function Flyers() {
                 className="btn-card-action secondary" 
                 style={{ width: 'auto', padding: '10px 18px' }}
                 onClick={() => setShowIllustrationGalleryModal(null)}
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL SELECTOR DE RECETA / BENTO DEL CATÁLOGO ──────────────────── */}
-      {showRecipePickerModal !== null && (
-        <div className="modal-backdrop-custom" onClick={() => setShowRecipePickerModal(null)}>
-          <div className="modal-content-custom" onClick={e => e.stopPropagation()}>
-            <div className="modal-header-custom">
-              <h2>Seleccionar Plato del Catálogo BaChan</h2>
-              <button className="btn-modal-close" onClick={() => setShowRecipePickerModal(null)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="modal-body-custom" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                Haz clic en cualquier receta para rellenar automáticamente el plato #{showRecipePickerModal + 1}:
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {recipes.map(recipe => (
-                  <div 
-                    key={recipe.id}
-                    className="whatsapp-template-card"
-                    onClick={() => handleSelectRecipeForDish(recipe)}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 'bold', color: '#0c1c2e' }}>🍱 {recipe.name}</span>
-                      {recipe.sale_price > 0 && (
-                        <span style={{ fontWeight: 'bold', color: '#15803d' }}>
-                          {Number(recipe.sale_price).toFixed(2)}€
-                        </span>
-                      )}
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      Tipo: {recipe.recipe_type || 'Elaboración'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="modal-footer-custom">
-              <button 
-                className="btn-card-action secondary" 
-                style={{ width: 'auto', padding: '10px 18px' }}
-                onClick={() => setShowRecipePickerModal(null)}
               >
                 Cerrar
               </button>
