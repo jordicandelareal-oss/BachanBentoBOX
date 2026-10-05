@@ -5,7 +5,8 @@ import {
   updateCustomer, 
   deleteCustomer,
   getCustomerConsumptionStats,
-  checkBirthdayStatus
+  checkBirthdayStatus,
+  syncCustomersFromOrders
 } from '../lib/customerService';
 import { supabase } from '../lib/supabaseClient';
 
@@ -102,6 +103,12 @@ export function useCustomers() {
     };
   }, [enrichedCustomers]);
 
+  const syncFromOrders = async () => {
+    const res = await syncCustomersFromOrders(orders);
+    await loadData();
+    return res;
+  };
+
   return {
     customers: enrichedCustomers,
     rawCustomers: customers,
@@ -110,6 +117,7 @@ export function useCustomers() {
     error,
     summary,
     refresh: loadData,
+    syncFromOrders,
     addCustomer,
     editCustomer,
     removeCustomer

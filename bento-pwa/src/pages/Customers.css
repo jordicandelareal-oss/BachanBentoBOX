@@ -46,6 +46,49 @@
   font-size: 0.9rem;
 }
 
+.customers-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-sync-tickets {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f5e6c8;
+  border: 1px solid rgba(245, 230, 200, 0.35);
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.btn-sync-tickets:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: #f5e6c8;
+  transform: translateY(-2px);
+}
+
+.btn-sync-tickets:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .btn-add-customer {
   display: inline-flex;
   align-items: center;
