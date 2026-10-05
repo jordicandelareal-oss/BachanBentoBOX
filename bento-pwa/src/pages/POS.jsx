@@ -95,35 +95,37 @@ function SortableProduct({ id, isEmpty, children, onCardClick }) {
   // Clonar children pasando el ref del activador para el handle
   return (
     <div ref={setNodeRef} style={wrapperStyle} {...attributes}>
-      {/* Handle de arrastre: icono de puntos, solo él activa el DnD */}
-      <div
-        ref={setActivatorNodeRef}
-        {...listeners}
-        data-drag-handle
-        className="touch-none"
-        style={{
-          position: 'absolute',
-          top: 6,
-          left: 6,
-          zIndex: 20,
-          width: 28,
-          height: 28,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(0,0,0,0.35)',
-          borderRadius: 8,
-          cursor: isDragging ? 'grabbing' : 'grab',
-          touchAction: 'none',  // Solo aquí bloqueamos el scroll nativo
-          color: 'rgba(255,255,255,0.85)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
-          flexShrink: 0,
-        }}
-        title="Arrastra para reordenar"
-      >
-        <GripVertical size={14} strokeWidth={2.5} />
-      </div>
+      {/* Handle de arrastre: icono de puntos, solo él activa el DnD para productos reales */}
+      {!isEmpty && (
+        <div
+          ref={setActivatorNodeRef}
+          {...listeners}
+          data-drag-handle
+          className="touch-none"
+          style={{
+            position: 'absolute',
+            top: 6,
+            left: 6,
+            zIndex: 20,
+            width: 28,
+            height: 28,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.35)',
+            borderRadius: 8,
+            cursor: isDragging ? 'grabbing' : 'grab',
+            touchAction: 'none',  // Solo aquí bloqueamos el scroll nativo
+            color: 'rgba(255,255,255,0.85)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            flexShrink: 0,
+          }}
+          title="Arrastra para reordenar"
+        >
+          <GripVertical size={14} strokeWidth={2.5} />
+        </div>
+      )}
       {/* Área de contenido: libre para scroll y click */}
       <div
         style={{ width: '100%', height: '100%' }}
@@ -275,24 +277,41 @@ export default function POS() {
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
-        .eq('active', true)
-        .order('name', { ascending: true });
+        .eq('active', true);
 
       if (error) {
         console.error('❌ TPV Fetch error:', error);
         throw error;
       }
       
-      const mapped = (data || []).map(r => ({
-        ...r,
-        price: r.price || 0,
-        image_url: r.image_url,
-        quantity_multiplier: r.quantity_multiplier || 1
-      }));
+      const localOrderMap = JSON.parse(localStorage.getItem('bachan_tpv_products_order') || '{}');
 
-      console.log(`✅ TPV: Fetched ${mapped.length} active menu_items.`);
-      console.log('📦 TPV: Productos cargados:', mapped);
-      setProducts(mapped);
+      const mapped = (data || []).map(r => {
+        let itemSort = 0;
+        if (localOrderMap[r.id] !== undefined) {
+          itemSort = Number(localOrderMap[r.id]);
+        } else if (r.sort_order !== undefined && r.sort_order !== null) {
+          itemSort = Number(r.sort_order);
+        }
+
+        return {
+          ...r,
+          sort_order: itemSort,
+          price: r.price || 0,
+          image_url: r.image_url,
+          quantity_multiplier: r.quantity_multiplier || 1
+        };
+      });
+
+      const sorted = mapped.sort((a, b) => {
+        const orderA = Number(a.sort_order) || 0;
+        const orderB = Number(b.sort_order) || 0;
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
+      console.log(`✅ TPV: Fetched ${sorted.length} active menu_items with sort_order.`);
+      setProducts(sorted);
     } catch (err) {
       console.error('❌ TPV Fetch error (Check RLS Policies):', err);
     } finally {
@@ -329,42 +348,7 @@ export default function POS() {
     localStorage.setItem('bachan_tpv_cart', JSON.stringify(cart));
   }, [cart]);
 
-  // 2. PRODUCT REORDERING (Modo Edición)
-  const moveProduct = async (id, direction) => {
-    const visibleProducts = products.filter(p => String(p.menu_category_id) === String(activeCategory));
-
-    const index = visibleProducts.findIndex(p => p.id === id);
-    if (index === -1) return;
-
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= visibleProducts.length) return;
-
-    const newProducts = [...products];
-    const itemA = visibleProducts[index];
-    const itemB = visibleProducts[newIndex];
-
-    // Swap sort_order values
-    const tempSort = itemA.sort_order || 0;
-    const targetSort = itemB.sort_order || 0;
-    
-    // Ensure they aren't the same if they were both 0
-    const finalSortA = targetSort;
-    const finalSortB = tempSort === targetSort ? tempSort + direction : tempSort;
-
-    const idxA = products.findIndex(p => p.id === itemA.id);
-    const idxB = products.findIndex(p => p.id === itemB.id);
-
-    newProducts[idxA] = { ...itemA, sort_order: finalSortA };
-    newProducts[idxB] = { ...itemB, sort_order: finalSortB };
-
-    const sorted = newProducts.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-    setProducts(sorted);
-    
-    // Background sync to Supabase (ONLY menu_items now)
-    await supabase.from('menu_items').update({ sort_order: finalSortA }).eq('id', itemA.id);
-    await supabase.from('menu_items').update({ sort_order: finalSortB }).eq('id', itemB.id);
-  };
-
+  // 2. PRODUCT REORDERING (Drag & Drop & Local + Supabase Persistence)
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -377,7 +361,7 @@ export default function POS() {
     const unplaced = [];
     visibleProducts.forEach(p => {
        const order = p.sort_order;
-       if (order >= 0 && order < 16 && !gridItems[order]) {
+       if (order !== undefined && order !== null && order >= 0 && order < 16 && !gridItems[order]) {
           gridItems[order] = p;
        } else {
           unplaced.push(p);
@@ -401,24 +385,41 @@ export default function POS() {
     
     const newProducts = [...products];
     const updates = [];
+    const localOrderMap = JSON.parse(localStorage.getItem('bachan_tpv_products_order') || '{}');
     
     // 5. Update sort_order for all real products in this grid
     reorderedGrid.forEach((p, idx) => {
        if (!p.isEmpty) {
           const prodIndex = newProducts.findIndex(x => x.id === p.id);
-          if (prodIndex !== -1 && newProducts[prodIndex].sort_order !== idx) {
-             newProducts[prodIndex] = { ...p, sort_order: idx };
+          if (prodIndex !== -1) {
+             newProducts[prodIndex] = { ...newProducts[prodIndex], sort_order: idx };
+             localOrderMap[p.id] = idx;
              updates.push({ id: p.id, sort_order: idx });
           }
        }
     });
 
-    if (updates.length > 0) {
-      const sorted = newProducts.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-      setProducts(sorted);
+    // Persist to local storage immediately
+    try {
+      localStorage.setItem('bachan_tpv_products_order', JSON.stringify(localOrderMap));
+    } catch (e) {
+      console.warn('Error saving product order to localStorage:', e);
+    }
 
+    // Sort products by sort_order
+    const sorted = newProducts.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0));
+    setProducts(sorted);
+
+    // Sync to Supabase in background
+    if (updates.length > 0) {
       for (const u of updates) {
-         supabase.from('menu_items').update({ sort_order: u.sort_order }).eq('id', u.id).then();
+        supabase.from('menu_items').update({ sort_order: u.sort_order }).eq('id', u.id).then(({ error }) => {
+          if (error) {
+            console.warn('Nota de sincronización sort_order (Supabase):', error.message);
+          }
+        }).catch(err => {
+          console.warn('Error en update sort_order:', err);
+        });
       }
     }
   };
