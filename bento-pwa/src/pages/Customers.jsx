@@ -299,19 +299,7 @@ export default function Customers() {
 
       {/* ── TOAST NOTIFICATION ──────────────────────────────────────────────── */}
       {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          background: 'var(--color-navy)',
-          color: '#f5e6c8',
-          padding: '12px 24px',
-          borderRadius: '12px',
-          fontWeight: 'bold',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-          zIndex: 9999,
-          border: '1px solid rgba(245,230,200,0.3)'
-        }}>
+        <div className="custom-toast-notification">
           {toastMessage}
         </div>
       )}
@@ -859,13 +847,26 @@ export default function Customers() {
         <div className="modal-backdrop-custom" onClick={() => setShowAddEditModal(false)}>
           <div className="modal-content-custom" onClick={e => e.stopPropagation()}>
             <div className="modal-header-custom">
-              <h2>{editingCustomer ? `Editar Ficha: ${editingCustomer.name}` : 'Nuevo Cliente'}</h2>
-              <button className="btn-modal-close" onClick={() => setShowAddEditModal(false)}>
-                <X size={20} />
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{editingCustomer ? `Editar: ${editingCustomer.name}` : 'Nuevo Cliente'}</h2>
+                <span style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Ficha de contacto y fidelización</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button 
+                  type="submit" 
+                  form="customer-add-edit-form" 
+                  className="btn-header-quick-save"
+                  title="Guardar ficha"
+                >
+                  <Check size={16} /> Guardar
+                </button>
+                <button className="btn-modal-close" onClick={() => setShowAddEditModal(false)}>
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSaveCustomer}>
+            <form id="customer-add-edit-form" onSubmit={handleSaveCustomer} className="modal-form-custom">
               <div className="modal-body-custom">
                 
                 {/* Banner Rápido de Acceso a Agenda del Teléfono */}
