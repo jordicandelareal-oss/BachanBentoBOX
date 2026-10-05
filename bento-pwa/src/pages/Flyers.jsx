@@ -7,7 +7,9 @@ import {
   PRELOADED_DISH_ILLUSTRATIONS,
   resolveDishImage,
   downloadFlyerImage, 
-  generateWhatsAppWeeklyText 
+  generateWhatsAppWeeklyText,
+  copyFlyerImageToClipboard,
+  shareFlyerToWhatsApp
 } from '../lib/flyerService';
 import { 
   Sparkles, 
@@ -34,7 +36,11 @@ import {
   Store,
   RotateCcw,
   BadgePercent,
-  Sliders
+  Sliders,
+  Send,
+  CheckCircle2,
+  HelpCircle,
+  ExternalLink
 } from 'lucide-react';
 import './Flyers.css';
 
@@ -87,6 +93,8 @@ export default function Flyers() {
   const [catalogSearch, setCatalogSearch] = useState('');
   const [catalogCategoryFilter, setCatalogCategoryFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [showWhatsAppDesktopModal, setShowWhatsAppDesktopModal] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
   const currentTheme = FLYER_THEMES.find(t => t.id === selectedThemeId) || FLYER_THEMES[0];
@@ -94,7 +102,7 @@ export default function Flyers() {
 
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 3000);
+    setTimeout(() => setToastMessage(''), 3500);
   };
 
   // ── Modificar Platos de la Carta Semanal ──────────────────────────────────
@@ -214,6 +222,22 @@ export default function Flyers() {
     }
   };
 
+  // ── Copiar Imagen del Flyer al Portapapeles ──────────────────────────────
+  const handleCopyFlyerImage = async () => {
+    setIsExporting(true);
+    try {
+      await copyFlyerImageToClipboard('bachan-flyer-canvas');
+      showToast('📸 ¡Imagen HD copiada! Pégala con Ctrl+V en WhatsApp o redes');
+    } catch (err) {
+      console.error('Error al copiar imagen:', err);
+      // Fallback a descarga si el navegador no permite portapapeles de imágenes
+      await handleDownloadImage();
+      showToast('📥 Imagen descargada (tu navegador no permitió copiar directo)');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // ── Copiar Texto Formateado para WhatsApp ─────────────────────────────────
   const handleCopyWhatsAppText = () => {
     const text = generateWhatsAppWeeklyText(weeklyData);
@@ -221,11 +245,36 @@ export default function Flyers() {
     showToast('📋 ¡Texto de la carta y promoción copiado con emojis!');
   };
 
-  // ── Compartir en WhatsApp ────────────────────────────────────────────────
-  const handleShareWhatsApp = () => {
-    const text = generateWhatsAppWeeklyText(weeklyData);
-    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    window.open(waUrl, '_blank');
+  // ── Compartir en WhatsApp (Imagen HD + Texto) ─────────────────────────────
+  const handleShareWhatsApp = async () => {
+    setIsSharing(true);
+    try {
+      const text = generateWhatsAppWeeklyText(weeklyData);
+      const fileName = `carta-semanal-bachan-${Date.now()}.png`;
+      const result = await shareFlyerToWhatsApp({
+        elementId: 'bachan-flyer-canvas',
+        text,
+        fileName
+      });
+
+      if (result.method === 'native_share') {
+        if (!result.cancelled) {
+          showToast('📲 ¡Abriendo WhatsApp con el Flyer e Información!');
+        }
+      } else {
+        // En escritorio/web mostramos la guía interactiva para pegar el flyer
+        setShowWhatsAppDesktopModal(true);
+        showToast('📸 ¡Flyer copiado al portapapeles y descargado!');
+      }
+    } catch (err) {
+      console.error('Error al compartir en WhatsApp:', err);
+      const text = generateWhatsAppWeeklyText(weeklyData);
+      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      window.open(waUrl, '_blank');
+      showToast('💬 Abriendo WhatsApp con el texto');
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   // ── Guardar Plantilla ────────────────────────────────────────────────────
@@ -632,25 +681,42 @@ export default function Flyers() {
           {/* Botones de acción rápida */}
           <div className="preview-actions-bar">
             <button 
-              className="btn-export-action download"
-              onClick={handleDownloadImage}
-              disabled={isExporting}
+              className="btn-export-action whatsapp"
+              onClick={handleShareWhatsApp}
+              disabled={isSharing || isExporting}
+              title="Comparte el flyer y el texto directamente a WhatsApp"
             >
-              <Download size={18} /> {isExporting ? 'Generando HD...' : 'Descargar Flyer HD'}
+              <Share2 size={18} />
+              <span>{isSharing ? 'Preparando...' : 'WhatsApp (Foto + Texto)'}</span>
             </button>
 
             <button 
-              className="btn-export-action whatsapp"
-              onClick={handleShareWhatsApp}
+              className="btn-export-action download"
+              onClick={handleDownloadImage}
+              disabled={isExporting || isSharing}
+              title="Descarga el archivo PNG en ultra alta definición"
             >
-              <Share2 size={18} /> WhatsApp
+              <Download size={18} />
+              <span>{isExporting ? 'Generando HD...' : 'Descargar HD'}</span>
+            </button>
+
+            <button 
+              className="btn-export-action copy-img"
+              onClick={handleCopyFlyerImage}
+              disabled={isExporting || isSharing}
+              title="Copia la imagen del flyer para pegarla en cualquier chat con Ctrl+V"
+            >
+              <ImageIcon size={18} />
+              <span>Copiar Imagen</span>
             </button>
 
             <button 
               className="btn-export-action copy"
               onClick={handleCopyWhatsAppText}
+              title="Copia el texto formateado con emojis"
             >
-              <Copy size={18} /> Copiar Texto
+              <Copy size={18} />
+              <span>Copiar Texto</span>
             </button>
           </div>
 
@@ -988,6 +1054,97 @@ export default function Flyers() {
                 onClick={() => setShowIllustrationGalleryModal(null)}
               >
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL GUÍA WHATSAPP WEB / ESCRITORIO (FOTO + TEXTO) ─────────────── */}
+      {showWhatsAppDesktopModal && (
+        <div className="modal-backdrop-custom" onClick={() => setShowWhatsAppDesktopModal(false)}>
+          <div className="modal-content-custom" style={{ maxWidth: '560px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header-custom" style={{ background: '#075e54', color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ background: '#25d366', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                  <WhatsAppIconSVG />
+                </div>
+                <h2 style={{ margin: 0, color: '#ffffff' }}>Flyer Listo para WhatsApp</h2>
+              </div>
+              <button className="btn-modal-close" style={{ color: '#ffffff' }} onClick={() => setShowWhatsAppDesktopModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body-custom" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ background: '#e8f5e9', padding: '14px', borderRadius: '10px', border: '1px solid #c8e6c9', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <CheckCircle2 size={24} color="#2e7d32" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ fontSize: '0.88rem', color: '#1b5e20', lineHeight: 1.4 }}>
+                  <strong>¡Imagen del flyer copiada al portapapeles y descargada!</strong><br />
+                  Se ha abierto WhatsApp Web con el texto de la carta y la promoción preparado.
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1e293b', marginBottom: '10px' }}>
+                  📲 ¿Cómo enviar la Foto y el Texto en WhatsApp Web?
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', color: '#475569' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <span style={{ background: 'var(--color-navy)', color: '#f5e6c8', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.75rem', flexShrink: 0 }}>1</span>
+                    <div>Haz clic en la conversación o grupo de WhatsApp donde quieras mandar la carta.</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <span style={{ background: 'var(--color-navy)', color: '#f5e6c8', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.75rem', flexShrink: 0 }}>2</span>
+                    <div>
+                      Pulsa <kbd style={{ background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold', color: '#1e293b' }}>Ctrl + V</kbd> (o <kbd style={{ background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold', color: '#1e293b' }}>Cmd + V</kbd> en Mac) en el recuadro de mensaje.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <span style={{ background: '#25d366', color: '#ffffff', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.75rem', flexShrink: 0 }}>3</span>
+                    <div>¡La imagen del flyer se adjuntará en alta definición con todo el texto y precios! Dale a <strong>Enviar</strong>.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-card-action secondary"
+                  style={{ width: '100%', padding: '10px', fontSize: '0.82rem' }}
+                  onClick={handleCopyFlyerImage}
+                >
+                  <ImageIcon size={15} /> Volver a Copiar Foto
+                </button>
+                <button
+                  type="button"
+                  className="btn-card-action secondary"
+                  style={{ width: '100%', padding: '10px', fontSize: '0.82rem' }}
+                  onClick={handleCopyWhatsAppText}
+                >
+                  <Copy size={15} /> Volver a Copiar Texto
+                </button>
+              </div>
+            </div>
+
+            <div className="modal-footer-custom" style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <button 
+                className="btn-card-action primary" 
+                style={{ width: 'auto', padding: '10px 20px', background: '#25d366', color: '#ffffff', border: 'none' }}
+                onClick={() => {
+                  const text = generateWhatsAppWeeklyText(weeklyData);
+                  window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+                }}
+              >
+                <ExternalLink size={16} /> Abrir WhatsApp Web
+              </button>
+
+              <button 
+                className="btn-card-action secondary" 
+                style={{ width: 'auto', padding: '10px 18px' }}
+                onClick={() => setShowWhatsAppDesktopModal(false)}
+              >
+                Entendido
               </button>
             </div>
           </div>

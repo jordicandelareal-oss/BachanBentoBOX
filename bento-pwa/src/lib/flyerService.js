@@ -1,4 +1,4 @@
-import { toPng, toJpeg } from 'html-to-image';
+import { toBlob, toPng, toJpeg } from 'html-to-image';
 import { supabase } from './supabaseClient';
 
 const LOCAL_FLYERS_KEY = 'bachan_flyer_templates_v3';
@@ -302,6 +302,34 @@ export async function deleteFlyerTemplate(id) {
 }
 
 // ── Exportación de Imagen en Alta Resolución ──────────────────────────────
+export async function getFlyerBlob(elementId, format = 'png') {
+  const node = document.getElementById(elementId);
+  if (!node) {
+    throw new Error('Elemento del flyer no encontrado en el DOM');
+  }
+
+  const exportOptions = {
+    pixelRatio: 3.0,
+    cacheBust: true,
+    quality: 0.98,
+    style: {
+      transform: 'none'
+    }
+  };
+
+  try {
+    const blob = await toBlob(node, exportOptions);
+    if (blob) return blob;
+  } catch (err) {
+    console.warn('toBlob error, fallback to toPng -> blob:', err);
+  }
+
+  // Fallback: toPng -> fetch blob
+  const dataUrl = await toPng(node, exportOptions);
+  const res = await fetch(dataUrl);
+  return await res.blob();
+}
+
 export async function downloadFlyerImage(elementId, fileName = 'carta-semanal-bachan.png', format = 'png') {
   const node = document.getElementById(elementId);
   if (!node) {
@@ -332,6 +360,75 @@ export async function downloadFlyerImage(elementId, fileName = 'carta-semanal-ba
   document.body.removeChild(link);
 
   return dataUrl;
+}
+
+export async function copyFlyerImageToClipboard(elementId) {
+  const blob = await getFlyerBlob(elementId, 'png');
+  if (navigator.clipboard && window.ClipboardItem) {
+    const item = new ClipboardItem({ 'image/png': blob });
+    await navigator.clipboard.write([item]);
+    return true;
+  }
+  throw new Error('Tu navegador no soporta copiar imágenes directamente al portapapeles.');
+}
+
+export async function shareFlyerToWhatsApp({ elementId, text, fileName = 'carta-semanal-bachan.png' }) {
+  const blob = await getFlyerBlob(elementId, 'png');
+  const file = new File([blob], fileName, { type: 'image/png' });
+
+  // 1. Probar Web Share API nativa con soporte de archivos (Móviles iOS / Android / Mac Safari)
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: 'Carta Semanal BaChan BentoBox',
+        text: text,
+        files: [file]
+      });
+      return { method: 'native_share', success: true };
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        return { method: 'native_share', cancelled: true };
+      }
+      console.warn('navigator.share falló o fue rechazado, ejecutando flujo web desktop:', err);
+    }
+  }
+
+  // 2. Flujo Desktop / Navegador sin soporte de compartir archivos nativo:
+  // Intentar copiar la imagen directamente al portapapeles del sistema
+  let copiedImage = false;
+  try {
+    if (navigator.clipboard && window.ClipboardItem) {
+      const item = new ClipboardItem({ 'image/png': blob });
+      await navigator.clipboard.write([item]);
+      copiedImage = true;
+    }
+  } catch (clipErr) {
+    console.warn('No se pudo copiar automáticamente al portapapeles:', clipErr);
+  }
+
+  // Descargar también el archivo automáticamente como respaldo
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (dlErr) {
+    console.warn('Descarga automática falló:', dlErr);
+  }
+
+  // Abrir WhatsApp con el texto preparado
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  window.open(waUrl, '_blank');
+
+  return {
+    method: 'desktop_flow',
+    copiedImage,
+    success: true
+  };
 }
 
 // ── Generador de Texto para WhatsApp ─────────────────────────────────────────
