@@ -564,6 +564,57 @@
   border-color: #3b82f6;
 }
 
+/* Customer Search Combobox & Dropdown */
+.pos-customer-search-group {
+  position: relative;
+}
+
+.pos-customer-input-box {
+  position: relative;
+  width: 100%;
+}
+
+.pos-customer-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.pos-customer-dropdown::-webkit-scrollbar {
+  width: 5px;
+}
+
+.pos-customer-dropdown::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.pos-customer-dropdown-row {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.15s ease;
+}
+
+.pos-customer-dropdown-row:last-child {
+  border-bottom: none;
+}
+
+.pos-customer-dropdown-row:hover {
+  background: #f8fafc;
+}
+
 .pos-cart-list {
   flex: 1;
   padding: 16px 24px 16px 16px; /* Added extra right padding */

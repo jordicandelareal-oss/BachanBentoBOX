@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { deductStockForOrder } from '../lib/inventoryService';
 import { 
@@ -194,6 +194,27 @@ export default function POS() {
   const [savedCustomers, setSavedCustomers] = useState([]);
   const [selectedCustomerObj, setSelectedCustomerObj] = useState(null);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+
+  const filteredCustomers = useMemo(() => {
+    const query = (customerName || '').toLowerCase().trim();
+    const cleanDigits = query.replace(/\D/g, '');
+    
+    if (!query) {
+      return [...savedCustomers].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+    
+    return savedCustomers.filter(c => {
+      const nameMatch = (c.name || '').toLowerCase().includes(query);
+      const emailMatch = (c.email || '').toLowerCase().includes(query);
+      const phoneDigits = (c.phone || '').replace(/\D/g, '');
+      const phoneMatch = cleanDigits.length >= 2 
+        ? phoneDigits.includes(cleanDigits)
+        : (c.phone || '').toLowerCase().includes(query);
+      const notesMatch = (c.notes || '').toLowerCase().includes(query);
+      const dishMatch = (c.favorite_dish || '').toLowerCase().includes(query);
+      return nameMatch || phoneMatch || emailMatch || notesMatch || dishMatch;
+    });
+  }, [savedCustomers, customerName]);
   
   // Discount States
   const [discountValue, setDiscountValue] = useState(0);
@@ -812,7 +833,7 @@ export default function POS() {
                   <option value="Delivery">Delivery</option>
                </select>
             </div>
-            <div className="pos-input-group" style={{ flex: 2, position: 'relative' }}>
+            <div className="pos-input-group pos-customer-search-group" style={{ flex: 2, position: 'relative' }}>
                <label className="pos-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Nombre Cliente</span>
                   {selectedCustomerObj && (
@@ -828,75 +849,142 @@ export default function POS() {
                     </button>
                   )}
                </label>
-               <input 
-                 type="text" 
-                 value={customerName} 
-                 onChange={(e) => {
-                   setCustomerName(e.target.value);
-                   setShowCustomerDropdown(true);
-                   if (selectedCustomerObj && e.target.value !== selectedCustomerObj.name) {
-                     setSelectedCustomerObj(null);
-                   }
-                 }}
-                 onFocus={() => setShowCustomerDropdown(true)}
-                 placeholder="Escribe o busca cliente..." 
-                 className="pos-input" 
-               />
-
-               {/* Dropdown predictivo de clientes */}
-               {showCustomerDropdown && customerName.trim() && (
-                 <div style={{
-                   position: 'absolute',
-                   top: '100%',
-                   left: 0,
-                   right: 0,
-                   background: '#ffffff',
-                   border: '1px solid var(--color-border)',
-                   borderRadius: '8px',
-                   boxShadow: '0 10px 20px rgba(0,0,0,0.15)',
-                   zIndex: 50,
-                   maxHeight: '180px',
-                   overflowY: 'auto'
-                 }}>
-                   {savedCustomers
-                     .filter(c => 
-                       (c.name || '').toLowerCase().includes(customerName.toLowerCase()) ||
-                       (c.phone || '').includes(customerName)
-                     )
-                     .slice(0, 5)
-                     .map(cust => (
-                       <div 
-                         key={cust.id}
-                         onClick={() => {
-                           setCustomerName(cust.name);
-                           setSelectedCustomerObj(cust);
-                           setShowCustomerDropdown(false);
-                           if (cust.discount_percent > 0) {
-                             setDiscountValue(cust.discount_percent);
-                             setDiscountType('percent');
-                           }
-                         }}
-                         style={{
-                           padding: '8px 12px',
-                           borderBottom: '1px solid #f1f5f9',
-                           cursor: 'pointer',
-                           display: 'flex',
-                           justifyContent: 'space-between',
-                           alignItems: 'center'
-                         }}
-                         onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                         onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
-                       >
-                         <div>
-                           <strong style={{ fontSize: '0.85rem', color: '#0c1c2e' }}>{cust.name}</strong>
-                           {cust.phone && <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '6px' }}>({cust.phone})</span>}
-                         </div>
-                         <span style={{ fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', color: cust.loyalty_tier === 'vip' ? '#b45309' : '#0369a1' }}>
-                           {cust.loyalty_tier || 'standard'}
-                         </span>
-                       </div>
-                     ))}
+               <div className="pos-customer-input-box" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                 <input 
+                   type="text" 
+                   value={customerName} 
+                   onChange={(e) => {
+                     setCustomerName(e.target.value);
+                     setShowCustomerDropdown(true);
+                     if (selectedCustomerObj && e.target.value !== selectedCustomerObj.name) {
+                       setSelectedCustomerObj(null);
+                     }
+                   }}
+                   onFocus={() => setShowCustomerDropdown(true)}
+                   placeholder="Buscar o escribir cliente..." 
+                   className="pos-input" 
+                   style={{ paddingRight: '46px' }}
+                 />
+                 <div style={{ position: 'absolute', right: '6px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                   {customerName && (
+                     <button
+                       type="button"
+                       onClick={() => {
+                         setCustomerName('');
+                         setSelectedCustomerObj(null);
+                         setShowCustomerDropdown(false);
+                       }}
+                       style={{
+                         background: 'transparent',
+                         border: 'none',
+                         color: '#94a3b8',
+                         cursor: 'pointer',
+                         padding: '4px',
+                         display: 'flex',
+                         alignItems: 'center'
+                       }}
+                       title="Limpiar"
+                     >
+                       <X size={14} />
+                     </button>
+                   )}
+                   <button
+                     type="button"
+                     onClick={() => setShowCustomerDropdown(prev => !prev)}
+                     style={{
+                       background: 'transparent',
+                       border: 'none',
+                       color: '#64748b',
+                       cursor: 'pointer',
+                       padding: '4px',
+                       display: 'flex',
+                       alignItems: 'center'
+                     }}
+                     title="Ver lista de clientes"
+                   >
+                     <ChevronDown size={16} />
+                   </button>
                  </div>
+               </div>
+
+               {/* Dropdown predictivo de clientes (sin mostrar el teléfono en la lista) */}
+               {showCustomerDropdown && (
+                 <>
+                   <div 
+                     style={{ position: 'fixed', inset: 0, zIndex: 90 }} 
+                     onClick={() => setShowCustomerDropdown(false)}
+                   />
+                   <div className="pos-customer-dropdown" style={{
+                     position: 'absolute',
+                     top: 'calc(100% + 4px)',
+                     left: 0,
+                     right: 0,
+                     background: '#ffffff',
+                     border: '1.5px solid #e2e8f0',
+                     borderRadius: '12px',
+                     boxShadow: '0 10px 25px rgba(0,0,0,0.12)',
+                     zIndex: 100,
+                     maxHeight: '220px',
+                     overflowY: 'auto'
+                   }}>
+                     {filteredCustomers.length > 0 ? (
+                       filteredCustomers.slice(0, 15).map(cust => (
+                         <div 
+                           key={cust.id}
+                           onClick={() => {
+                             setCustomerName(cust.name);
+                             setSelectedCustomerObj(cust);
+                             setShowCustomerDropdown(false);
+                             if (cust.discount_percent > 0) {
+                               setDiscountValue(cust.discount_percent);
+                               setDiscountType('percent');
+                             }
+                           }}
+                           className="pos-customer-dropdown-row"
+                           style={{
+                             padding: '9px 12px',
+                             borderBottom: '1px solid #f1f5f9',
+                             cursor: 'pointer',
+                             display: 'flex',
+                             justifyContent: 'space-between',
+                             alignItems: 'center',
+                             transition: 'background 0.15s ease'
+                           }}
+                           onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                           onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
+                         >
+                           <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
+                             {cust.name}
+                           </span>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                             {cust.language && (
+                               <span style={{ fontSize: '0.75rem' }}>
+                                 {cust.language === 'ja' ? '🇯🇵' : cust.language === 'en' ? '🇬🇧' : '🇪🇸'}
+                               </span>
+                             )}
+                             {cust.loyalty_tier === 'vip' && (
+                               <span style={{
+                                 fontSize: '0.65rem',
+                                 fontWeight: 900,
+                                 textTransform: 'uppercase',
+                                 background: '#fef3c7',
+                                 color: '#b45309',
+                                 padding: '2px 6px',
+                                 borderRadius: '4px'
+                                }}>
+                                 VIP
+                               </span>
+                             )}
+                           </div>
+                         </div>
+                       ))
+                     ) : (
+                       <div style={{ padding: '12px', textAlign: 'center', fontSize: '0.8rem', color: '#94a3b8' }}>
+                         {customerName.trim() ? `Nuevo cliente: "${customerName}"` : 'No hay clientes registrados'}
+                       </div>
+                     )}
+                   </div>
+                 </>
                )}
 
                {/* Indicador de cliente VIP / Cumpleaños / Alérgenos */}
