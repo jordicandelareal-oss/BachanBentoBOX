@@ -792,7 +792,11 @@ export default function Flyers() {
                       src={activeLogo} 
                       alt="BaChan BentoBox" 
                       className="poster-logo-seal"
-                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        if (e.currentTarget.src !== '/logo-bachan.png') {
+                          e.currentTarget.src = '/logo-bachan.png';
+                        }
+                      }}
                     />
 
                     <h2 
@@ -858,7 +862,11 @@ export default function Flyers() {
                               src={dishImg} 
                               alt={dish.name} 
                               className="dish-thumbnail-img"
-                              crossOrigin="anonymous"
+                              onError={(e) => {
+                                if (!e.currentTarget.src.includes('tonkatsu.png')) {
+                                  e.currentTarget.src = '/dishes/tonkatsu.png';
+                                }
+                              }}
                             />
                           </div>
 
