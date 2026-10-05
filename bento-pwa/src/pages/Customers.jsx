@@ -916,16 +916,15 @@ export default function Customers() {
               </div>
 
               <div className="modal-footer-custom">
-                <button type="submit" className="btn-modal-submit">
-                  <Check size={18} /> Guardar Ficha
-                </button>
                 <button 
                   type="button" 
-                  className="btn-card-action secondary"
-                  style={{ width: 'auto', padding: '10px 18px' }}
+                  className="btn-modal-cancel"
                   onClick={() => setShowAddEditModal(false)}
                 >
                   Cancelar
+                </button>
+                <button type="submit" className="btn-modal-save">
+                  <Check size={18} /> Guardar Ficha
                 </button>
               </div>
             </form>

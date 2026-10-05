@@ -609,11 +609,64 @@
 
 .modal-footer-custom {
   padding: 16px 24px;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
+  background: #fdfbf7;
+  border-top: 1px solid #ebdcc5;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-modal-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--color-navy) 0%, #172d42 100%);
+  color: #f5e6c8;
+  border: 1.5px solid rgba(245, 230, 200, 0.45);
+  padding: 12px 26px;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(12, 28, 46, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-modal-save:hover {
+  background: linear-gradient(135deg, #132a40 0%, #203e5c 100%);
+  border-color: #f5e6c8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(12, 28, 46, 0.35);
+  color: #ffffff;
+}
+
+.btn-modal-save:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(12, 28, 46, 0.2);
+}
+
+.btn-modal-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #475569;
+  border: 1.5px solid #cbd5e1;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-modal-cancel:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #94a3b8;
 }
 
 /* ── Order History in Detail Modal ────────────────────────────────────────── */
