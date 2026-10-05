@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useCustomers } from '../hooks/useCustomers';
 import { 
   buildWhatsAppLink, 
   checkBirthdayStatus,
   pickContactFromPhone,
-  pastePhoneFromClipboard
+  pastePhoneFromClipboard,
+  parseVCard
 } from '../lib/customerService';
 import { 
   Users, 
@@ -37,7 +38,9 @@ import {
   BookUser,
   Smartphone,
   ClipboardPaste,
-  Info
+  Info,
+  FileUp,
+  Apple
 } from 'lucide-react';
 import './Customers.css';
 
@@ -232,6 +235,8 @@ export default function Customers() {
     }
   };
 
+  const vcardInputRef = useRef(null);
+
   const handlePastePhone = async () => {
     const res = await pastePhoneFromClipboard();
     if (res.success && res.phone) {
@@ -240,6 +245,34 @@ export default function Customers() {
     } else {
       showToast('ℹ️ Copia primero un número de tu agenda o WhatsApp');
     }
+  };
+
+  const handleVCardFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result;
+      if (typeof content === 'string') {
+        const parsed = parseVCard(content);
+        if (parsed.phone || parsed.name || parsed.email) {
+          setFormData(prev => ({
+            ...prev,
+            phone: parsed.phone || prev.phone,
+            name: (!prev.name.trim() || prev.name === 'Nuevo Cliente') && parsed.name ? parsed.name : (parsed.name || prev.name),
+            email: !prev.email && parsed.email ? parsed.email : prev.email,
+            address: !prev.address && parsed.address ? parsed.address : prev.address
+          }));
+          showToast(`📇 Contacto importado: ${parsed.name || parsed.phone}`);
+          setShowAgendaGuideModal(false);
+        } else {
+          showToast('⚠️ No se detectaron números en la tarjeta');
+        }
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   // ── Abrir WhatsApp ────────────────────────────────────────────────────────
@@ -856,6 +889,9 @@ export default function Customers() {
                     <input 
                       type="text" 
                       required
+                      name="name"
+                      autoComplete="name"
+                      id="customer-name"
                       placeholder="Ej: Alina"
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -878,6 +914,9 @@ export default function Customers() {
                     <div className="phone-input-combo">
                       <input 
                         type="tel" 
+                        name="tel"
+                        autoComplete="tel"
+                        id="customer-tel"
                         placeholder="Ej: 612345678"
                         value={formData.phone}
                         onChange={e => setFormData({ ...formData, phone: e.target.value })}
@@ -902,6 +941,9 @@ export default function Customers() {
                     <label>Email</label>
                     <input 
                       type="email" 
+                      name="email"
+                      autoComplete="email"
+                      id="customer-email"
                       placeholder="cliente@ejemplo.com"
                       value={formData.email}
                       onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -1007,14 +1049,23 @@ export default function Customers() {
         </div>
       )}
 
+      {/* Hidden file input for vCard (.vcf) imports */}
+      <input 
+        type="file" 
+        ref={vcardInputRef} 
+        accept=".vcf,text/vcard" 
+        style={{ display: 'none' }} 
+        onChange={handleVCardFile} 
+      />
+
       {/* ── MODAL GUÍA AGENDA DE CONTACTOS (FALLBACK & PASTE) ─────────────── */}
       {showAgendaGuideModal && (
         <div className="modal-backdrop-custom" onClick={() => setShowAgendaGuideModal(false)}>
-          <div className="modal-content-custom" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content-custom" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header-custom" style={{ background: '#0c1c2e', color: '#f5e6c8' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <BookUser size={22} color="#f5e6c8" />
-                <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#f5e6c8' }}>Agenda de Contactos del Teléfono</h2>
+                <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#f5e6c8' }}>Acceso a Contactos del Móvil</h2>
               </div>
               <button className="btn-modal-close" onClick={() => setShowAgendaGuideModal(false)}>
                 <X size={20} />
@@ -1022,36 +1073,75 @@ export default function Customers() {
             </div>
 
             <div className="modal-body-custom" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '14px', borderRadius: '12px', display: 'flex', gap: '10px' }}>
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '12px 14px', borderRadius: '12px', display: 'flex', gap: '10px' }}>
                 <Info size={20} color="#0284c7" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div style={{ fontSize: '0.86rem', color: '#0369a1', lineHeight: 1.4 }}>
-                  <strong>Compatibilidad de la Agenda:</strong><br />
-                  La apertura directa de la agenda del teléfono funciona en navegadores con soporte Web Contact Picker (Google Chrome en Android). En Safari (iPhone) o Mac, Apple no permite acceso web directo por privacidad.
+                <div style={{ fontSize: '0.84rem', color: '#0369a1', lineHeight: 1.4 }}>
+                  <strong>Política de Seguridad de Navegadores Web:</strong><br />
+                  La apertura automática de la agenda solo está permitida por <strong>Google Chrome en Android</strong>. En <strong>iPhone (iOS Safari)</strong> o Mac/PC, Apple y los navegadores web bloquean el acceso directo a la libreta privada de contactos por privacidad a cualquier página web.
                 </div>
               </div>
 
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '14px', borderRadius: '12px' }}>
                 <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#1e293b', marginBottom: '8px' }}>
-                  📲 Cómo añadirlo en 1 segundo en iPhone / PC:
+                  ⚡ Opciones ultrarrápidas disponibles:
                 </div>
-                <ol style={{ paddingLeft: '18px', margin: 0, fontSize: '0.84rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <li>Abre tu app de <strong>Contactos</strong> o un chat de <strong>WhatsApp</strong>.</li>
-                  <li>Copia el número del cliente (<em>Copiar</em>).</li>
-                  <li>Toca el botón azul de abajo: <strong>Pegar Número</strong>.</li>
-                </ol>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {/* Opción 1: Pegar Portapapeles */}
+                  <button
+                    type="button"
+                    className="btn-modal-save"
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px', 
+                      background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', 
+                      color: '#fff', 
+                      border: 'none', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '8px',
+                      fontSize: '0.9rem',
+                      borderRadius: '10px'
+                    }}
+                    onClick={async () => {
+                      await handlePastePhone();
+                      setShowAgendaGuideModal(false);
+                    }}
+                  >
+                    <ClipboardPaste size={18} /> 1. Pegar Número desde Portapapeles
+                  </button>
+
+                  {/* Opción 2: Importar archivo vCard */}
+                  <button
+                    type="button"
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px', 
+                      background: '#ffffff', 
+                      color: '#0c1c2e', 
+                      border: '1px solid #cbd5e1', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '8px',
+                      fontSize: '0.9rem',
+                      fontWeight: '700',
+                      borderRadius: '10px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      vcardInputRef.current?.click();
+                    }}
+                  >
+                    <FileUp size={18} color="#0284c7" /> 2. Importar Tarjeta de Contacto (.vcf)
+                  </button>
+                </div>
               </div>
 
-              <button
-                type="button"
-                className="btn-modal-save"
-                style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                onClick={async () => {
-                  await handlePastePhone();
-                  setShowAgendaGuideModal(false);
-                }}
-              >
-                <ClipboardPaste size={18} /> Pegar Número desde Portapapeles
-              </button>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', background: '#f1f5f9', padding: '10px 12px', borderRadius: '8px' }}>
+                💡 <strong>Consejo en iPhone:</strong> Al tocar la casilla de teléfono, el propio teclado de Apple suele mostrar una sugerencia con tus contactos recientes en la barra superior.
+              </div>
             </div>
 
             <div className="modal-footer-custom">
@@ -1061,7 +1151,7 @@ export default function Customers() {
                 style={{ width: 'auto', padding: '8px 18px' }}
                 onClick={() => setShowAgendaGuideModal(false)}
               >
-                Entendido
+                Cerrar
               </button>
             </div>
           </div>

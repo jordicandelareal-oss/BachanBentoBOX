@@ -882,3 +882,46 @@ export async function pastePhoneFromClipboard() {
   }
   return { success: false };
 }
+
+// ── Parser de tarjetas vCard (.vcf) para iPhone / Contactos ──────────────────
+export function parseVCard(vcardText) {
+  const result = { name: '', phone: '', email: '', address: '' };
+  if (!vcardText) return result;
+
+  const lines = vcardText.split(/\r\n|\r|\n/);
+  for (let line of lines) {
+    const trimmed = line.trim();
+    const upper = trimmed.toUpperCase();
+    if (upper.startsWith('FN:') || upper.startsWith('FN;')) {
+      const parts = trimmed.split(':');
+      if (parts.length > 1 && !result.name) result.name = parts.slice(1).join(':').trim();
+    } else if (!result.name && (upper.startsWith('N:') || upper.startsWith('N;'))) {
+      const parts = trimmed.split(':');
+      if (parts.length > 1) {
+        const nameParts = parts.slice(1).join(':').split(';');
+        result.name = nameParts.filter(Boolean).reverse().join(' ').trim();
+      }
+    } else if (upper.startsWith('TEL') && !result.phone) {
+      const parts = trimmed.split(':');
+      if (parts.length > 1) {
+        const rawPhone = parts.slice(1).join(':').trim();
+        const hasPlus = rawPhone.startsWith('+');
+        const digits = rawPhone.replace(/\D/g, '');
+        result.phone = hasPlus ? `+${digits}` : digits;
+      }
+    } else if (upper.startsWith('EMAIL') && !result.email) {
+      const parts = trimmed.split(':');
+      if (parts.length > 1) {
+        result.email = parts.slice(1).join(':').trim();
+      }
+    } else if (upper.startsWith('ADR') && !result.address) {
+      const parts = trimmed.split(':');
+      if (parts.length > 1) {
+        const adrParts = parts.slice(1).join(':').split(';');
+        result.address = adrParts.filter(Boolean).join(', ').trim();
+      }
+    }
+  }
+  return result;
+}
+
