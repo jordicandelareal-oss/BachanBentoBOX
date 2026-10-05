@@ -637,6 +637,10 @@ export default function POS() {
     console.log('📊 TPV: Total productos en memoria:', products.length);
   }, [activeCategory, products]);
 
+  const activeCategories = (categories || [])
+    .filter(c => c.is_active)
+    .sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0));
+
   const filteredProducts = products.filter(p => String(p.menu_category_id) === String(activeCategory));
 
   const gridItems = Array(16).fill(null);
@@ -681,7 +685,7 @@ export default function POS() {
           </div>
           <nav className="pos-category-nav">
              <div className="pos-category-tabs hidden-mobile">
-               {categories.filter(c => c.is_active).map(cat => (
+               {activeCategories.map(cat => (
                  <button
                    key={cat.id}
                    onClick={() => setActiveCategory(cat.id)}
@@ -707,7 +711,7 @@ export default function POS() {
                   <>
                     <div className="pos-dropdown-backdrop" onClick={() => setShowCategoryDropdown(false)}></div>
                     <div className="pos-dropdown-menu">
-                      {categories.filter(c => c.is_active).map(cat => (
+                      {activeCategories.map(cat => (
                         <button
                           key={cat.id}
                           onClick={() => { setActiveCategory(cat.id); setShowCategoryDropdown(false); }}

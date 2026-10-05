@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Settings, Folder, Tag, ChefHat, Plus, 
   Trash2, Edit2, Check, X, Loader2, ArrowLeft,
-  ChevronRight, BookOpen, ChevronUp, ChevronDown
+  ChevronRight, BookOpen, ChevronUp, ChevronDown, Utensils
 } from 'lucide-react';
 
 import { useCatalogSettings } from '../hooks/useCatalogSettings';
@@ -14,7 +14,7 @@ import '../styles/Common.css';
 import './CatalogSettings.css';
 
 const TABS = [
-  { id: 'menu', label: 'Menú: Categorías', icon: BookOpen, table: 'menu_categories' },
+  { id: 'menu', label: 'Categorías TPV', icon: BookOpen, table: 'menu_categories' },
   { id: 'cats', label: 'Insumos: Categorías', icon: Folder, table: 'categories' },
   { id: 'subs', label: 'Insumos: Subcategorías', icon: Tag, table: 'subcategories' },
   { id: 'preps', label: 'Elaboraciones: Categorías', icon: ChefHat, table: 'preparation_categories' }
@@ -35,7 +35,7 @@ export default function CatalogSettings() {
     reorderCategories: reorderMenuCategories
   } = useMenuCategories();
   
-  const [activeTab, setActiveTab] = useState('cats');
+  const [activeTab, setActiveTab] = useState('menu');
   const [newItemName, setNewItemName] = useState('');
   const [selectedParentId, setSelectedParentId] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -63,34 +63,38 @@ export default function CatalogSettings() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!newItemName.trim()) return;
+    const trimmed = newItemName.trim();
+    if (!trimmed) return;
     if (activeTab === 'subs' && !selectedParentId) return alert('Selecciona una categoría padre');
 
     setIsActionLoading(true);
     let result;
     if (activeTab === 'menu') {
-      result = await addMenuCategory(newItemName);
+      result = await addMenuCategory(trimmed);
     } else {
       const payload = activeTab === 'subs' 
-        ? { name: newItemName, category_id: selectedParentId }
-        : activeTab === 'preps' ? { Name: newItemName } : { name: newItemName };
+        ? { name: trimmed, category_id: selectedParentId }
+        : activeTab === 'preps' ? { Name: trimmed } : { name: trimmed };
       
       result = await addItem(currentTab.table, payload);
     }
 
-    if (result.success) setNewItemName('');
+    if (result && result.success) {
+      setNewItemName('');
+    }
     setIsActionLoading(false);
   };
 
   const handleUpdate = async (id) => {
-    if (!editValue.trim()) return setEditingId(null);
+    const trimmed = editValue.trim();
+    if (!trimmed) return setEditingId(null);
     setIsActionLoading(true);
     if (activeTab === 'menu') {
-      const result = await updateMenuCategory(id, { name: editValue });
+      const result = await updateMenuCategory(id, { name: trimmed });
       if (result.success) setEditingId(null);
     } else {
       const fieldName = activeTab === 'preps' ? 'Name' : 'name';
-      const result = await updateItem(currentTab.table, id, { [fieldName]: editValue });
+      const result = await updateItem(currentTab.table, id, { [fieldName]: trimmed });
       if (result.success) setEditingId(null);
     }
     setIsActionLoading(false);
@@ -110,21 +114,21 @@ export default function CatalogSettings() {
 
   const handleMoveMenuCategory = async (index, direction) => {
     if (activeTab !== 'menu') return;
-    const cats = [...menuCategories];
+    const cats = [...(menuCategories || [])];
     const newIndex = index + direction;
     if (newIndex < 0 || newIndex >= cats.length) return;
     
-    // Swap
-    const temp = cats[index];
-    cats[index] = cats[newIndex];
-    cats[newIndex] = temp;
+    // Swap positions
+    const itemToMove = cats[index];
+    cats.splice(index, 1);
+    cats.splice(newIndex, 0, itemToMove);
 
-    setIsActionLoading(true);
     await reorderMenuCategories(cats);
-    setIsActionLoading(false);
   };
 
   if (error) return <div className="page-container">Error: {error}</div>;
+
+  const currentItems = getItems();
 
   return (
     <div className="page-container fade-in">
@@ -134,7 +138,7 @@ export default function CatalogSettings() {
             <ArrowLeft size={16} /> Volver
           </button>
           <h1 className="page-title">Gestión de Categorías</h1>
-          <p className="page-subtitle">Personaliza las opciones y filtros de tu catálogo</p>
+          <p className="page-subtitle">Personaliza las opciones y filtros de tu catálogo y TPV</p>
         </div>
       </div>
 
@@ -148,7 +152,7 @@ export default function CatalogSettings() {
                 className={`category-tab ${activeTab === tab.id ? 'active' : ''}`}
                 onClick={() => { setActiveTab(tab.id); setEditingId(null); }}
               >
-                <Icon size={14} className="mr-2 inline" />
+                <Icon size={16} className="mr-2 inline" />
                 {tab.label}
               </button>
             );
@@ -172,7 +176,7 @@ export default function CatalogSettings() {
         )}
 
         <div className="premium-form-card">
-          <form onSubmit={handleAdd} className="flex gap-2 mb-8">
+          <form onSubmit={handleAdd} className="flex gap-2 mb-6">
             <input 
               className="form-input-premium flex-1"
               placeholder={`Nueva ${activeTab === 'subs' ? 'subcategoría' : 'categoría'}...`}
@@ -180,32 +184,36 @@ export default function CatalogSettings() {
               onChange={e => setNewItemName(e.target.value)}
               disabled={isActionLoading}
             />
-            <button className="btn-icon-main" type="submit" disabled={isActionLoading || !newItemName.trim()}>
+            <button className="btn-icon-main" type="submit" disabled={isActionLoading || !newItemName.trim()} title="Añadir categoría">
               {isActionLoading ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
             </button>
           </form>
 
-          {loading ? (
+          {(loading || (activeTab === 'menu' && menuLoading && currentItems.length === 0)) ? (
              <div className="flex justify-center py-12"><Loader2 className="animate-spin text-slate-200" size={48} /></div>
           ) : (
             <div className="settings-list">
-              {getItems().map(item => (
-                <div key={item.id} className="settings-item flex justify-between">
+              {currentItems.map((item, idx) => (
+                <div key={item.id || idx} className="settings-item">
                   {editingId === item.id ? (
                     <div className="flex flex-1 gap-2 items-center">
                       <input 
                         autoFocus
-                        className="form-input-premium py-1 text-sm bg-white"
+                        className="form-input-premium py-1 text-sm bg-white flex-1"
                         value={editValue}
                         onChange={e => setEditValue(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleUpdate(item.id)}
                       />
-                      <button type="button" onClick={() => handleUpdate(item.id)} className="text-emerald-500 p-2"><Check size={18} /></button>
-                      <button type="button" onClick={() => setEditingId(null)} className="text-slate-300 p-2"><X size={18} /></button>
+                      <button type="button" onClick={() => handleUpdate(item.id)} className="settings-action-btn check" title="Guardar">
+                        <Check size={18} />
+                      </button>
+                      <button type="button" onClick={() => setEditingId(null)} className="settings-action-btn cancel" title="Cancelar">
+                        <X size={18} />
+                      </button>
                     </div>
                   ) : (
                     <>
-                      <div className="flex-1 flex items-center">
+                      <div className="settings-item-info">
                         <span className="settings-item-name">{item.name || item.Name}</span>
                         {activeTab === 'subs' && !selectedParentId && (
                           <span className="settings-item-parent">
@@ -213,27 +221,31 @@ export default function CatalogSettings() {
                           </span>
                         )}
                         {activeTab === 'menu' && (
-                          <span className="text-[10px] font-black uppercase bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full ml-3 tracking-widest leading-none flex items-center h-5">Orden: {item.sort_order}</span>
+                          <span className="settings-order-badge">
+                            ORDEN: {idx + 1}
+                          </span>
                         )}
                       </div>
-                      <div className="flex gap-1 items-center">
+                      <div className="settings-item-actions">
                         {activeTab === 'menu' && (
-                          <div className="flex flex-col mr-2 bg-slate-50 rounded-lg overflow-hidden border border-slate-100">
+                          <div className="category-order-controls">
                             <button 
                               type="button" 
-                              onClick={() => handleMoveMenuCategory(getItems().indexOf(item), -1)}
-                              disabled={getItems().indexOf(item) === 0}
-                              className="px-1.5 py-0.5 text-slate-400 hover:text-emerald-500 hover:bg-slate-100 disabled:opacity-30"
+                              onClick={() => handleMoveMenuCategory(idx, -1)}
+                              disabled={idx === 0}
+                              className="btn-order-arrow"
+                              title="Mover arriba"
                             >
-                              <ChevronUp size={14} />
+                              <ChevronUp size={16} />
                             </button>
                             <button 
                               type="button" 
-                              onClick={() => handleMoveMenuCategory(getItems().indexOf(item), 1)}
-                              disabled={getItems().indexOf(item) === getItems().length - 1}
-                              className="px-1.5 py-0.5 text-slate-400 hover:text-emerald-500 hover:bg-slate-100 disabled:opacity-30"
+                              onClick={() => handleMoveMenuCategory(idx, 1)}
+                              disabled={idx === currentItems.length - 1}
+                              className="btn-order-arrow"
+                              title="Mover abajo"
                             >
-                              <ChevronDown size={14} />
+                              <ChevronDown size={16} />
                             </button>
                           </div>
                         )}
@@ -241,6 +253,7 @@ export default function CatalogSettings() {
                           type="button"
                           onClick={() => { setEditingId(item.id); setEditValue(item.name || item.Name); }}
                           className="settings-action-btn edit"
+                          title="Editar nombre"
                         >
                           <Edit2 size={16} />
                         </button>
@@ -248,6 +261,7 @@ export default function CatalogSettings() {
                           type="button"
                           onClick={() => setConfirmDelete({ id: item.id, table: currentTab.table, name: item.name || item.Name })}
                           className="settings-action-btn delete"
+                          title="Eliminar"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -256,7 +270,7 @@ export default function CatalogSettings() {
                   )}
                 </div>
               ))}
-              {getItems().length === 0 && (
+              {currentItems.length === 0 && (
                 <div className="text-center py-8 text-slate-400 italic text-sm">No hay registros</div>
               )}
             </div>
