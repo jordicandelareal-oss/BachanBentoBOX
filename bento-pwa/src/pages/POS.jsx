@@ -675,8 +675,8 @@ export default function POS() {
                 <h1 className="pos-logo-text">BaChan <span className="pos-logo-accent">POS</span></h1>
              </div>
              <div className="pos-header-actions">
-                <button onClick={() => fetchProducts()} className="pos-icon-btn"><RefreshCw size={20} className={loading ? 'animate-spin' : ''}/></button>
-                <button onClick={() => setShowSettings(true)} className="pos-icon-btn"><Settings size={20}/></button>
+                <button onClick={() => fetchProducts()} className="pos-icon-btn" title="Refrescar"><RefreshCw size={20} className={loading ? 'animate-spin' : ''}/></button>
+                <button onClick={() => setShowSettings(true)} className="pos-icon-btn" title="Ajustes"><Settings size={20}/></button>
                 <button onClick={() => window.location.href='/'} className="btn-dashboard">
                    <LayoutGrid size={18}/>
                    <span>Inicio</span>
@@ -684,52 +684,25 @@ export default function POS() {
              </div>
           </div>
           <nav className="pos-category-nav">
-             <div className="pos-category-tabs hidden-mobile">
+             <div className="pos-category-tabs">
                {activeCategories.map(cat => (
                  <button
                    key={cat.id}
                    onClick={() => setActiveCategory(cat.id)}
-                   className={`pos-category-tab ${activeCategory === cat.id ? 'active' : ''}`}
+                   className={`pos-category-tab ${String(activeCategory) === String(cat.id) ? 'active' : ''}`}
                  >
                     {cat.name}
                  </button>
                ))}
              </div>
              
-             {/* Dropdown Mobile */}
-             <div className="pos-category-dropdown-mobile visible-mobile">
-                <button 
-                  className={`pos-category-tab active pos-dropdown-trigger`}
-                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                >
-                  <span className="truncate" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {categories.find(c => String(c.id) === String(activeCategory))?.name || 'Categorías'}
-                  </span>
-                  <ChevronDown size={18} />
-                </button>
-                {showCategoryDropdown && (
-                  <>
-                    <div className="pos-dropdown-backdrop" onClick={() => setShowCategoryDropdown(false)}></div>
-                    <div className="pos-dropdown-menu">
-                      {activeCategories.map(cat => (
-                        <button
-                          key={cat.id}
-                          onClick={() => { setActiveCategory(cat.id); setShowCategoryDropdown(false); }}
-                          className={`pos-dropdown-item ${activeCategory === cat.id ? 'active' : ''}`}
-                        >
-                           {cat.name}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-             </div>
              <button 
                onClick={handleOpenOrdersClick} 
                className={`pos-open-orders-btn ${openOrdersList.length > 0 ? 'has-orders' : ''}`}
+               title="Cuentas Abiertas"
              >
                 <LayoutGrid size={16}/>
-                <span className="pos-label" style={{ color: 'inherit', marginBottom: 0 }}>Cuentas Abiertas</span>
+                <span className="pos-label" style={{ color: 'inherit', marginBottom: 0 }}>Cuentas</span>
                 {openOrdersList.length > 0 && <div className="pos-order-count-badge">{openOrdersList.length}</div>}
              </button>
           </nav>
