@@ -71,9 +71,9 @@ class ErrorBoundary extends Component {
 function App() {
   const [showSplash, setShowSplash] = useState(true);
 
-  // 🚨 AUTO VERSION SYNC & CACHE FLUSH (v2.15.4)
+  // 🚨 AUTO VERSION SYNC & CACHE FLUSH (v2.15.5)
   useEffect(() => {
-    const CURRENT_VERSION = '2.15.4';
+    const CURRENT_VERSION = '2.15.5';
     const lastVersion = localStorage.getItem('bachan_app_version');
     
     if (lastVersion !== CURRENT_VERSION) {

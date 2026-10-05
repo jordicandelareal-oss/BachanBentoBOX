@@ -675,6 +675,15 @@ export default function POS() {
                 <h1 className="pos-logo-text">BaChan <span className="pos-logo-accent">POS</span></h1>
              </div>
              <div className="pos-header-actions">
+                <button 
+                  onClick={handleOpenOrdersClick} 
+                  className={`pos-open-orders-btn pos-open-orders-desktop ${openOrdersList.length > 0 ? 'has-orders' : ''}`}
+                  title="Ver Cuentas Abiertas"
+                >
+                   <LayoutGrid size={16}/>
+                   <span>Cuentas Abiertas</span>
+                   {openOrdersList.length > 0 && <div className="pos-order-count-badge">{openOrdersList.length}</div>}
+                </button>
                 <button onClick={() => fetchProducts()} className="pos-icon-btn" title="Refrescar"><RefreshCw size={20} className={loading ? 'animate-spin' : ''}/></button>
                 <button onClick={() => setShowSettings(true)} className="pos-icon-btn" title="Ajustes"><Settings size={20}/></button>
                 <button onClick={() => window.location.href='/'} className="btn-dashboard">
@@ -696,13 +705,13 @@ export default function POS() {
                ))}
              </div>
              
+             {/* Solo Móvil: Botón compacto para cuentas abiertas */}
              <button 
                onClick={handleOpenOrdersClick} 
-               className={`pos-open-orders-btn ${openOrdersList.length > 0 ? 'has-orders' : ''}`}
+               className={`pos-open-orders-btn pos-open-orders-mobile ${openOrdersList.length > 0 ? 'has-orders' : ''}`}
                title="Cuentas Abiertas"
              >
                 <LayoutGrid size={16}/>
-                <span className="pos-label" style={{ color: 'inherit', marginBottom: 0 }}>Cuentas</span>
                 {openOrdersList.length > 0 && <div className="pos-order-count-badge">{openOrdersList.length}</div>}
              </button>
           </nav>

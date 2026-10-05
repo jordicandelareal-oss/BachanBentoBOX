@@ -209,17 +209,28 @@
   transition: all 0.2s;
   position: relative;
   font-weight: 700;
+  font-size: 0.82rem;
   flex-shrink: 0;
 }
 
-@media (max-width: 640px) {
-  .pos-open-orders-btn {
+.pos-open-orders-desktop {
+  display: flex !important;
+  margin-right: 4px;
+}
+
+.pos-open-orders-mobile {
+  display: none !important;
+}
+
+@media (max-width: 1024px) {
+  .pos-open-orders-desktop {
+    display: none !important;
+  }
+  .pos-open-orders-mobile {
+    display: flex !important;
     padding: 6px 10px;
     gap: 4px;
     border-radius: 10px;
-  }
-  .pos-open-orders-btn .pos-label {
-    display: none;
   }
 }
 
