@@ -132,7 +132,7 @@ export const PROMO_PRESETS = [
 
 export const DEFAULT_WEEKLY_MENU = {
   headerTitle: '¡PEDIDOS ABIERTOS PARA BENTOS!',
-  headerSubtitle: '¡NUESTROS PRIMEROS PLATOS AUTÉNTICOS, HECHOS CON AMOR POR LA ABUELA!',
+  headerSubtitle: 'Platos auténticos hechos con amor por la abuela',
   headerTagline: 'En Bachan Bentobox, ¡haz tu pedido hoy! Deliciosos. Tradicionales. Hechos a mano.',
   showPromoBanner: false,
   promoBannerTitle: '🎓 PROMOCIÓN ESPECIAL DÍA DEL ESTUDIANTE',
