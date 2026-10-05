@@ -95,6 +95,7 @@ export default function Flyers() {
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [showWhatsAppDesktopModal, setShowWhatsAppDesktopModal] = useState(false);
+  const [mobileTab, setMobileTab] = useState('editor'); // 'editor' | 'preview'
   const [toastMessage, setToastMessage] = useState('');
 
   const currentTheme = FLYER_THEMES.find(t => t.id === selectedThemeId) || FLYER_THEMES[0];
@@ -338,11 +339,31 @@ export default function Flyers() {
         </button>
       </section>
 
+      {/* ── SELECTOR DE PESTAÑAS MÓVIL (Configurador vs Vista Previa) ─────── */}
+      <div className="mobile-flyer-nav-tabs">
+        <button
+          type="button"
+          className={`mobile-tab-btn ${mobileTab === 'editor' ? 'active' : ''}`}
+          onClick={() => setMobileTab('editor')}
+        >
+          <Sliders size={16} />
+          <span>Configurador ({weeklyData.dishes.length} platos)</span>
+        </button>
+        <button
+          type="button"
+          className={`mobile-tab-btn ${mobileTab === 'preview' ? 'active' : ''}`}
+          onClick={() => setMobileTab('preview')}
+        >
+          <Sparkles size={16} />
+          <span>Ver Flyer & Enviar</span>
+        </button>
+      </div>
+
       {/* ── MAIN GENERATOR SPLIT ───────────────────────────────────────────── */}
       <div className="flyers-layout-container">
 
         {/* ── COLUMNA IZQUIERDA: CONFIGURADOR ───────────────────────────────── */}
-        <div className="flyer-editor-panel">
+        <div className={`flyer-editor-panel ${mobileTab === 'preview' ? 'mobile-hidden' : ''}`}>
           
           {/* Selector de Tema Visual */}
           <div>
@@ -673,10 +694,25 @@ export default function Flyers() {
             </div>
           </div>
 
+          {/* Botón rápido móvil para ver el flyer */}
+          <div className="mobile-quick-preview-bar">
+            <button 
+              type="button" 
+              className="btn-mobile-preview-jump"
+              onClick={() => {
+                setMobileTab('preview');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <Sparkles size={18} />
+              <span>Ver Flyer & WhatsApp ({weeklyData.dishes.length} platos) 👉</span>
+            </button>
+          </div>
+
         </div>
 
         {/* ── COLUMNA DERECHA: LIVE CANVAS PREVIEW & EXPORT ─────────────────── */}
-        <div className="flyer-preview-panel">
+        <div className={`flyer-preview-panel ${mobileTab === 'editor' ? 'mobile-hidden' : ''}`}>
           
           {/* Botones de acción rápida */}
           <div className="preview-actions-bar">
